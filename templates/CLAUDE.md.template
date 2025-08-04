@@ -1,0 +1,225 @@
+# Project Context for Claude
+
+## Project Overview
+This is a [PROJECT_TYPE] project built with [TECHNOLOGIES].
+
+Brief description of what this project does and its main purpose.
+
+## Setup Instructions
+```bash
+# Clone and setup
+git clone [REPOSITORY_URL]
+cd [PROJECT_NAME]
+
+# Install dependencies
+[PACKAGE_MANAGER] install
+
+# Configuration
+cp .env.example .env
+# Edit .env with your configuration
+
+# Start development
+[PACKAGE_MANAGER] run dev
+```
+
+## Development Commands
+- `[PACKAGE_MANAGER] run dev` - Start development server
+- `[PACKAGE_MANAGER] run build` - Build for production
+- `[PACKAGE_MANAGER] run test` - Run test suite
+- `[PACKAGE_MANAGER] run lint` - Lint code
+- `[PACKAGE_MANAGER] run format` - Format code
+
+## Architecture Notes
+### Technology Stack
+- **Frontend**: [FRONTEND_TECH]
+- **Backend**: [BACKEND_TECH]
+- **Database**: [DATABASE_TECH]
+- **Deployment**: Fly.io
+
+### Key Design Decisions
+- [DECISION_1]: [RATIONALE]
+- [DECISION_2]: [RATIONALE]
+
+### Directory Structure
+```
+src/
+├── components/     # Reusable UI components
+├── pages/         # Application pages/routes
+├── services/      # API and business logic
+├── utils/         # Helper functions
+├── types/         # TypeScript type definitions
+└── tests/         # Test files
+```
+
+## Development Workflow
+1. **Feature Development**
+   - Create feature branch: `git checkout -b feature/description`
+   - Make changes and test locally
+   - Run linting and tests: `npm run test && npm run lint`
+   - Commit with conventional commit format: `feat: add new feature`
+
+2. **Code Review**
+   - Push branch and create pull request
+   - Ensure all CI checks pass
+   - Get review from team member
+
+3. **Deployment**
+   - Merge to main branch
+   - Automatic deployment via CI/CD
+   - Monitor application health
+
+## Important Files
+- `src/index.[js|ts]` - Main application entry point
+- `package.json` - Dependencies and scripts
+- `.env.example` - Environment variables template
+- `README.md` - Project documentation
+- `Dockerfile` - Container configuration
+- `fly.toml` - Fly.io deployment configuration
+
+## API Documentation
+### Base URL
+- Development: `http://localhost:[PORT]`
+- Production: `https://[APP_NAME].fly.dev`
+
+### Key Endpoints
+- `GET /api/health` - Health check
+- `GET /api/[RESOURCE]` - List [RESOURCE]
+- `POST /api/[RESOURCE]` - Create [RESOURCE]
+- `PUT /api/[RESOURCE]/:id` - Update [RESOURCE]
+- `DELETE /api/[RESOURCE]/:id` - Delete [RESOURCE]
+
+## Database Schema
+### Main Tables
+- `users` - User accounts and authentication
+- `[MAIN_ENTITY]` - [DESCRIPTION]
+- `[SECONDARY_ENTITY]` - [DESCRIPTION]
+
+### Relationships
+- Users have many [ENTITIES]
+- [ENTITY] belongs to User
+
+## Testing Strategy
+- **Unit Tests**: Test individual functions and components
+- **Integration Tests**: Test API endpoints and database interactions
+- **End-to-End Tests**: Test complete user workflows
+
+### Test Commands
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run specific test file
+npm test -- --testNamePattern="[PATTERN]"
+```
+
+## Environment Variables
+### Required
+- `DATABASE_URL` - Database connection string
+- `JWT_SECRET` - Secret for JWT token signing
+- `API_KEY` - External API key
+
+### Optional
+- `LOG_LEVEL` - Logging level (debug, info, warn, error)
+- `CACHE_TTL` - Cache time-to-live in seconds
+- `MAX_FILE_SIZE` - Maximum upload file size
+
+## Deployment Notes
+### Fly.io Configuration
+- Region: [REGION]
+- VM Size: [VM_SIZE]
+- Volume Size: [VOLUME_SIZE]GB
+- Auto-scaling: [ENABLED/DISABLED]
+
+### Environment-Specific Settings
+- **Development**: Debug logging, hot reload
+- **Staging**: Production-like, test data
+- **Production**: Optimized, real data
+
+## Common Issues & Solutions
+### Issue: [COMMON_PROBLEM]
+**Symptoms**: [SYMPTOMS]
+**Solution**: [SOLUTION_STEPS]
+
+### Issue: Database Connection Fails
+**Symptoms**: Connection timeout or authentication errors
+**Solution**:
+1. Check DATABASE_URL format
+2. Verify network connectivity
+3. Confirm database is running
+4. Check firewall settings
+
+### Issue: Build Fails
+**Symptoms**: Build process stops with errors
+**Solution**:
+1. Clear node_modules: `rm -rf node_modules && npm install`
+2. Check Node.js version compatibility
+3. Verify all dependencies are installed
+4. Check for syntax errors
+
+## Performance Considerations
+- **Database**: Use indexes on frequently queried columns
+- **API**: Implement caching for expensive operations
+- **Frontend**: Lazy load components and images
+- **Monitoring**: Use APM tools to track performance
+
+## Security Guidelines
+- **Authentication**: Use strong JWT secrets
+- **Input Validation**: Validate all user inputs
+- **SQL Injection**: Use parameterized queries
+- **CORS**: Configure appropriate CORS policies
+- **HTTPS**: Always use HTTPS in production
+
+## Monitoring & Logging
+### Key Metrics
+- Response time
+- Error rate
+- Database query performance
+- Memory usage
+- CPU usage
+
+### Log Levels
+- **ERROR**: Application errors requiring attention
+- **WARN**: Potential issues or deprecated usage
+- **INFO**: General application flow
+- **DEBUG**: Detailed information for debugging
+
+## Team Guidelines
+### Code Style
+- Use [LINTER] for consistent formatting
+- Follow [STYLE_GUIDE] conventions
+- Write self-documenting code
+- Add comments for complex business logic
+
+### Git Workflow
+- Use conventional commits: `type(scope): description`
+- Keep commits atomic and focused
+- Write descriptive commit messages
+- Rebase feature branches before merging
+
+### Code Review
+- Review for functionality, not just syntax
+- Check test coverage
+- Verify documentation updates
+- Consider performance implications
+
+## Resources & Links
+- **Documentation**: [DOCS_URL]
+- **API Reference**: [API_DOCS_URL]
+- **Design System**: [DESIGN_SYSTEM_URL]
+- **Issue Tracker**: [ISSUES_URL]
+- **Deployment Dashboard**: [DEPLOYMENT_URL]
+
+## Contact Information
+- **Tech Lead**: [NAME] ([EMAIL])
+- **DevOps**: [NAME] ([EMAIL])
+- **Product Owner**: [NAME] ([EMAIL])
+
+---
+
+*This document should be kept up-to-date as the project evolves. Update it whenever you make significant architectural changes or add new features.*

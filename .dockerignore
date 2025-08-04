@@ -1,0 +1,217 @@
+# Security - Exclude all sensitive files from build context
+*.key
+*.pem
+*.p12
+*.pfx
+*.env
+*.env.*
+secrets/
+keys/
+certs/
+*.certificate
+*.cert
+
+# SSH Keys and Authentication
+id_rsa*
+id_ed25519*
+known_hosts*
+authorized_keys*
+ssh_host_*
+*.pub
+
+# Anthropic API Keys and Claude credentials
+.anthropic
+.claude/
+claude-credentials*
+anthropic-key*
+api-keys*
+
+# Fly.io Secrets and Local Config
+fly-secrets*
+.fly/
+flyctl.toml.local
+
+# Git repository (not needed in container)
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# Documentation and README files (not needed in runtime)
+README.md
+SETUP.md
+docs/
+*.md
+!CLAUDE.md
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim/
+.netrwhist
+
+# Local Development Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node.js Development Files
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+.pnp.*
+.yarn/
+package-lock.json
+yarn.lock
+
+# Python Development Files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+venv/
+env/
+ENV/
+
+# Logs and Temporary Files
+*.log
+logs/
+log/
+*.out
+*.err
+crash.log*
+flyctl-debug*
+*.bak
+*.backup
+*.tmp
+*.temp
+temp/
+tmp/
+*~
+*.orig
+*.rej
+.merge_file_*
+
+# Database Files (exclude from build)
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Local Backup and Volume Data
+workspace-backup*
+volume-snapshot*
+*.vol
+mnt/
+volumes/
+workspace/
+
+# Local Configuration Files
+config.local.*
+settings.local.*
+local-*
+personal-*
+private-*
+custom-*
+
+# Test Files and Coverage Reports
+test-results/
+coverage/
+.nyc_output/
+junit.xml
+
+# Build Artifacts (exclude from build context)
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+build/
+dist/
+out/
+
+# Runtime Files
+*.pid
+*.seed
+*.pid.lock
+.lock-wscript
+
+# Docker Files (avoid recursive inclusion)
+Dockerfile.*
+docker-compose*.yml
+.dockerignore.*
+
+# OS Specific Files
+# MacOS
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Include only essential files for the build
+!fly.toml
+!Dockerfile
+!scripts/vm-configure.sh
+!templates/
+!CLAUDE.md

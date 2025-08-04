@@ -1,0 +1,144 @@
+# fly.toml configuration for Claude Development Environment
+# This configuration optimizes for cost-effective remote development
+# with scale-to-zero capabilities and persistent storage
+
+app = "claude-dev-env"
+primary_region = "iad"  # Change to your preferred region
+
+# Build configuration
+[build]
+  dockerfile = "Dockerfile"
+
+# Environment variables
+[env]
+  # User configuration
+  DEV_USER = "developer"
+  # SSH port (internal)
+  SSH_PORT = "22"
+  # Timezone
+  TZ = "UTC"
+
+# Volume mounts for persistent storage
+[mounts]
+  # Mount persistent volume for all development work
+  source = "claude_data"
+  destination = "/workspace"
+
+# HTTP service configuration (for web-based access if needed)
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Cost optimization: scale to zero when idle
+  auto_stop_machines = "suspend"  # Options: "stop", "suspend", "off"
+  auto_start_machines = true
+  min_machines_running = 0  # Allow complete scale-to-zero
+
+  # Concurrency settings for auto-scaling
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+# SSH service configuration (primary access method)
+[[services]]
+  protocol = "tcp"
+  internal_port = 22
+
+  # Cost optimization settings
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  # Port mapping for SSH access
+  [[services.ports]]
+    port = 10022  # External port for SSH
+
+  # Health check for SSH service
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+    restart_limit = 0
+
+# Machine configuration
+[machine]
+  # Auto-restart on failure
+  auto_restart = true
+
+  # Restart policy
+  restart_policy = "always"
+
+# VM resource allocation
+# Start small and scale up if needed
+[vm]
+  # CPU and memory settings (adjust based on needs)
+  cpu_kind = "shared"    # Options: "shared", "performance"
+  cpus = 1               # Number of CPUs
+  memory = "1gb"         # Memory allocation
+
+# Deployment settings
+[deploy]
+  # Deployment strategy for zero-downtime updates
+  strategy = "rolling"
+
+  # Release command (runs once per deployment)
+  release_command = "echo 'Deployment complete'"
+
+# Monitoring and health checks
+[checks]
+  # HTTP health check (if web service is enabled)
+  [checks.http]
+    type = "http"
+    port = 8080
+    method = "GET"
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+
+  # SSH service health check
+  [checks.ssh]
+    type = "tcp"
+    port = 22
+    interval = "15s"
+    timeout = "2s"
+
+# Optional: Metrics and observability
+[metrics]
+  port = 9090
+  path = "/metrics"
+
+# Optional: Process groups for complex applications
+# Uncomment if you need separate processes
+# [processes]
+#   app = "ssh-server"
+#   worker = "background-tasks"
+
+# Volume configuration reference
+# Create volume with: flyctl volumes create claude_data --region iad --size 10
+# Volume naming pattern: <app-name>_data
+# Pricing: ~$0.15/GB/month
+
+# Cost optimization notes:
+# 1. auto_stop_machines = "suspend" - Fastest restart, lowest cost when idle
+# 2. min_machines_running = 0 - Allows complete scale-to-zero
+# 3. Shared CPU - Most cost-effective for development workloads
+# 4. 1GB RAM - Sufficient for most development tasks, upgrade as needed
+
+# Security notes:
+# 1. SSH access only via key authentication (configured in Dockerfile)
+# 2. Non-standard SSH port (10022) reduces automated attacks
+# 3. Auto-restart on failure provides resilience
+# 4. No root access via SSH (configured in Dockerfile)
+
+# Scaling notes:
+# 1. Machines will automatically start on incoming connections
+# 2. Adjust concurrency limits based on expected load
+# 3. Consider performance CPU for intensive tasks
+# 4. Increase memory if running memory-intensive operations
+
+# Development workflow:
+# 1. Deploy: flyctl deploy
+# 2. Connect: ssh developer@<app-name>.fly.dev -p 10022
+# 3. Work: All files in /workspace are persistent
+# 4. Idle: VM automatically suspends after inactivity
+# 5. Resume: VM starts automatically on next connection

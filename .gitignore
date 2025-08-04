@@ -1,0 +1,212 @@
+# Security - API Keys and Secrets
+*.key
+*.pem
+*.p12
+*.pfx
+*.env
+*.env.local
+*.env.production
+*.env.staging
+.env.*
+secrets/
+keys/
+certs/
+*.certificate
+*.cert
+
+# Anthropic API Keys and Claude credentials
+.anthropic
+.claude/
+claude-credentials*
+anthropic-key*
+api-keys*
+
+# SSH Keys and Authentication
+id_rsa*
+id_ed25519*
+known_hosts*
+authorized_keys*
+ssh_host_*
+*.pub
+
+# Fly.io Secrets and Deployment
+fly-secrets*
+.fly/
+flyctl.toml.local
+
+# Local Development Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and Editor Files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/.ropeproject
+.idea/
+*.swp
+*.swo
+*~
+.vim/
+.netrwhist
+
+# Node.js and npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+.pnp.*
+.yarn/
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+venv/
+env/
+ENV/
+
+# Logs and Monitoring
+*.log
+logs/
+log/
+*.out
+*.err
+crash.log*
+flyctl-debug*
+
+# Backups and Temporary Files
+*.bak
+*.backup
+*.tmp
+*.temp
+temp/
+tmp/
+*~
+*.orig
+*.rej
+.merge_file_*
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Cloud and Volume Data
+workspace-backup*
+volume-snapshot*
+*.vol
+mnt/
+volumes/
+
+# Personal and Local Configuration
+config.local.*
+settings.local.*
+local-*
+personal-*
+private-*
+custom-*
+
+# Test Files and Coverage
+test-results/
+coverage/
+.nyc_output/
+junit.xml
+
+# Build Artifacts
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+build/
+dist/
+out/
+
+# Runtime and Process Files
+*.pid
+*.seed
+*.pid.lock
+.lock-wscript
+
+# Docker local development
+docker-compose.override.yml
+docker-compose.local.yml
+.dockerignore.local
+
+# MacOS
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Development workspace specifics
+workspace/
+/workspace/
+projects/sensitive/
+projects/private/
