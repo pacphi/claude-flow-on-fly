@@ -326,7 +326,7 @@ npx claude-flow@alpha --help                  # Claude Flow help
 
 ### Configuration Files
 
-- **Fly.io**: [fly.toml](fly.toml]
+- **Fly.io**: [fly.toml](fly.toml)
 - **Docker**: [Dockerfile](Dockerfile)
 - **SSH**: `~/.ssh/config`
 - **Claude**: `/workspace/CLAUDE.md`
