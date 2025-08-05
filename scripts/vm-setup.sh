@@ -347,10 +347,10 @@ EOF
     check_flyctl
     check_required_files
     check_ssh_key
+    update_fly_toml
     create_fly_app
     create_volume
     configure_secrets
-    update_fly_toml
     deploy_app
 
     # Show connection information
