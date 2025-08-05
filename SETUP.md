@@ -81,10 +81,16 @@ This setup enables AI-assisted development using Claude Code and Claude Flow on 
 - Persistent Volume (10GB): $1.50/month
 - With auto-stop: ~$2-3/month total
 
-**Team Setup (Small team)**
+**Performance Setup (Intensive Development)**
 - VM (2GB RAM, 2 shared CPUs): ~$10/month when running
+- VM (2GB RAM, 1 performance CPU): ~$15/month when running
+- Persistent Volume (20GB): $3/month
+- With auto-stop: ~$5-8/month total
+
+**Team Setup (Small team)**
+- VM (4GB RAM, 2 performance CPUs): ~$30/month when running
 - Persistent Volume (50GB): $7.50/month
-- With auto-stop: ~$8-12/month total
+- With auto-stop: ~$10-15/month total
 
 **Note**: Storage costs persist even when VM is stopped. Only compute costs stop.
 

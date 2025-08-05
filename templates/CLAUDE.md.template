@@ -132,7 +132,9 @@ npm test -- --testNamePattern="[PATTERN]"
 ## Deployment Notes
 ### Fly.io Configuration
 - Region: [REGION]
-- VM Size: [VM_SIZE]
+- VM Memory: [VM_MEMORY]MB
+- CPU Kind: [CPU_KIND] (shared/performance)
+- CPU Count: [CPU_COUNT]
 - Volume Size: [VOLUME_SIZE]GB
 - Auto-scaling: [ENABLED/DISABLED]
 

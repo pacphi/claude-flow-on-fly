@@ -74,8 +74,8 @@ primary_region = "{{REGION}}"
 # Start small and scale up if needed
 [vm]
   # CPU and memory settings (adjust based on needs)
-  cpu_kind = "shared"    # Options: "shared", "performance"
-  cpus = 1               # Number of CPUs
+  cpu_kind = "{{CPU_KIND}}"    # Options: "shared", "performance"
+  cpus = {{CPU_COUNT}}               # Number of CPUs
   memory = "{{VM_MEMORY}}mb"
 
 # Deployment settings

@@ -16,6 +16,8 @@ APP_NAME="${APP_NAME:-claude-dev-env}"
 REGION="${REGION:-iad}"
 VM_SIZE="${VM_SIZE:-shared-cpu-1x}"
 VM_MEMORY="${VM_MEMORY:-1024}"
+CPU_KIND="${CPU_KIND:-shared}"
+CPU_COUNT="${CPU_COUNT:-1}"
 VOLUME_SIZE="${VOLUME_SIZE:-10}"
 VOLUME_NAME="${VOLUME_NAME:-claude_data}"
 
@@ -198,6 +200,12 @@ update_fly_toml() {
     sed -i.tmp "s/{{VM_MEMORY}}/$VM_MEMORY/g" fly.toml
     rm fly.toml.tmp
 
+    sed -i.tmp "s/{{CPU_KIND}}/$CPU_KIND/g" fly.toml
+    rm fly.toml.tmp
+
+    sed -i.tmp "s/{{CPU_COUNT}}/$CPU_COUNT/g" fly.toml
+    rm fly.toml.tmp
+
     print_success "fly.toml updated"
 }
 
@@ -277,6 +285,14 @@ main() {
                 VM_MEMORY="$2"
                 shift 2
                 ;;
+            --cpu-kind)
+                CPU_KIND="$2"
+                shift 2
+                ;;
+            --cpu-count)
+                CPU_COUNT="$2"
+                shift 2
+                ;;
             --help)
                 cat << EOF
 Usage: $0 [OPTIONS]
@@ -286,6 +302,8 @@ Options:
   --region REGION     Fly.io region (default: iad)
   --volume-size SIZE  Volume size in GB (default: 10)
   --memory SIZE       VM memory in MB (default: 1024)
+  --cpu-kind KIND     CPU type: "shared" or "performance" (default: shared)
+  --cpu-count COUNT   Number of CPUs (default: 1)
   --help              Show this help message
 
 Environment Variables:
@@ -294,6 +312,7 @@ Environment Variables:
 Examples:
   $0
   $0 --app-name my-dev --region sjc --volume-size 20
+  $0 --cpu-kind performance --cpu-count 2 --memory 2048
   ANTHROPIC_API_KEY=sk-ant-... $0 --app-name claude-dev
 
 EOF
@@ -312,6 +331,8 @@ EOF
     echo "  Region: $REGION"
     echo "  Volume Size: ${VOLUME_SIZE}GB"
     echo "  VM Memory: ${VM_MEMORY}MB"
+    echo "  CPU Kind: $CPU_KIND"
+    echo "  CPU Count: $CPU_COUNT"
     echo
 
     # Confirm before proceeding

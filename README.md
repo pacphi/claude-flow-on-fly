@@ -27,6 +27,9 @@ chmod +x scripts/*.sh
 
 # Run the setup script
 ./scripts/vm-setup.sh --app-name my-claude-dev --region iad
+
+# For performance workloads, use dedicated CPU
+./scripts/vm-setup.sh --app-name my-claude-dev --cpu-kind performance --cpu-count 2 --memory 2048
 ```
 
 That's it! The script handles everything. For detailed options, see our **[Quick Start Guide](QUICKSTART.md)**.

@@ -10,6 +10,7 @@ This is a complete remote AI-assisted development environment setup running Clau
 
 ### VM Management
 - `./scripts/vm-setup.sh` - Deploy new VM with persistent volume
+  - Options: `--cpu-kind shared|performance --cpu-count N --memory N`
 - `./scripts/vm-teardown.sh` - Safely remove VM, volumes, and resources
 - `./scripts/vm-suspend.sh` - Suspend VM to save costs
 - `./scripts/vm-resume.sh` - Resume suspended VM
