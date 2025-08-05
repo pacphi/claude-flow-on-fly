@@ -100,15 +100,15 @@ show_app_info() {
     # Calculate approximate costs being saved
     local machine_count
     local volume_count
-    
+
     # Count machines with proper error handling
     machine_count=$(flyctl machine list -a "$APP_NAME" 2>/dev/null | grep -c "started\|stopped" 2>/dev/null || echo "0")
     machine_count=${machine_count//[^0-9]/}  # Strip any non-numeric characters
     machine_count=$((machine_count + 0))     # Convert to integer, handles "00" -> 0
-    
-    # Count volumes with proper error handling  
+
+    # Count volumes with proper error handling
     volume_count=$(flyctl volumes list -a "$APP_NAME" 2>/dev/null | grep -c "created" 2>/dev/null || echo "0")
-    volume_count=${volume_count//[^0-9]/}    # Strip any non-numeric characters  
+    volume_count=${volume_count//[^0-9]/}    # Strip any non-numeric characters
     volume_count=$((volume_count + 0))       # Convert to integer, handles "00" -> 0
 
     if [[ $machine_count -gt 0 ]] || [[ $volume_count -gt 0 ]]; then
@@ -122,7 +122,7 @@ show_app_info() {
             volume_size=$(flyctl volumes list -a "$APP_NAME" 2>/dev/null | grep -o '[0-9]*GB' | head -1 | sed 's/GB//' 2>/dev/null || echo "10")
             volume_size=${volume_size//[^0-9]/}  # Strip any non-numeric characters
             volume_size=${volume_size:-10}       # Default to 10GB if empty
-            
+
             # Calculate volume cost using bash arithmetic (volume_size * 0.15)
             local volume_cost_cents=$((volume_size * 15))
             local volume_cost
