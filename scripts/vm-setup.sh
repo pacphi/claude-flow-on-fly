@@ -185,19 +185,18 @@ update_fly_toml() {
     # Backup original fly.toml
     cp fly.toml fly.toml.backup
 
-    # Update app name in fly.toml
-    sed -i.tmp "s/^app = .*/app = \"$APP_NAME\"/" fly.toml
+    # Replace all placeholder values with actual configuration
+    sed -i.tmp "s/{{APP_NAME}}/$APP_NAME/g" fly.toml
     rm fly.toml.tmp
 
-    # Update volume name in fly.toml
-    sed -i.tmp "s/source = .*/source = \"$VOLUME_NAME\"/" fly.toml
+    sed -i.tmp "s/{{REGION}}/$REGION/g" fly.toml
     rm fly.toml.tmp
 
-    # Update VM size if specified
-    if [[ "$VM_MEMORY" != "1024" ]]; then
-        sed -i.tmp "s/memory = .*/memory = \"${VM_MEMORY}mb\"/" fly.toml
-        rm fly.toml.tmp
-    fi
+    sed -i.tmp "s/{{VOLUME_NAME}}/$VOLUME_NAME/g" fly.toml
+    rm fly.toml.tmp
+
+    sed -i.tmp "s/{{VM_MEMORY}}/$VM_MEMORY/g" fly.toml
+    rm fly.toml.tmp
 
     print_success "fly.toml updated"
 }

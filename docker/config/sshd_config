@@ -1,0 +1,33 @@
+# SSH daemon configuration for Claude Development Environment
+
+# Disable root login
+PermitRootLogin no
+
+# Disable password authentication (key-only)
+PasswordAuthentication no
+
+# Enable public key authentication
+PubkeyAuthentication yes
+
+# Keep connections alive
+ClientAliveInterval 60
+ClientAliveCountMax 3
+
+# Use default SSH port (will be mapped to 10022 by Fly.io)
+Port 22
+
+# Logging
+SyslogFacility AUTH
+LogLevel INFO
+
+# Authentication settings
+LoginGraceTime 120
+StrictModes yes
+MaxAuthTries 6
+MaxSessions 10
+
+# Subsystem for SFTP
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Allow only developer user
+AllowUsers developer

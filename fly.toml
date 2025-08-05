@@ -2,10 +2,10 @@
 # This configuration optimizes for cost-effective remote development
 # with scale-to-zero capabilities and persistent storage
 
-app = "claude-dev-env"
+app = "{{APP_NAME}}"
 # Change to your preferred region
 # Consult https://fly.io/docs/reference/regions/ for available regions
-primary_region = "iad"
+primary_region = "{{REGION}}"
 
 # Build configuration
 [build]
@@ -23,7 +23,7 @@ primary_region = "iad"
 # Volume mounts for persistent storage
 [mounts]
   # Mount persistent volume for all development work
-  source = "claude_data"
+  source = "{{VOLUME_NAME}}"
   destination = "/workspace"
 
 # HTTP service configuration (for web-based access if needed)
@@ -76,7 +76,7 @@ primary_region = "iad"
   # CPU and memory settings (adjust based on needs)
   cpu_kind = "shared"    # Options: "shared", "performance"
   cpus = 1               # Number of CPUs
-  memory = "1gb"         # Memory allocation
+  memory = "{{VM_MEMORY}}mb"
 
 # Deployment settings
 [deploy]
