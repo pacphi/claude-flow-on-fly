@@ -31,11 +31,6 @@ RUN /docker/scripts/install-nvm.sh
 # Create welcome script for developer user
 RUN /docker/scripts/create-welcome.sh
 
-# Copy vm-configure.sh script to workspace
-COPY scripts/vm-configure.sh /workspace/scripts/vm-configure.sh
-RUN chown developer:developer /workspace/scripts/vm-configure.sh && \
-    chmod +x /workspace/scripts/vm-configure.sh
-
 # Copy health check script
 RUN cp /docker/templates/health-check.sh /health.sh && \
     chmod +x /health.sh

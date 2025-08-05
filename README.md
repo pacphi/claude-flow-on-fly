@@ -48,25 +48,42 @@ Before starting, you'll need:
 ## 📁 Repository Structure
 
 ```
-├── SETUP.md                   # Complete setup guide
-├── Dockerfile                 # Development environment container
-├── fly.toml                   # Fly.io configuration with auto-scaling
-├── scripts/                   # Automation scripts
-│   ├── vm-setup.sh            # Initial VM deployment
-│   ├── vm-teardown.sh         # Clean VM and resource removal
-│   ├── vm-configure.sh        # Environment configuration
-│   ├── vm-suspend.sh          # Cost-saving VM suspension
-│   ├── vm-resume.sh           # VM resumption
-│   ├── cost-monitor.sh        # Usage and cost tracking
-│   ├── volume-backup.sh       # Data backup
-│   └── volume-restore.sh      # Data restoration
-├── templates/                 # Configuration templates
-│   ├── CLAUDE.md.template     # Project context template
-│   ├── settings.json.template # Claude Code hooks
-│   └── ssh_config.template    # SSH configuration
-└── docs/                      # Detailed setup guides
-    ├── VSCODE.md              # VSCode remote development
-    └── INTELLIJ.md            # IntelliJ remote development
+├── CLAUDE.md                          # Project instructions for Claude
+├── QUICKSTART.md                      # Quick start guide
+├── SETUP.md                           # Complete setup guide
+├── README.md                          # This file
+├── Dockerfile                         # Development environment container
+├── fly.toml                           # Fly.io configuration with auto-scaling
+├── docker/                            # Docker-related configurations
+│   ├── config/                        # Configuration files
+│   │   ├── developer-sudoers          # Sudo permissions for developer
+│   │   └── sshd_config                # SSH daemon configuration
+│   ├── scripts/                       # Docker setup scripts
+│   │   ├── create-welcome.sh          # Welcome message creator
+│   │   ├── entrypoint.sh              # Container entrypoint
+│   │   ├── install-claude-tools.sh    # Claude tools installer
+│   │   ├── install-nvm.sh             # Node Version Manager installer
+│   │   ├── install-packages.sh        # System packages installer
+│   │   ├── setup-bashrc.sh            # Bash configuration
+│   │   ├── setup-user.sh              # User account setup
+│   │   └── vm-configure.sh            # VM configuration script
+│   └── templates/                     # Docker templates
+│       └── health-check.sh            # Health check script
+├── scripts/                           # VM management scripts
+│   ├── vm-setup.sh                    # Initial VM deployment
+│   ├── vm-teardown.sh                 # Clean VM and resource removal
+│   ├── vm-suspend.sh                  # Cost-saving VM suspension
+│   ├── vm-resume.sh                   # VM resumption
+│   ├── cost-monitor.sh                # Usage and cost tracking
+│   ├── volume-backup.sh               # Data backup
+│   └── volume-restore.sh              # Data restoration
+├── templates/                         # Configuration templates
+│   ├── CLAUDE.md.template             # Project context template
+│   ├── settings.json.template         # Claude Code hooks
+│   └── ssh_config.template            # SSH configuration
+└── docs/                              # Detailed setup guides
+    ├── VSCODE.md                      # VSCode remote development
+    └── INTELLIJ.md                    # IntelliJ remote development
 ```
 
 ## 🚀 Getting Started

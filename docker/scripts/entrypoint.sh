@@ -35,6 +35,13 @@ if [ ! -f "/workspace/scripts/install-claude-tools.sh" ]; then
     chmod +x /workspace/scripts/install-claude-tools.sh
 fi
 
+# Copy vm-configure.sh if it doesn't exist
+if [ ! -f "/workspace/scripts/vm-configure.sh" ]; then
+    cp /docker/scripts/vm-configure.sh /workspace/scripts/
+    chown developer:developer /workspace/scripts/vm-configure.sh
+    chmod +x /workspace/scripts/vm-configure.sh
+fi
+
 # Set up environment variables for developer user
 if [ ! -z "$ANTHROPIC_API_KEY" ]; then
     echo "export ANTHROPIC_API_KEY='$ANTHROPIC_API_KEY'" >> /home/developer/.bashrc
