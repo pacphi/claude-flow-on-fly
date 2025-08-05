@@ -13,13 +13,34 @@ This repository contains everything you need to set up a secure, cost-optimized 
 - **Security**: SSH-based access with Fly.io's network isolation
 - **Scalability**: Easily scale resources up or down as needed
 
-## 📋 Quick Start
+## ⚡ Quick Start - 5 Minutes to Claude!
 
-1. **Prerequisites**: [Fly.io](https://fly.io/) [CLI](https://fly.io/docs/flyctl/install/), [SSH keys](https://www.ssh.com/academy/ssh-keys), [Claude Max](https://www.anthropic.com/max) subscription or [API key](https://console.anthropic.com/settings/keys)
-2. **Deploy**: Run `./scripts/vm-setup.sh` to create your environment
-3. **Connect**: Use VSCode Remote-SSH or JetBrains Gateway
-4. **Configure**: Run `/workspace/scripts/vm-configure.sh` on first connection
-5. **Develop**: Access Claude Code and Claude Flow on the remote VM
+### Option 1: Automated Setup (Recommended) 🚀
+
+Get up and running with a single command:
+
+```bash
+# Clone and run the automated setup
+git clone https://github.com/pacphi/claude-flow-on-fly.git
+cd claude-flow-on-fly
+chmod +x scripts/*.sh
+
+# Run the setup script
+./scripts/vm-setup.sh --app-name my-claude-dev --region iad
+```
+
+That's it! The script handles everything. For detailed options, see our **[Quick Start Guide](QUICKSTART.md)**.
+
+### Option 2: Manual Setup
+
+For advanced users who prefer manual configuration, see our **[Complete Setup Guide](SETUP.md)**.
+
+### Prerequisites
+
+Before starting, you'll need:
+- [Fly.io CLI](https://fly.io/docs/flyctl/install/) installed and authenticated
+- [SSH keys](https://www.ssh.com/academy/ssh-keys) (the script will check for these)
+- [Claude Max](https://www.anthropic.com/max) subscription or [Anthropic API key](https://console.anthropic.com/settings/keys)
 
 ## 📁 Repository Structure
 
@@ -46,24 +67,9 @@ This repository contains everything you need to set up a secure, cost-optimized 
 
 ## 🚀 Getting Started
 
-### Step 1: Initial Setup
+After running the automated setup above, connect to your environment:
 
-```bash
-# Clone this repository
-gh repo clone pacphi/claude-flow-on-fly
-cd claude-flow-on-fly
-
-# Make scripts executable
-chmod +x scripts/*.sh
-
-# Run setup with your preferred configuration
-./scripts/vm-setup.sh \
-  --app-name my-claude-dev \
-  --region iad \
-  --volume-size 20
-```
-
-### Step 2: Connect Your IDE
+### Step 1: Connect Your IDE
 
 **For VSCode:**
 ```bash
@@ -82,7 +88,7 @@ open docs/INTELLIJ.md
 # Use JetBrains Gateway for remote connection
 ```
 
-### Step 3: Configure Environment (First Time Only)
+### Step 2: Configure Environment (First Time Only)
 
 ```bash
 # SSH into your VM
@@ -98,7 +104,7 @@ ssh developer@my-claude-dev.fly.dev -p 10022
 # - Optionally install development tools
 ```
 
-### Step 4: Start Developing
+### Step 3: Start Developing
 
 ```bash
 # Authenticate Claude Code
@@ -202,7 +208,8 @@ flyctl certs create example.com -a my-claude-dev
 
 ## 📚 Documentation
 
-- **[Complete Setup Guide](SETUP.md)**: Comprehensive walkthrough
+- **[Quick Start Guide](QUICKSTART.md)**: Fast-track setup using automated scripts
+- **[Complete Setup Guide](SETUP.md)**: Comprehensive manual setup walkthrough
 - **[VSCode Setup](docs/VSCODE.md)**: Detailed VSCode remote development guide
 - **[IntelliJ Setup](docs/INTELLIJ.md)**: JetBrains IDE remote development guide
 

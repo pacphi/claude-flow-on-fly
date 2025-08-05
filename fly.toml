@@ -3,7 +3,9 @@
 # with scale-to-zero capabilities and persistent storage
 
 app = "claude-dev-env"
-primary_region = "iad"  # Change to your preferred region
+# Change to your preferred region
+# Consult https://fly.io/docs/reference/regions/ for available regions
+primary_region = "iad"
 
 # Build configuration
 [build]

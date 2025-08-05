@@ -2,6 +2,8 @@
 
 ## A Complete Guide to Remote AI-Assisted Development
 
+> **🚀 Quick Start Available!** New users should start with our [Quick Start Guide](QUICKSTART.md) which uses the automated `vm-setup.sh` script for the fastest setup experience. This guide provides detailed manual setup instructions for advanced users or troubleshooting.
+
 This guide provides comprehensive instructions for setting up a secure, cost-optimized remote development environment on Fly.io with Claude Code and Claude Flow. Unlike traditional setups, this approach installs all AI tools on the remote VM, with developers connecting via their preferred IDE's remote development features.
 
 ## Table of Contents
@@ -10,7 +12,8 @@ This guide provides comprehensive instructions for setting up a secure, cost-opt
 2. [Architecture Overview](#architecture-overview)
 3. [Prerequisites](#prerequisites)
 4. [Cost Overview](#cost-overview)
-5. [Initial Setup](#initial-setup)
+5. [Automated Setup (Recommended)](#automated-setup-recommended)
+6. [Manual Setup (Advanced)](#manual-setup-advanced)
 6. [Persistent Volume Management](#persistent-volume-management)
 7. [IDE Remote Connection](#ide-remote-connection)
 8. [Claude Tools Installation](#claude-tools-installation)
@@ -59,14 +62,14 @@ This setup enables AI-assisted development using Claude Code and Claude Flow on 
 ## Prerequisites
 
 ### On Your Local Machine
-- Fly.io CLI (`flyctl`) installed
-- VSCode with Remote-SSH extension OR IntelliJ with remote development support
+- [Fly.io](https://fly.io/) [CLI](https://fly.io/docs/flyctl/install/) (`flyctl`) installed
+- VSCode with [Remote-SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) extension OR IntelliJ with [remote development support]((https://www.jetbrains.com/remote-development/gateway/))
 - SSH key pair for authentication
 - Active Fly.io account
 
 ### Subscriptions Required
 - Fly.io account (Hobby plan includes 3GB free storage)
-- Claude Max subscription OR Anthropic API key
+- [Claude Max](https://www.anthropic.com/max) subscription OR Anthropic [API key]((https://console.anthropic.com/settings/keys))
 - (Optional) Claude Flow license if using advanced features
 
 ## Cost Overview
@@ -85,7 +88,59 @@ This setup enables AI-assisted development using Claude Code and Claude Flow on 
 
 **Note**: Storage costs persist even when VM is stopped. Only compute costs stop.
 
-## Initial Setup
+## Automated Setup (Recommended)
+
+The fastest way to get started is using the automated setup script:
+
+```bash
+# Clone the repository
+git clone https://github.com/pacphi/claude-flow-on-fly.git
+cd claude-flow-on-fly
+
+# Make scripts executable
+chmod +x scripts/*.sh
+
+# Run the automated setup
+./scripts/vm-setup.sh --app-name my-claude-dev --region iad
+```
+
+### What the Script Does
+
+The `vm-setup.sh` script automates the entire initial setup:
+
+1. ✅ **Validates prerequisites** - Checks for flyctl, SSH keys, and required files
+2. ✅ **Creates Fly.io application** - Sets up your app in the specified region
+3. ✅ **Creates persistent volume** - Configures storage for your code and data
+4. ✅ **Configures SSH access** - Sets up secure key-based authentication
+5. ✅ **Deploys the environment** - Builds and deploys your development VM
+6. ✅ **Shows connection info** - Provides SSH commands and configuration
+
+### Script Options
+
+```bash
+./scripts/vm-setup.sh [OPTIONS]
+
+Options:
+  --app-name NAME     Name for the Fly.io app (default: claude-dev-env)
+  --region REGION     Fly.io region (default: iad)
+  --volume-size SIZE  Volume size in GB (default: 10)
+  --memory SIZE       VM memory in MB (default: 1024)
+  --help              Show help message
+
+Examples:
+  # Basic setup
+  ./scripts/vm-setup.sh
+
+  # Custom configuration
+  ./scripts/vm-setup.sh --app-name my-dev --region sjc --volume-size 20
+
+  # With API key
+  ANTHROPIC_API_KEY=sk-ant-... ./scripts/vm-setup.sh --app-name claude-dev
+```
+
+After the script completes, skip to [IDE Remote Connection](#ide-remote-connection) to connect to your environment.
+
+## Manual Setup (Advanced)
 
 ### Step 1: Create Fly.io Application
 
@@ -114,6 +169,9 @@ flyctl volumes create claude_data \
 # List volumes to confirm
 flyctl volumes list
 ```
+
+> [!IMPORTANT]
+> VM and Persistent Volume region configuration should be consistent. Consult https://fly.io/docs/reference/regions/ for available regions.
 
 ### Step 3: Configure fly.toml
 
@@ -397,16 +455,16 @@ After running the configuration script, you'll have:
 ```
 /workspace/
 ├── projects/
-│   ├── active/      # Your active projects
-│   ├── archive/     # Archived projects
-│   └── templates/   # Project templates (if selected)
+│   ├── active/           # Your active projects
+│   ├── archive/          # Archived projects
+│   └── templates/        # Project templates (if selected)
 ├── scripts/
-│   ├── backup.sh    # Backup workspace data
-│   ├── restore.sh   # Restore from backup
-│   ├── new-project.sh # Create new project
-│   └── system-status.sh # Check system status
-├── backups/         # Backup storage
-└── .config/         # Configuration files
+│   ├── backup.sh         # Backup workspace data
+│   ├── restore.sh        # Restore from backup
+│   ├── new-project.sh    # Create new project
+│   └── system-status.sh  # Check system status
+├── backups/              # Backup storage
+└── .config/              # Configuration files
 ```
 
 ## Claude Tools Authentication
