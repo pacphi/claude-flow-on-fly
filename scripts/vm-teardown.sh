@@ -84,24 +84,72 @@ show_app_info() {
 
     # Show app status
     print_status "App Status:"
-    flyctl status -a "$APP_NAME" 2>/dev/null || true
+    # Use a temp directory to avoid fly.toml parsing issues
+    local original_dir=$(pwd)
+    local temp_dir=$(mktemp -d)
+    cd "$temp_dir"
+
+    if flyctl status -a "$APP_NAME" 2>&1; then
+        :
+    else
+        local exit_code=$?
+        if [[ $exit_code -eq 1 ]]; then
+            echo "  (No active machines found)"
+        else
+            print_warning "  Failed to get app status (flyctl exit code: $exit_code)"
+        fi
+    fi
     echo
 
     # Show machines
     print_status "Machines:"
-    flyctl machine list -a "$APP_NAME" 2>/dev/null || true
+    local machine_output
+    if machine_output=$(flyctl machine list -a "$APP_NAME" 2>&1); then
+        if [[ -n "$machine_output" ]]; then
+            echo "$machine_output"
+        else
+            echo "  (No machines found)"
+        fi
+    else
+        local exit_code=$?
+        if echo "$machine_output" | grep -q "No machines found"; then
+            echo "  (No machines found)"
+        else
+            print_warning "  Failed to list machines (flyctl exit code: $exit_code)"
+            [[ -n "$machine_output" ]] && echo "  $machine_output" | head -2
+        fi
+    fi
     echo
 
     # Show volumes
     print_status "Volumes:"
-    flyctl volumes list -a "$APP_NAME" 2>/dev/null || true
+    local volume_output
+    if volume_output=$(flyctl volumes list -a "$APP_NAME" 2>&1); then
+        if [[ -n "$volume_output" ]] && ! echo "$volume_output" | grep -q "No volumes found"; then
+            echo "$volume_output"
+        else
+            echo "  (No volumes found)"
+        fi
+    else
+        local exit_code=$?
+        if echo "$volume_output" | grep -q "No volumes found"; then
+            echo "  (No volumes found)"
+        else
+            print_warning "  Failed to list volumes (flyctl exit code: $exit_code)"
+            [[ -n "$volume_output" ]] && echo "  $volume_output" | head -2
+        fi
+    fi
+
+    # Return to original directory
+    cd "$original_dir"
     echo
 
     # Calculate approximate costs being saved
     local machine_count
     local volume_count
 
-    # Count machines with proper error handling
+    # Count machines with proper error handling (run from temp dir to avoid fly.toml issues)
+    cd "$temp_dir"
     machine_count=$(flyctl machine list -a "$APP_NAME" 2>/dev/null | grep -c "started\|stopped" 2>/dev/null || echo "0")
     machine_count=${machine_count//[^0-9]/}  # Strip any non-numeric characters
     machine_count=$((machine_count + 0))     # Convert to integer, handles "00" -> 0
@@ -110,6 +158,9 @@ show_app_info() {
     volume_count=$(flyctl volumes list -a "$APP_NAME" 2>/dev/null | grep -c "created" 2>/dev/null || echo "0")
     volume_count=${volume_count//[^0-9]/}    # Strip any non-numeric characters
     volume_count=$((volume_count + 0))       # Convert to integer, handles "00" -> 0
+
+    cd "$original_dir"
+    rm -rf "$temp_dir"
 
     if [[ $machine_count -gt 0 ]] || [[ $volume_count -gt 0 ]]; then
         print_status "💰 Estimated Monthly Cost Savings:"
@@ -176,7 +227,15 @@ backup_data() {
 suspend_machines() {
     print_status "Suspending running machines..."
 
+    # Use temp dir to avoid fly.toml parsing issues
+    local original_dir=$(pwd)
+    local temp_dir=$(mktemp -d)
+    cd "$temp_dir"
+
     local machines=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null | jq -r '.[] | select(.state == "started") | .id' || true)
+
+    cd "$original_dir"
+    rm -rf "$temp_dir"
 
     if [[ -n "$machines" ]]; then
         for machine_id in $machines; do
@@ -198,7 +257,15 @@ delete_volumes() {
 
     print_status "Deleting persistent volumes..."
 
+    # Use temp dir to avoid fly.toml parsing issues
+    local original_dir=$(pwd)
+    local temp_dir=$(mktemp -d)
+    cd "$temp_dir"
+
     local volumes=$(flyctl volumes list -a "$APP_NAME" --json 2>/dev/null | jq -r '.[].id' || true)
+
+    cd "$original_dir"
+    rm -rf "$temp_dir"
 
     if [[ -n "$volumes" ]]; then
         for volume_id in $volumes; do
