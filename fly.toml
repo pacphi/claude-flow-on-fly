@@ -26,21 +26,6 @@ primary_region = "{{REGION}}"
   source = "{{VOLUME_NAME}}"
   destination = "/workspace"
 
-# HTTP service configuration (for web-based access if needed)
-[http_service]
-  internal_port = 8080
-  force_https = true
-  # Cost optimization: scale to zero when idle
-  auto_stop_machines = "suspend"  # Options: "stop", "suspend", "off"
-  auto_start_machines = true
-  min_machines_running = 0  # Allow complete scale-to-zero
-
-  # Concurrency settings for auto-scaling
-  [http_service.concurrency]
-    type = "connections"
-    hard_limit = 25
-    soft_limit = 20
-
 # SSH service configuration (primary access method)
 [[services]]
   protocol = "tcp"
@@ -75,7 +60,7 @@ primary_region = "{{REGION}}"
 [vm]
   # CPU and memory settings (adjust based on needs)
   cpu_kind = "{{CPU_KIND}}"    # Options: "shared", "performance"
-  cpus = {{CPU_COUNT}}               # Number of CPUs
+  cpus = {{CPU_COUNT}}         # Number of CPUs
   memory = "{{VM_MEMORY}}mb"
 
 # Deployment settings
@@ -88,15 +73,6 @@ primary_region = "{{REGION}}"
 
 # Monitoring and health checks
 [checks]
-  # HTTP health check (if web service is enabled)
-  [checks.http]
-    type = "http"
-    port = 8080
-    method = "GET"
-    path = "/health"
-    interval = "30s"
-    timeout = "5s"
-
   # SSH service health check
   [checks.ssh]
     type = "tcp"
