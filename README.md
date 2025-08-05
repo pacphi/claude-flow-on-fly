@@ -50,6 +50,7 @@ Before starting, you'll need:
 ├── fly.toml                   # Fly.io configuration with auto-scaling
 ├── scripts/                   # Automation scripts
 │   ├── vm-setup.sh            # Initial VM deployment
+│   ├── vm-teardown.sh         # Clean VM and resource removal
 │   ├── vm-configure.sh        # Environment configuration
 │   ├── vm-suspend.sh          # Cost-saving VM suspension
 │   ├── vm-resume.sh           # VM resumption
@@ -316,6 +317,10 @@ flyctl logs -a my-claude-dev                  # View logs
 # Data Management
 ./scripts/volume-backup.sh                    # Backup data
 ./scripts/volume-restore.sh                   # Restore data
+
+# Teardown
+./scripts/vm-teardown.sh --app-name my-claude-dev          # Remove VM and volumes
+./scripts/vm-teardown.sh --app-name my-claude-dev --backup # Backup then remove
 
 # Development
 ssh developer@my-claude-dev.fly.dev -p 10022  # Connect via SSH
