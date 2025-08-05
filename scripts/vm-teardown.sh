@@ -125,10 +125,16 @@ show_app_info() {
             
             # Calculate volume cost using bash arithmetic (volume_size * 0.15)
             local volume_cost_cents=$((volume_size * 15))
-            local volume_cost="${volume_cost_cents:0:-2}.${volume_cost_cents: -2}"
-            # Handle edge case where result is less than $1.00
+            local volume_cost
+            # Handle cost formatting - convert cents to dollars.cents
             if [[ $volume_cost_cents -lt 100 ]]; then
-                volume_cost="0.${volume_cost_cents}"
+                # Less than $1.00 - format as 0.XX
+                volume_cost=$(printf "0.%02d" $volume_cost_cents)
+            else
+                # $1.00 or more - split into dollars and cents
+                local dollars=$((volume_cost_cents / 100))
+                local cents=$((volume_cost_cents % 100))
+                volume_cost=$(printf "%d.%02d" $dollars $cents)
             fi
             echo "  • Volume costs: ~\$$volume_cost/month"
         fi
