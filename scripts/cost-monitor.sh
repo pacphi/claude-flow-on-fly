@@ -48,29 +48,40 @@ get_timestamp() {
 
 # Function to calculate costs
 calculate_costs() {
-    local vm_size="$1"
-    local volume_size="$2"
-    local hours_running="$3"
+    local cpu_kind="$1"
+    local cpus="$2"
+    local memory_mb="$3"
+    local volume_size="$4"
+    local hours_running="$5"
 
     # Pricing per hour (as of 2025)
+    # Based on Fly.io pricing: https://fly.io/docs/about/pricing/
     local cpu_cost_per_hour
-    case "$vm_size" in
-        "shared-cpu-1x"|"256mb")
+    
+    if [[ "$cpu_kind" == "performance" ]]; then
+        # Performance CPUs: $0.035/vCPU/hour + $0.005/GB/hour
+        local cpu_component=$(echo "scale=4; $cpus * 0.035" | bc 2>/dev/null || echo "0.035")
+        local memory_gb=$(echo "scale=2; $memory_mb / 1024" | bc 2>/dev/null || echo "0.25")
+        local memory_component=$(echo "scale=4; $memory_gb * 0.005" | bc 2>/dev/null || echo "0.00125")
+        cpu_cost_per_hour=$(echo "scale=4; $cpu_component + $memory_component" | bc 2>/dev/null || echo "0.03625")
+    else
+        # Shared CPUs: based on memory size
+        if [[ $memory_mb -le 256 ]]; then
             cpu_cost_per_hour=0.0067
-            ;;
-        "shared-cpu-2x"|"512mb")
+        elif [[ $memory_mb -le 512 ]]; then
             cpu_cost_per_hour=0.0134
-            ;;
-        "shared-cpu-4x"|"1024mb")
+        elif [[ $memory_mb -le 1024 ]]; then
             cpu_cost_per_hour=0.0268
-            ;;
-        "shared-cpu-8x"|"2048mb")
+        elif [[ $memory_mb -le 2048 ]]; then
             cpu_cost_per_hour=0.0536
-            ;;
-        *)
-            cpu_cost_per_hour=0.0067  # Default to smallest
-            ;;
-    esac
+        elif [[ $memory_mb -le 4096 ]]; then
+            cpu_cost_per_hour=0.1072
+        elif [[ $memory_mb -le 8192 ]]; then
+            cpu_cost_per_hour=0.2144
+        else
+            cpu_cost_per_hour=0.4288  # 16GB
+        fi
+    fi
 
     # Volume cost per month
     local volume_cost_per_month
@@ -80,7 +91,7 @@ calculate_costs() {
     local compute_cost
     compute_cost=$(echo "scale=4; $hours_running * $cpu_cost_per_hour" | bc 2>/dev/null || echo "0.0000")
 
-    echo "$compute_cost $volume_cost_per_month"
+    echo "$compute_cost|$volume_cost_per_month|$cpu_cost_per_hour"
 }
 
 # Function to get VM information
@@ -92,18 +103,24 @@ get_vm_info() {
     fi
 
     local machine_id
+    local machine_name
     local machine_state
     local machine_region
-    local machine_size
+    local cpu_kind
+    local cpus
+    local memory_mb
     local machine_created
 
     machine_id=$(echo "$machine_info" | jq -r '.[0].id' 2>/dev/null || echo "unknown")
+    machine_name=$(echo "$machine_info" | jq -r '.[0].name' 2>/dev/null || echo "unknown")
     machine_state=$(echo "$machine_info" | jq -r '.[0].state' 2>/dev/null || echo "unknown")
     machine_region=$(echo "$machine_info" | jq -r '.[0].region' 2>/dev/null || echo "unknown")
-    machine_size=$(echo "$machine_info" | jq -r '.[0].config.size' 2>/dev/null || echo "shared-cpu-1x")
+    cpu_kind=$(echo "$machine_info" | jq -r '.[0].config.guest.cpu_kind' 2>/dev/null || echo "shared")
+    cpus=$(echo "$machine_info" | jq -r '.[0].config.guest.cpus' 2>/dev/null || echo "1")
+    memory_mb=$(echo "$machine_info" | jq -r '.[0].config.guest.memory_mb' 2>/dev/null || echo "256")
     machine_created=$(echo "$machine_info" | jq -r '.[0].created_at' 2>/dev/null || echo "unknown")
 
-    echo "$machine_id $machine_state $machine_region $machine_size $machine_created"
+    echo "$machine_id|$machine_name|$machine_state|$machine_region|$cpu_kind|$cpus|$memory_mb|$machine_created"
 }
 
 # Function to get volume information
@@ -115,16 +132,18 @@ get_volume_info() {
     fi
 
     local volume_id
+    local volume_name
     local volume_size
     local volume_region
     local volume_created
 
     volume_id=$(echo "$volume_info" | jq -r '.[0].id' 2>/dev/null || echo "unknown")
+    volume_name=$(echo "$volume_info" | jq -r '.[0].name' 2>/dev/null || echo "unknown")
     volume_size=$(echo "$volume_info" | jq -r '.[0].size_gb' 2>/dev/null || echo "10")
     volume_region=$(echo "$volume_info" | jq -r '.[0].region' 2>/dev/null || echo "unknown")
     volume_created=$(echo "$volume_info" | jq -r '.[0].created_at' 2>/dev/null || echo "unknown")
 
-    echo "$volume_id $volume_size $volume_region $volume_created"
+    echo "$volume_id|$volume_name|$volume_size|$volume_region|$volume_created"
 }
 
 # Function to estimate monthly hours
@@ -173,7 +192,8 @@ log_status() {
     local timestamp
     timestamp=$(get_timestamp)
     local machine_state
-    machine_state=$(echo "$vm_info" | awk '{print $2}')
+    # Extract state from pipe-delimited format
+    machine_state=$(echo "$vm_info" | cut -d'|' -f3)
 
     # Append to history file
     echo "$timestamp $machine_state" >> "$HISTORY_FILE"
@@ -199,33 +219,40 @@ show_current_status() {
         return 1
     fi
 
-    # Parse VM info
-    local machine_id machine_state machine_region machine_size machine_created
-    machine_id=$(echo "$vm_info" | awk '{print $1}')
-    machine_state=$(echo "$vm_info" | awk '{print $2}')
-    machine_region=$(echo "$vm_info" | awk '{print $3}')
-    machine_size=$(echo "$vm_info" | awk '{print $4}')
-    machine_created=$(echo "$vm_info" | awk '{print $5}')
+    # Parse VM info (pipe-delimited)
+    local machine_id machine_name machine_state machine_region cpu_kind cpus memory_mb machine_created
+    IFS='|' read -r machine_id machine_name machine_state machine_region cpu_kind cpus memory_mb machine_created <<< "$vm_info"
 
-    # Parse volume info
-    local volume_id volume_size volume_region volume_created
-    volume_id=$(echo "$volume_info" | awk '{print $1}')
-    volume_size=$(echo "$volume_info" | awk '{print $2}')
-    volume_region=$(echo "$volume_info" | awk '{print $3}')
-    volume_created=$(echo "$volume_info" | awk '{print $4}')
+    # Parse volume info (pipe-delimited)
+    local volume_id volume_name volume_size volume_region volume_created
+    IFS='|' read -r volume_id volume_name volume_size volume_region volume_created <<< "$volume_info"
+
+    # Format VM size display
+    local vm_size_display
+    if [[ "$cpu_kind" == "performance" ]]; then
+        vm_size_display="Performance ${cpus}vCPU / ${memory_mb}MB"
+    else
+        vm_size_display="Shared ${cpus}vCPU / ${memory_mb}MB"
+    fi
 
     print_metric "App Name:" "$APP_NAME"
+    print_metric "Machine Name:" "$machine_name"
     print_metric "Machine ID:" "$machine_id"
     print_metric "State:" "$machine_state"
     print_metric "Region:" "$machine_region"
-    print_metric "VM Size:" "$machine_size"
+    print_metric "VM Size:" "$vm_size_display"
     print_metric "Volume Size:" "${volume_size}GB"
     print_metric "Created:" "$(echo "$machine_created" | cut -d'T' -f1 2>/dev/null || echo "$machine_created")"
 
-    # Log current status
-    log_status "$vm_info"
+    # Log current status (just state for history)
+    echo "$(get_timestamp) $machine_state" >> "$HISTORY_FILE"
 
-    echo "$vm_info $volume_info"
+    # Keep only last 1000 entries
+    if [[ -f "$HISTORY_FILE" ]]; then
+        tail -1000 "$HISTORY_FILE" > "${HISTORY_FILE}.tmp" && mv "${HISTORY_FILE}.tmp" "$HISTORY_FILE"
+    fi
+
+    echo "$vm_info|$volume_info"
 }
 
 # Function to show cost breakdown
@@ -236,12 +263,11 @@ show_cost_breakdown() {
     print_header "💰 Cost Analysis"
     print_header "================"
 
-    # Parse info
-    local machine_state machine_size
-    machine_state=$(echo "$vm_info" | awk '{print $2}')
-    machine_size=$(echo "$vm_info" | awk '{print $4}')
+    # Parse info (pipe-delimited)
+    local machine_state cpu_kind cpus memory_mb
+    IFS='|' read -r _ _ machine_state _ cpu_kind cpus memory_mb _ <<< "$vm_info"
     local volume_size
-    volume_size=$(echo "$volume_info" | awk '{print $2}')
+    IFS='|' read -r _ _ volume_size _ _ <<< "$volume_info"
 
     # Estimate monthly hours
     local estimated_monthly_hours
@@ -249,20 +275,19 @@ show_cost_breakdown() {
 
     # Calculate costs
     local cost_info
-    cost_info=$(calculate_costs "$machine_size" "$volume_size" "$estimated_monthly_hours")
-    local estimated_compute_cost volume_monthly_cost
-    estimated_compute_cost=$(echo "$cost_info" | awk '{print $1}')
-    volume_monthly_cost=$(echo "$cost_info" | awk '{print $2}')
+    cost_info=$(calculate_costs "$cpu_kind" "$cpus" "$memory_mb" "$volume_size" "$estimated_monthly_hours")
+    local estimated_compute_cost volume_monthly_cost hourly_rate
+    IFS='|' read -r estimated_compute_cost volume_monthly_cost hourly_rate <<< "$cost_info"
 
-    # Scale compute cost to monthly
+    # Calculate monthly compute cost properly
     local monthly_compute_cost
-    monthly_compute_cost=$(echo "scale=2; $estimated_compute_cost * 30 * 24 / $estimated_monthly_hours" | bc 2>/dev/null || echo "5.00")
+    monthly_compute_cost=$(echo "scale=2; $estimated_compute_cost" | bc 2>/dev/null || echo "5.00")
 
     print_metric "Current State:" "$machine_state"
 
     if [[ "$machine_state" == "started" ]]; then
-        print_metric "Hourly Compute Cost:" "\$$(echo "scale=4; $estimated_compute_cost * 24 / $estimated_monthly_hours" | bc 2>/dev/null || echo "0.0067")"
-        print_metric "Daily Cost (if always on):" "\$$(echo "scale=2; $estimated_compute_cost * 24 * 24 / $estimated_monthly_hours" | bc 2>/dev/null || echo "0.16")"
+        print_metric "Hourly Compute Cost:" "\$$hourly_rate"
+        print_metric "Daily Cost (if always on):" "\$$(echo "scale=2; $hourly_rate * 24" | bc 2>/dev/null || echo "0.16")"
     else
         print_metric "Compute Cost:" "\$0.00 (suspended)"
     fi
@@ -273,7 +298,7 @@ show_cost_breakdown() {
     echo
     print_status "💡 Cost Optimization Tips:"
     echo "  • Current uptime estimate: ${estimated_monthly_hours}h/month"
-    echo "  • Max monthly cost (always on): \$$(echo "scale=2; 24 * 30 * $estimated_compute_cost * 24 / $estimated_monthly_hours + $volume_monthly_cost" | bc 2>/dev/null || echo "50.00")"
+    echo "  • Max monthly cost (always on): \$$(echo "scale=2; $hourly_rate * 24 * 30 + $volume_monthly_cost" | bc 2>/dev/null || echo "50.00")"
     echo "  • Savings from auto-suspend: ~$(echo "scale=0; (720 - $estimated_monthly_hours) * 100 / 720" | bc 2>/dev/null || echo "50")%"
     echo "  • Volume costs persist even when VM is suspended"
 }
@@ -337,11 +362,11 @@ show_recommendations() {
     print_header "🎯 Optimization Recommendations"
     print_header "==============================="
 
-    local machine_state machine_size
-    machine_state=$(echo "$vm_info" | awk '{print $2}')
-    machine_size=$(echo "$vm_info" | awk '{print $4}')
+    # Parse info (pipe-delimited)
+    local machine_state cpu_kind cpus memory_mb
+    IFS='|' read -r _ _ machine_state _ cpu_kind cpus memory_mb _ <<< "$vm_info"
     local volume_size
-    volume_size=$(echo "$volume_info" | awk '{print $2}')
+    IFS='|' read -r _ _ volume_size _ _ <<< "$volume_info"
 
     # Analyze usage patterns
     local recommendations=()
@@ -373,14 +398,18 @@ show_recommendations() {
     fi
 
     # VM size recommendations
-    case "$machine_size" in
-        "shared-cpu-1x")
-            recommendations+=("Smallest VM size - upgrade if experiencing slowness")
-            ;;
-        "shared-cpu-8x")
-            recommendations+=("Large VM size - consider downgrading if not fully utilized")
-            ;;
-    esac
+    if [[ "$cpu_kind" == "performance" ]]; then
+        recommendations+=("Using performance CPUs - good for compute-intensive tasks")
+        if [[ $cpus -gt 4 ]]; then
+            recommendations+=("High CPU count - ensure you need $cpus vCPUs")
+        fi
+    else
+        if [[ $memory_mb -le 512 ]]; then
+            recommendations+=("Small memory allocation - upgrade if experiencing slowness")
+        elif [[ $memory_mb -ge 8192 ]]; then
+            recommendations+=("Large memory allocation - consider downgrading if not fully utilized")
+        fi
+    fi
 
     # General recommendations
     recommendations+=("Use 'flyctl machine stop' when done working for the day")
@@ -524,14 +553,48 @@ EOF
 
     case "$action" in
         monitor)
-            local status_info
-            if ! status_info=$(show_current_status); then
+            # Get VM and volume info directly
+            local vm_info
+            if ! vm_info=$(get_vm_info); then
                 exit 1
             fi
-
-            local vm_info volume_info
-            vm_info=$(echo "$status_info" | awk '{print $1, $2, $3, $4, $5}')
-            volume_info=$(echo "$status_info" | awk '{print $6, $7, $8, $9}')
+            
+            local volume_info
+            if ! volume_info=$(get_volume_info); then
+                exit 1
+            fi
+            
+            # Parse and display current status
+            local machine_id machine_name machine_state machine_region cpu_kind cpus memory_mb machine_created
+            IFS='|' read -r machine_id machine_name machine_state machine_region cpu_kind cpus memory_mb machine_created <<< "$vm_info"
+            
+            local volume_id volume_name volume_size volume_region volume_created
+            IFS='|' read -r volume_id volume_name volume_size volume_region volume_created <<< "$volume_info"
+            
+            # Format VM size display
+            local vm_size_display
+            if [[ "$cpu_kind" == "performance" ]]; then
+                vm_size_display="Performance ${cpus}vCPU / ${memory_mb}MB"
+            else
+                vm_size_display="Shared ${cpus}vCPU / ${memory_mb}MB"
+            fi
+            
+            print_header "📊 Current VM Status"
+            print_header "===================="
+            print_metric "App Name:" "$APP_NAME"
+            print_metric "Machine Name:" "$machine_name"
+            print_metric "Machine ID:" "$machine_id"
+            print_metric "State:" "$machine_state"
+            print_metric "Region:" "$machine_region"
+            print_metric "VM Size:" "$vm_size_display"
+            print_metric "Volume Size:" "${volume_size}GB"
+            print_metric "Created:" "$(echo "$machine_created" | cut -d'T' -f1 2>/dev/null || echo "$machine_created")"
+            
+            # Log status
+            echo "$(get_timestamp) $machine_state" >> "$HISTORY_FILE"
+            if [[ -f "$HISTORY_FILE" ]]; then
+                tail -1000 "$HISTORY_FILE" > "${HISTORY_FILE}.tmp" && mv "${HISTORY_FILE}.tmp" "$HISTORY_FILE"
+            fi
 
             echo
             show_cost_breakdown "$vm_info" "$volume_info"
