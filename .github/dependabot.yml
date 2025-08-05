@@ -1,0 +1,106 @@
+# Dependabot configuration for claude-flow-on-fly
+# This configuration monitors dependencies across multiple ecosystems
+# used in this remote development environment setup
+
+version: 2
+updates:
+  # Docker base images and system dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Vancouver"
+    # Focus on security updates for infrastructure
+    open-pull-requests-limit: 5
+    reviewers:
+      - "cphillipson"
+    assignees:
+      - "cphillipson"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "security"
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+
+  # Node.js global packages installed via vm-configure.sh
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Vancouver"
+    # Monitor global npm packages mentioned in scripts
+    open-pull-requests-limit: 10
+    reviewers:
+      - "cphillipson"
+    assignees:
+      - "cphillipson"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "javascript"
+    commit-message:
+      prefix: "npm"
+      include: "scope"
+    # Group related npm updates together
+    groups:
+      dev-dependencies:
+        patterns:
+          - "@anthropic-ai/*"
+          - "ts-node"
+          - "nodemon"
+          - "typescript"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Python packages (pip) - system-wide installations
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Vancouver"
+    # Monitor Python dependencies
+    open-pull-requests-limit: 8
+    reviewers:
+      - "cphillipson"
+    assignees:
+      - "cphillipson"
+    labels:
+      - "dependencies"
+      - "python"
+      - "pip"
+    commit-message:
+      prefix: "python"
+      include: "scope"
+
+  # GitHub Actions workflows (for future workflow files)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+      timezone: "America/Vancouver"
+    # Keep GitHub Actions up to date for security
+    open-pull-requests-limit: 3
+    reviewers:
+      - "cphillipson"
+    assignees:
+      - "cphillipson"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+# Global settings for all ecosystems
+# Note: These settings apply to all package ecosystems above
