@@ -32,11 +32,11 @@ chmod +x scripts/*.sh
 ./scripts/vm-setup.sh --app-name my-claude-dev --cpu-kind performance --cpu-count 2 --memory 2048
 ```
 
-That's it! The script handles everything. For detailed options, see our **[Quick Start Guide](QUICKSTART.md)**.
+That's it! The script handles everything. For detailed options, see our **[Quick Start Guide](docs/QUICKSTART.md)**.
 
 ### Option 2: Manual Setup
 
-For advanced users who prefer manual configuration, see our **[Complete Setup Guide](SETUP.md)**.
+For advanced users who prefer manual configuration, see our **[Complete Setup Guide](docs/SETUP.md)**.
 
 ### Prerequisites
 
@@ -49,8 +49,6 @@ Before starting, you'll need:
 
 ```
 ├── CLAUDE.md                          # Project instructions for Claude
-├── QUICKSTART.md                      # Quick start guide
-├── SETUP.md                           # Complete setup guide
 ├── README.md                          # This file
 ├── Dockerfile                         # Development environment container
 ├── fly.toml                           # Fly.io configuration with auto-scaling
@@ -81,7 +79,9 @@ Before starting, you'll need:
 │   ├── CLAUDE.md.template             # Project context template
 │   ├── settings.json.template         # Claude Code hooks
 │   └── ssh_config.template            # SSH configuration
-└── docs/                              # Detailed setup guides
+└── docs/                              # Documentation and guides
+    ├── QUICKSTART.md                  # Quick start guide
+    ├── SETUP.md                       # Complete setup guide
     ├── VSCODE.md                      # VSCode remote development
     └── INTELLIJ.md                    # IntelliJ remote development
 ```
@@ -229,8 +229,8 @@ flyctl certs create example.com -a my-claude-dev
 
 ## 📚 Documentation
 
-- **[Quick Start Guide](QUICKSTART.md)**: Fast-track setup using automated scripts
-- **[Complete Setup Guide](SETUP.md)**: Comprehensive manual setup walkthrough
+- **[Quick Start Guide](docs/QUICKSTART.md)**: Fast-track setup using automated scripts
+- **[Complete Setup Guide](docs/SETUP.md)**: Comprehensive manual setup walkthrough
 - **[VSCode Setup](docs/VSCODE.md)**: Detailed VSCode remote development guide
 - **[IntelliJ Setup](docs/INTELLIJ.md)**: JetBrains IDE remote development guide
 

@@ -157,8 +157,8 @@ flyctl logs -a my-claude-dev
 
 ### Need more help?
 - See [detailed setup guide](SETUP.md) for manual configuration
-- Check [VSCode setup](docs/VSCODE.md) for IDE-specific help
-- Check [IntelliJ setup](docs/INTELLIJ.md) for JetBrains IDEs
+- Check [VSCode setup](VSCODE.md) for IDE-specific help
+- Check [IntelliJ setup](INTELLIJ.md) for JetBrains IDEs
 - Visit [Fly.io community](https://community.fly.io) for platform help
 
 ## 🎯 Next Steps

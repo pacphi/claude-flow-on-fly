@@ -2,7 +2,7 @@
 
 ## Complete setup guide for connecting VSCode to your Claude development environment on Fly.io
 
-> **⚡ Need to set up your Fly.io environment first?** Use our automated setup script: `./scripts/vm-setup.sh --app-name my-claude-dev`. See the [Quick Start Guide](../QUICKSTART.md) for details.
+> **⚡ Need to set up your Fly.io environment first?** Use our automated setup script: `./scripts/vm-setup.sh --app-name my-claude-dev`. See the [Quick Start Guide](QUICKSTART.md) for details.
 
 This guide walks you through connecting Visual Studio Code to your Fly.io-hosted Claude development environment using the Remote-SSH extension.
 
@@ -562,6 +562,6 @@ Your development environment is now ready for AI-assisted coding with Claude too
 
 ## Related Documentation
 
-- **[Quick Start Guide](../QUICKSTART.md)** - Fast-track setup with automated scripts
-- **[Complete Setup Guide](../SETUP.md)** - Detailed manual setup instructions
+- **[Quick Start Guide](QUICKSTART.md)** - Fast-track setup with automated scripts
+- **[Complete Setup Guide](SETUP.md)** - Detailed manual setup instructions
 - **[IntelliJ Setup](INTELLIJ.md)** - JetBrains IDE remote development

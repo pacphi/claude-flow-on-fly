@@ -2,7 +2,7 @@
 
 ## Complete setup guide for connecting IntelliJ IDEA (and other JetBrains IDEs) to your Claude development environment on Fly.io
 
-> **⚡ Need to set up your Fly.io environment first?** Use our automated setup script: `./scripts/vm-setup.sh --app-name my-claude-dev`. See the [Quick Start Guide](../QUICKSTART.md) for details.
+> **⚡ Need to set up your Fly.io environment first?** Use our automated setup script: `./scripts/vm-setup.sh --app-name my-claude-dev`. See the [Quick Start Guide](QUICKSTART.md) for details.
 
 This guide walks you through connecting IntelliJ IDEA to your Fly.io-hosted Claude development environment using JetBrains Gateway and remote development features.
 
@@ -689,6 +689,6 @@ Your remote development environment provides the full power of JetBrains IDEs wh
 
 ## Related Documentation
 
-- **[Quick Start Guide](../QUICKSTART.md)** - Fast-track setup with automated scripts
-- **[Complete Setup Guide](../SETUP.md)** - Detailed manual setup instructions
+- **[Quick Start Guide](QUICKSTART.md)** - Fast-track setup with automated scripts
+- **[Complete Setup Guide](SETUP.md)** - Detailed manual setup instructions
 - **[VSCode Setup](VSCODE.md)** - Visual Studio Code remote development
