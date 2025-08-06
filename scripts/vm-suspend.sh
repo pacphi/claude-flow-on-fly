@@ -328,7 +328,7 @@ full_suspend() {
 # Function to show status without suspending
 show_status() {
     print_status "Checking VM status..."
-    
+
     local vm_info
     if ! vm_info=$(get_vm_info); then
         return 1
@@ -361,7 +361,7 @@ show_status() {
         memory_mb=$(echo "$vm_info" | cut -d'|' -f7)
         machine_created=$(echo "$vm_info" | cut -d'|' -f8)
     fi
-    
+
     # Ensure all VM variables have values
     machine_id=${machine_id:-"unknown"}
     machine_name=${machine_name:-"unknown"}
@@ -387,7 +387,7 @@ show_status() {
         volume_region=$(echo "$volume_info" | cut -d'|' -f4)
         volume_created=$(echo "$volume_info" | cut -d'|' -f5)
     fi
-    
+
     # Ensure all volume variables have values
     volume_id=${volume_id:-"unknown"}
     volume_name=${volume_name:-"unknown"}
@@ -427,7 +427,7 @@ show_status() {
     echo "  • VM Size: $vm_size_display"
     echo "  • VM Region: $machine_region"
     echo "  • Volume Size: ${volume_size}GB"
-    
+
     # Calculate volume cost
     local volume_cost
     volume_cost=$(echo "scale=2; $volume_size * 0.15" | bc 2>/dev/null || echo "1.50")

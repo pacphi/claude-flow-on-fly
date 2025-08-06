@@ -87,6 +87,7 @@ check_required_files() {
 # Function to check SSH key
 check_ssh_key() {
     local ssh_key_path="$HOME/.ssh/id_rsa.pub"
+    local private_key_path="$HOME/.ssh/id_rsa"
 
     if [[ ! -f "$ssh_key_path" ]]; then
         print_warning "SSH public key not found at $ssh_key_path"
@@ -96,6 +97,7 @@ check_ssh_key() {
         for key_type in id_ed25519 id_ecdsa id_dsa; do
             if [[ -f "$HOME/.ssh/${key_type}.pub" ]]; then
                 ssh_key_path="$HOME/.ssh/${key_type}.pub"
+                private_key_path="$HOME/.ssh/${key_type}"
                 print_success "Found SSH key: $ssh_key_path"
                 break
             fi
@@ -105,14 +107,60 @@ check_ssh_key() {
             print_error "No SSH public key found."
             print_status "Please generate an SSH key pair:"
             print_status "  ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519"
+            print_status "  chmod 600 ~/.ssh/id_ed25519 && chmod 644 ~/.ssh/id_ed25519.pub"
             print_status "  OR"
             print_status "  ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa"
+            print_status "  chmod 600 ~/.ssh/id_rsa && chmod 644 ~/.ssh/id_rsa.pub"
             exit 1
         fi
     fi
 
+    # Validate SSH key permissions
+    validate_ssh_permissions "$private_key_path" "$ssh_key_path"
+
     export SSH_KEY_PATH="$ssh_key_path"
+    export PRIVATE_KEY_PATH="$private_key_path"
     print_success "SSH key found: $ssh_key_path"
+}
+
+# Function to validate SSH key permissions
+validate_ssh_permissions() {
+    local private_key_path="$1"
+    local public_key_path="$2"
+    local fixed_permissions=false
+
+    print_status "Validating SSH key permissions..."
+
+    # Check private key exists and permissions
+    if [[ -f "$private_key_path" ]]; then
+        local private_perms=$(stat -f %A "$private_key_path" 2>/dev/null || stat -c %a "$private_key_path" 2>/dev/null)
+        if [[ "$private_perms" != "600" ]]; then
+            print_warning "Private key has incorrect permissions: $private_perms (should be 600)"
+            print_status "Fixing private key permissions..."
+            chmod 600 "$private_key_path"
+            fixed_permissions=true
+        fi
+    else
+        print_error "Private key not found: $private_key_path"
+        print_status "Make sure you have both public and private key files"
+        exit 1
+    fi
+
+    # Check public key permissions (less critical but good practice)
+    if [[ -f "$public_key_path" ]]; then
+        local public_perms=$(stat -f %A "$public_key_path" 2>/dev/null || stat -c %a "$public_key_path" 2>/dev/null)
+        if [[ "$public_perms" != "644" ]]; then
+            print_status "Fixing public key permissions..."
+            chmod 644 "$public_key_path"
+            fixed_permissions=true
+        fi
+    fi
+
+    if [[ "$fixed_permissions" == "true" ]]; then
+        print_success "SSH key permissions have been corrected"
+    else
+        print_success "SSH key permissions are correct"
+    fi
 }
 
 # Function to create Fly.io application
@@ -231,8 +279,14 @@ show_connection_info() {
     echo "      HostName $APP_NAME.fly.dev"
     echo "      Port 10022"
     echo "      User developer"
-    echo "      IdentityFile $SSH_KEY_PATH"
+    echo "      IdentityFile $PRIVATE_KEY_PATH  # IMPORTANT: Use private key (no .pub)"
     echo "      ServerAliveInterval 60"
+    echo "      ServerAliveCountMax 3"
+    echo
+    print_warning "⚠️  SSH Config Important Notes:"
+    echo "  • IdentityFile should point to your PRIVATE key ($PRIVATE_KEY_PATH)"
+    echo "  • Do NOT use the .pub file in IdentityFile (common mistake)"
+    echo "  • Test connection: ssh $APP_NAME"
     echo
     print_status "Useful Commands:"
     echo "  flyctl status -a $APP_NAME        # Check app status"
@@ -243,7 +297,7 @@ show_connection_info() {
     echo
     print_status "Next Steps:"
     echo "  1. Connect via SSH or IDE remote development"
-    echo "  2. Run: /workspace/scripts/install-claude-tools.sh"
+    echo "  2. Run: /workspace/scripts/vm-configure.sh"
     echo "  3. Authenticate Claude: claude"
     echo "  4. Start developing!"
 }

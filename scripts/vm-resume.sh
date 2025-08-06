@@ -52,7 +52,7 @@ check_vm_status() {
     local machine_state
     machine_state=$(echo "$machine_info" | jq -r 'if .[0].state then .[0].state else "unknown" end' 2>/dev/null)
     machine_state=${machine_state:-"unknown"}
-    
+
     echo "$machine_state"
 }
 
@@ -258,14 +258,14 @@ full_resume() {
     # Get current VM status
     local current_state
     current_state=$(check_vm_status)
-    
+
     # Get machine details for machine ID
     local vm_details
     if ! vm_details=$(get_vm_details); then
         print_error "Failed to get VM details"
         return 1
     fi
-    
+
     local machine_id machine_region
     machine_id=$(echo "$vm_details" | cut -d'|' -f1)
     machine_region=$(echo "$vm_details" | cut -d'|' -f3)

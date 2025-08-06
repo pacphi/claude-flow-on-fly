@@ -57,7 +57,7 @@ calculate_costs() {
     # Pricing per hour (as of 2025)
     # Based on Fly.io pricing: https://fly.io/docs/about/pricing/
     local cpu_cost_per_hour
-    
+
     if [[ "$cpu_kind" == "performance" ]]; then
         # Performance CPUs: $0.035/vCPU/hour + $0.005/GB/hour
         local cpu_component=$(echo "scale=4; $cpus * 0.035" | bc 2>/dev/null || echo "0.035")
@@ -558,19 +558,19 @@ EOF
             if ! vm_info=$(get_vm_info); then
                 exit 1
             fi
-            
+
             local volume_info
             if ! volume_info=$(get_volume_info); then
                 exit 1
             fi
-            
+
             # Parse and display current status
             local machine_id machine_name machine_state machine_region cpu_kind cpus memory_mb machine_created
             IFS='|' read -r machine_id machine_name machine_state machine_region cpu_kind cpus memory_mb machine_created <<< "$vm_info"
-            
+
             local volume_id volume_name volume_size volume_region volume_created
             IFS='|' read -r volume_id volume_name volume_size volume_region volume_created <<< "$volume_info"
-            
+
             # Format VM size display
             local vm_size_display
             if [[ "$cpu_kind" == "performance" ]]; then
@@ -578,7 +578,7 @@ EOF
             else
                 vm_size_display="Shared ${cpus}vCPU / ${memory_mb}MB"
             fi
-            
+
             print_header "📊 Current VM Status"
             print_header "===================="
             print_metric "App Name:" "$APP_NAME"
@@ -589,7 +589,7 @@ EOF
             print_metric "VM Size:" "$vm_size_display"
             print_metric "Volume Size:" "${volume_size}GB"
             print_metric "Created:" "$(echo "$machine_created" | cut -d'T' -f1 2>/dev/null || echo "$machine_created")"
-            
+
             # Log status
             echo "$(get_timestamp) $machine_state" >> "$HISTORY_FILE"
             if [[ -f "$HISTORY_FILE" ]]; then

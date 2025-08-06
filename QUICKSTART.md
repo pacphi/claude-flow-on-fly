@@ -205,6 +205,20 @@ ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa
 ```
 
+**Important: Set correct permissions after creating keys:**
+
+```bash
+# Set correct permissions for private keys (required for SSH to work)
+chmod 600 ~/.ssh/id_rsa        # Private key must be read-write for owner only
+chmod 644 ~/.ssh/id_rsa.pub    # Public key can be readable by others
+
+# Or for Ed25519 keys:
+chmod 600 ~/.ssh/id_ed25519
+chmod 644 ~/.ssh/id_ed25519.pub
+```
+
+**⚠️ Common Mistake:** When configuring SSH, make sure to use the private key file (without `.pub`) in your `IdentityFile` setting, not the public key file (with `.pub`).
+
 ---
 
 **Ready to start?** Run `./scripts/vm-setup.sh` and you'll be coding with Claude in minutes! 🚀

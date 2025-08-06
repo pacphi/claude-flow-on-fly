@@ -240,7 +240,49 @@ Add these settings to VSCode's `settings.json`:
 
 ### Common Issues and Solutions
 
-#### Issue 1: Connection Timeout
+#### Issue 1: SSH Permission Denied (Most Common)
+**Symptoms**:
+```
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@         WARNING: UNPROTECTED PRIVATE KEY FILE!          @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Permissions 0644 for '/path/to/.ssh/id_rsa.pub' are too open.
+```
+
+**Root Causes & Solutions**:
+
+1. **Using public key instead of private key in SSH config**:
+   ```bash
+   # CHECK: Look for this mistake in ~/.ssh/config
+   IdentityFile ~/.ssh/id_rsa.pub  # ❌ WRONG - this is the public key
+
+   # FIX: Should be the private key (no .pub extension)
+   IdentityFile ~/.ssh/id_rsa      # ✅ CORRECT - this is the private key
+   ```
+
+2. **Wrong file permissions on SSH keys**:
+   ```bash
+   # CHECK: Verify current permissions
+   ls -la ~/.ssh/id_rsa*
+
+   # FIX: Set correct permissions
+   chmod 600 ~/.ssh/id_rsa        # Private key: owner read/write only
+   chmod 644 ~/.ssh/id_rsa.pub    # Public key: owner read/write, others read
+   ```
+
+3. **Debug SSH connection step by step**:
+   ```bash
+   # Test SSH connection directly
+   ssh -v developer@your-app-name.fly.dev -p 10022
+
+   # If that fails, check with your SSH config alias
+   ssh -v claude-dev
+
+   # Verify SSH config syntax
+   ssh -F ~/.ssh/config -T claude-dev
+   ```
+
+#### Issue 2: Connection Timeout
 **Symptoms**: VSCode fails to connect, timeout errors
 **Solutions**:
 1. Check if VM is running: `flyctl status -a your-app-name`
@@ -248,7 +290,7 @@ Add these settings to VSCode's `settings.json`:
 3. Test SSH connection: `ssh claude-dev`
 4. Check SSH config syntax
 
-#### Issue 2: VS Code Server Installation Fails
+#### Issue 3: VS Code Server Installation Fails
 **Symptoms**: Server installation hangs or fails
 **Solutions**:
 1. Wait for VM to fully start (can take 30-60 seconds)
@@ -256,14 +298,14 @@ Add these settings to VSCode's `settings.json`:
 3. Clear remote server: Press `Cmd+Shift+P` → "Remote-SSH: Kill VS Code Server on Host"
 4. Reconnect
 
-#### Issue 3: Extensions Don't Work
+#### Issue 4: Extensions Don't Work
 **Symptoms**: Extensions show errors or don't activate
 **Solutions**:
 1. Ensure extensions are installed on remote, not locally
 2. Reload window: `Cmd+Shift+P` → "Developer: Reload Window"
 3. Check extension compatibility with remote development
 
-#### Issue 4: Slow Performance
+#### Issue 5: Slow Performance
 **Symptoms**: Sluggish editing, slow file operations
 **Solutions**:
 1. Check VM resources: `htop` on remote VM
@@ -271,7 +313,7 @@ Add these settings to VSCode's `settings.json`:
 3. Exclude large directories from file watcher
 4. Close unused tabs and panels
 
-#### Issue 5: File Changes Not Detected
+#### Issue 6: File Changes Not Detected
 **Symptoms**: Hot reload doesn't work, changes not reflected
 **Solutions**:
 1. Use VSCode's integrated terminal for development commands

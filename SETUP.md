@@ -758,15 +758,49 @@ flyctl machine restart <machine-id>
 ```
 
 #### SSH Connection Failed
+
+**Common SSH Permission Issues:**
+
+The most frequent SSH connection problem is using the wrong key file or incorrect permissions:
+
+```bash
+# PROBLEM: This error indicates SSH config is using public key instead of private key
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@         WARNING: UNPROTECTED PRIVATE KEY FILE!          @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Permissions 0644 for '/path/to/.ssh/id_rsa.pub' are too open.
+
+# SOLUTION 1: Fix SSH config to use private key (most common fix)
+# Edit ~/.ssh/config and ensure IdentityFile points to private key:
+IdentityFile ~/.ssh/id_rsa      # ✅ CORRECT (private key, no .pub)
+# NOT:
+IdentityFile ~/.ssh/id_rsa.pub  # ❌ WRONG (public key with .pub)
+
+# SOLUTION 2: Fix SSH key permissions
+chmod 600 ~/.ssh/id_rsa        # Private key: owner read/write only
+chmod 644 ~/.ssh/id_rsa.pub    # Public key: readable by others
+
+# SOLUTION 3: Verify your SSH key setup
+ls -la ~/.ssh/id_rsa*          # Check permissions and files exist
+```
+
+**General SSH Connection Troubleshooting:**
+
 ```bash
 # Verify VM is running
-flyctl status
+flyctl status -a your-app-name
 
-# Check SSH key
-flyctl secrets list
+# Check SSH key configuration on Fly.io
+flyctl secrets list -a your-app-name
 
-# Test connection
-ssh -vvv developer@my-claude-dev.fly.dev -p 10022
+# Test connection with verbose output
+ssh -vvv developer@your-app-name.fly.dev -p 10022
+
+# Test connection using SSH config alias
+ssh -vvv your-app-name
+
+# Verify SSH config syntax
+ssh -F ~/.ssh/config -T your-app-name
 ```
 
 #### Claude Code Authentication Issues

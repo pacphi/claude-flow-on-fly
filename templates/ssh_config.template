@@ -3,13 +3,24 @@
 
 # Replace the following placeholders:
 # [APP_NAME] - Your Fly.io application name
-# [SSH_KEY_PATH] - Path to your SSH private key
+# [SSH_KEY_PATH] - Path to your SSH PRIVATE key (NOT the .pub file)
+
+# IMPORTANT: Common SSH Configuration Mistakes to Avoid:
+# ❌ IdentityFile ~/.ssh/id_rsa.pub    (WRONG - this is the public key)
+# ✅ IdentityFile ~/.ssh/id_rsa        (CORRECT - this is the private key)
+#
+# Before using this config:
+# 1. Ensure your SSH key permissions are correct:
+#    chmod 600 ~/.ssh/id_rsa      (private key: owner read/write only)
+#    chmod 644 ~/.ssh/id_rsa.pub  (public key: readable by others)
+# 2. Replace [APP_NAME] and [SSH_KEY_PATH] with your actual values
+# 3. Test the connection: ssh [APP_NAME]
 
 Host [APP_NAME]
     HostName [APP_NAME].fly.dev
     Port 10022
     User developer
-    IdentityFile [SSH_KEY_PATH]
+    IdentityFile [SSH_KEY_PATH]    # Path to PRIVATE key (no .pub extension)
     ServerAliveInterval 60
     ServerAliveCountMax 3
     StrictHostKeyChecking accept-new
