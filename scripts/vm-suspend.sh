@@ -33,10 +33,8 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Function to check current VM status
+# Function to check current VM status (returns only state)
 check_vm_status() {
-    print_status "Checking VM status..."
-
     local machine_info
     if ! machine_info=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null); then
         print_error "Failed to get machine information"
@@ -44,22 +42,83 @@ check_vm_status() {
         exit 1
     fi
 
-    local machine_id
     local machine_state
-    local machine_region
-    local machine_size
-
-    machine_id=$(echo "$machine_info" | jq -r '.[0].id')
     machine_state=$(echo "$machine_info" | jq -r '.[0].state')
-    machine_region=$(echo "$machine_info" | jq -r '.[0].region')
-    machine_size=$(echo "$machine_info" | jq -r '.[0].config.size')
-
-    echo "Machine ID: $machine_id"
-    echo "State: $machine_state"
-    echo "Region: $machine_region"
-    echo "Size: $machine_size"
-
     echo "$machine_state"
+}
+
+# Function to get full VM information (returns pipe-delimited format)
+get_vm_info() {
+    local machine_info
+    if ! machine_info=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null); then
+        print_error "Failed to get machine information"
+        return 1
+    fi
+
+    # Check if we have valid JSON and at least one machine
+    if ! echo "$machine_info" | jq -e '.[0]' >/dev/null 2>&1; then
+        print_error "No machines found or invalid response"
+        return 1
+    fi
+
+    local machine_id machine_name machine_state machine_region cpu_kind cpus memory_mb machine_created
+
+    # Extract values with better error handling
+    machine_id=$(echo "$machine_info" | jq -r 'if .[0].id then .[0].id else "unknown" end' 2>/dev/null)
+    machine_name=$(echo "$machine_info" | jq -r 'if .[0].name then .[0].name else "unknown" end' 2>/dev/null)
+    machine_state=$(echo "$machine_info" | jq -r 'if .[0].state then .[0].state else "unknown" end' 2>/dev/null)
+    machine_region=$(echo "$machine_info" | jq -r 'if .[0].region then .[0].region else "unknown" end' 2>/dev/null)
+    cpu_kind=$(echo "$machine_info" | jq -r 'if .[0].config.guest.cpu_kind then .[0].config.guest.cpu_kind else "shared" end' 2>/dev/null)
+    cpus=$(echo "$machine_info" | jq -r 'if .[0].config.guest.cpus then .[0].config.guest.cpus else 1 end' 2>/dev/null)
+    memory_mb=$(echo "$machine_info" | jq -r 'if .[0].config.guest.memory_mb then .[0].config.guest.memory_mb else 256 end' 2>/dev/null)
+    machine_created=$(echo "$machine_info" | jq -r 'if .[0].created_at then .[0].created_at else "unknown" end' 2>/dev/null)
+
+    # Ensure all variables have values (fallback if jq fails)
+    machine_id=${machine_id:-"unknown"}
+    machine_name=${machine_name:-"unknown"}
+    machine_state=${machine_state:-"unknown"}
+    machine_region=${machine_region:-"unknown"}
+    cpu_kind=${cpu_kind:-"shared"}
+    cpus=${cpus:-"1"}
+    memory_mb=${memory_mb:-"256"}
+    machine_created=${machine_created:-"unknown"}
+
+    # Return pipe-delimited format
+    echo "${machine_id}|${machine_name}|${machine_state}|${machine_region}|${cpu_kind}|${cpus}|${memory_mb}|${machine_created}"
+}
+
+# Function to get volume information (returns pipe-delimited format)
+get_volume_info() {
+    local volume_info
+    if ! volume_info=$(flyctl volumes list -a "$APP_NAME" --json 2>/dev/null); then
+        print_error "Failed to get volume information"
+        return 1
+    fi
+
+    # Check if we have valid JSON and at least one volume
+    if ! echo "$volume_info" | jq -e '.[0]' >/dev/null 2>&1; then
+        print_error "No volumes found or invalid response"
+        return 1
+    fi
+
+    local volume_id volume_name volume_size volume_region volume_created
+
+    # Extract values with better error handling
+    volume_id=$(echo "$volume_info" | jq -r 'if .[0].id then .[0].id else "unknown" end' 2>/dev/null)
+    volume_name=$(echo "$volume_info" | jq -r 'if .[0].name then .[0].name else "unknown" end' 2>/dev/null)
+    volume_size=$(echo "$volume_info" | jq -r 'if .[0].size_gb then .[0].size_gb else 10 end' 2>/dev/null)
+    volume_region=$(echo "$volume_info" | jq -r 'if .[0].region then .[0].region else "unknown" end' 2>/dev/null)
+    volume_created=$(echo "$volume_info" | jq -r 'if .[0].created_at then .[0].created_at else "unknown" end' 2>/dev/null)
+
+    # Ensure all variables have values (fallback if jq fails)
+    volume_id=${volume_id:-"unknown"}
+    volume_name=${volume_name:-"unknown"}
+    volume_size=${volume_size:-"10"}
+    volume_region=${volume_region:-"unknown"}
+    volume_created=${volume_created:-"unknown"}
+
+    # Return pipe-delimited format
+    echo "${volume_id}|${volume_name}|${volume_size}|${volume_region}|${volume_created}"
 }
 
 # Function to gracefully shutdown active sessions
@@ -203,7 +262,7 @@ full_suspend() {
     if [[ "$current_state" != "started" ]]; then
         print_warning "VM is already in '$current_state' state"
 
-        if [[ "$current_state" == "stopped" ]]; then
+        if [[ "$current_state" == "stopped" || "$current_state" == "suspended" ]]; then
             print_success "VM is already suspended"
             show_cost_info
             return 0
@@ -233,9 +292,14 @@ full_suspend() {
         fi
     fi
 
-    # Get machine ID
+    # Get machine ID from VM info
     local machine_id
-    machine_id=$(flyctl machine list -a "$APP_NAME" --json | jq -r '.[0].id')
+    local vm_info
+    if ! vm_info=$(get_vm_info); then
+        print_error "Failed to get VM information for machine ID"
+        return 1
+    fi
+    machine_id=$(echo "$vm_info" | cut -d'|' -f1)
 
     # Perform graceful shutdown if VM is accessible
     if [[ "$current_state" == "started" ]]; then
@@ -263,41 +327,111 @@ full_suspend() {
 
 # Function to show status without suspending
 show_status() {
-    local current_state
-    current_state=$(check_vm_status)
+    print_status "Checking VM status..."
+    
+    local vm_info
+    if ! vm_info=$(get_vm_info); then
+        return 1
+    fi
+
+    local volume_info
+    if ! volume_info=$(get_volume_info); then
+        return 1
+    fi
+
+    # Parse VM info (pipe-delimited) with safer parsing
+    local machine_id machine_name machine_state machine_region cpu_kind cpus memory_mb machine_created
+    if [[ "$vm_info" =~ ^([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|(.*)$ ]]; then
+        machine_id="${BASH_REMATCH[1]}"
+        machine_name="${BASH_REMATCH[2]}"
+        machine_state="${BASH_REMATCH[3]}"
+        machine_region="${BASH_REMATCH[4]}"
+        cpu_kind="${BASH_REMATCH[5]}"
+        cpus="${BASH_REMATCH[6]}"
+        memory_mb="${BASH_REMATCH[7]}"
+        machine_created="${BASH_REMATCH[8]}"
+    else
+        # Fallback parsing using cut
+        machine_id=$(echo "$vm_info" | cut -d'|' -f1)
+        machine_name=$(echo "$vm_info" | cut -d'|' -f2)
+        machine_state=$(echo "$vm_info" | cut -d'|' -f3)
+        machine_region=$(echo "$vm_info" | cut -d'|' -f4)
+        cpu_kind=$(echo "$vm_info" | cut -d'|' -f5)
+        cpus=$(echo "$vm_info" | cut -d'|' -f6)
+        memory_mb=$(echo "$vm_info" | cut -d'|' -f7)
+        machine_created=$(echo "$vm_info" | cut -d'|' -f8)
+    fi
+    
+    # Ensure all VM variables have values
+    machine_id=${machine_id:-"unknown"}
+    machine_name=${machine_name:-"unknown"}
+    machine_state=${machine_state:-"unknown"}
+    machine_region=${machine_region:-"unknown"}
+    cpu_kind=${cpu_kind:-"shared"}
+    cpus=${cpus:-"1"}
+    memory_mb=${memory_mb:-"256"}
+
+    # Parse volume info (pipe-delimited) with safer parsing
+    local volume_id volume_name volume_size volume_region volume_created
+    if [[ "$volume_info" =~ ^([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|(.*)$ ]]; then
+        volume_id="${BASH_REMATCH[1]}"
+        volume_name="${BASH_REMATCH[2]}"
+        volume_size="${BASH_REMATCH[3]}"
+        volume_region="${BASH_REMATCH[4]}"
+        volume_created="${BASH_REMATCH[5]}"
+    else
+        # Fallback parsing using cut
+        volume_id=$(echo "$volume_info" | cut -d'|' -f1)
+        volume_name=$(echo "$volume_info" | cut -d'|' -f2)
+        volume_size=$(echo "$volume_info" | cut -d'|' -f3)
+        volume_region=$(echo "$volume_info" | cut -d'|' -f4)
+        volume_created=$(echo "$volume_info" | cut -d'|' -f5)
+    fi
+    
+    # Ensure all volume variables have values
+    volume_id=${volume_id:-"unknown"}
+    volume_name=${volume_name:-"unknown"}
+    volume_size=${volume_size:-"10"}
+    volume_region=${volume_region:-"unknown"}
+
+    # Format VM size display
+    local vm_size_display
+    if [[ "$cpu_kind" == "performance" ]]; then
+        vm_size_display="Performance ${cpus}vCPU / ${memory_mb}MB"
+    else
+        vm_size_display="Shared ${cpus}vCPU / ${memory_mb}MB"
+    fi
 
     echo
     print_status "📊 Current Status Summary:"
 
-    case "$current_state" in
+    case "$machine_state" in
         "started")
             echo "  • VM Status: ✅ RUNNING"
             echo "  • Compute Costs: 💸 ACTIVE (~\$0.0067/hour)"
             echo "  • SSH Access: 🔌 AVAILABLE"
             ;;
-        "stopped")
+        "stopped"|"suspended")
             echo "  • VM Status: ⏸️  SUSPENDED"
             echo "  • Compute Costs: ✅ STOPPED"
             echo "  • SSH Access: ❌ UNAVAILABLE"
             ;;
         *)
-            echo "  • VM Status: ❓ $current_state"
+            echo "  • VM Status: ❓ $machine_state"
             echo "  • Compute Costs: ❓ UNKNOWN"
             echo "  • SSH Access: ❓ UNKNOWN"
             ;;
     esac
 
-    # Show volume info
-    local volume_info
-    if volume_info=$(flyctl volumes list -a "$APP_NAME" --json 2>/dev/null); then
-        local volume_size
-        volume_size=$(echo "$volume_info" | jq -r '.[0].size_gb')
-        local volume_cost
-        volume_cost=$(echo "scale=2; $volume_size * 0.15" | bc 2>/dev/null || echo "~\$1.50")
-
-        echo "  • Volume Size: ${volume_size}GB"
-        echo "  • Volume Cost: \$${volume_cost}/month (persistent)"
-    fi
+    # Show VM and volume details
+    echo "  • VM Size: $vm_size_display"
+    echo "  • VM Region: $machine_region"
+    echo "  • Volume Size: ${volume_size}GB"
+    
+    # Calculate volume cost
+    local volume_cost
+    volume_cost=$(echo "scale=2; $volume_size * 0.15" | bc 2>/dev/null || echo "1.50")
+    echo "  • Volume Cost: \$${volume_cost}/month (persistent)"
 
     echo
     show_resume_info

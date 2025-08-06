@@ -34,7 +34,7 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Function to check current VM status
+# Function to check current VM status (returns only state for parsing)
 check_vm_status() {
     local machine_info
     if ! machine_info=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null); then
@@ -43,19 +43,45 @@ check_vm_status() {
         exit 1
     fi
 
-    local machine_id
+    # Check if we have valid JSON and at least one machine
+    if ! echo "$machine_info" | jq -e '.[0]' >/dev/null 2>&1; then
+        print_error "No machines found or invalid response"
+        exit 1
+    fi
+
     local machine_state
-    local machine_region
+    machine_state=$(echo "$machine_info" | jq -r 'if .[0].state then .[0].state else "unknown" end' 2>/dev/null)
+    machine_state=${machine_state:-"unknown"}
+    
+    echo "$machine_state"
+}
 
-    machine_id=$(echo "$machine_info" | jq -r '.[0].id')
-    machine_state=$(echo "$machine_info" | jq -r '.[0].state')
-    machine_region=$(echo "$machine_info" | jq -r '.[0].region')
+# Function to get detailed VM information for status display
+get_vm_details() {
+    local machine_info
+    if ! machine_info=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null); then
+        return 1
+    fi
 
-    echo "Machine ID: $machine_id"
-    echo "State: $machine_state"
-    echo "Region: $machine_region"
+    # Check if we have valid JSON and at least one machine
+    if ! echo "$machine_info" | jq -e '.[0]' >/dev/null 2>&1; then
+        return 1
+    fi
 
-    echo "$machine_state $machine_id"
+    local machine_id machine_state machine_region
+
+    # Extract values with better error handling
+    machine_id=$(echo "$machine_info" | jq -r 'if .[0].id then .[0].id else "unknown" end' 2>/dev/null)
+    machine_state=$(echo "$machine_info" | jq -r 'if .[0].state then .[0].state else "unknown" end' 2>/dev/null)
+    machine_region=$(echo "$machine_info" | jq -r 'if .[0].region then .[0].region else "unknown" end' 2>/dev/null)
+
+    # Ensure all variables have values
+    machine_id=${machine_id:-"unknown"}
+    machine_state=${machine_state:-"unknown"}
+    machine_region=${machine_region:-"unknown"}
+
+    # Return pipe-delimited format
+    echo "${machine_id}|${machine_state}|${machine_region}"
 }
 
 # Function to start the VM
@@ -230,13 +256,19 @@ full_resume() {
     local skip_verification="$1"
 
     # Get current VM status
-    local status_output
-    status_output=$(check_vm_status)
     local current_state
-    local machine_id
-
-    current_state=$(echo "$status_output" | awk '{print $1}')
-    machine_id=$(echo "$status_output" | awk '{print $2}')
+    current_state=$(check_vm_status)
+    
+    # Get machine details for machine ID
+    local vm_details
+    if ! vm_details=$(get_vm_details); then
+        print_error "Failed to get VM details"
+        return 1
+    fi
+    
+    local machine_id machine_region
+    machine_id=$(echo "$vm_details" | cut -d'|' -f1)
+    machine_region=$(echo "$vm_details" | cut -d'|' -f3)
 
     echo
 
@@ -305,11 +337,8 @@ full_resume() {
 
 # Function to show current status
 show_status() {
-    local status_output
-    status_output=$(check_vm_status)
     local current_state
-
-    current_state=$(echo "$status_output" | awk '{print $1}')
+    current_state=$(check_vm_status)
 
     echo
     print_status "📊 Current Status:"
