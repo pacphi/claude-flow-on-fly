@@ -67,15 +67,21 @@ This is a complete remote AI-assisted development environment setup running Clau
 
 ### VM Scripts (Created on first run)
 - `vm-configure.sh` - Complete environment setup (Node.js, Claude tools, Git)
-- Backup/restore utilities for data management
-- Cost monitoring and VM lifecycle management
+- `backup.sh` - Backup critical workspace data
+- `restore.sh` - Restore from backup files
+- `new-project.sh` - Create new projects with Git integration
+- `system-status.sh` - Show system and development environment status
 
 ### Library Structure
 - `/workspace/scripts/lib/` - Shared utility libraries
   - `common.sh` - Core functions used by all scripts (colors, print functions, utilities)
-  - `workspace.sh` - Workspace management utilities (project creation, templates)
+  - `workspace.sh` - Workspace management utilities (delegates to script files)
   - `tools.sh` - Tool installation functions (Node.js, Claude Code, language tools)
   - `git.sh` - Git configuration helpers (setup, aliases, hooks)
+  - `backup.sh` - Backup utilities for workspace data
+  - `restore.sh` - Restore utilities for workspace backups
+  - `new-project.sh` - Project creation with Git integration
+  - `system-status.sh` - System monitoring and status display
 - `/workspace/scripts/extensions.d/` - Custom tool installations
   - Add numbered scripts here for automatic execution during configuration
   - Scripts run in alphabetical order: pre-*, *, post-*
@@ -148,6 +154,16 @@ This is a complete remote AI-assisted development environment setup running Clau
 - Include coding style, Git workflow, and testing preferences
 
 ## Common Operations
+
+### Project Creation
+- Use `new-project.sh` to create new projects with proper Git setup:
+  ```bash
+  new-project.sh my-app --type node
+  new-project.sh my-app --git-name "John Doe" --git-email "john@example.com"
+  ```
+- Supports project types: node, python, go, rust, web
+- Automatically initializes Git with appropriate .gitignore
+- Creates CLAUDE.md template for project context
 
 ### Testing and Validation
 - No specific test framework - varies by project

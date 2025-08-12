@@ -34,228 +34,28 @@ setup_workspace_structure() {
 create_workspace_scripts() {
     print_status "Creating workspace utility scripts..."
 
-    # Create backup script
-    cat > "$SCRIPTS_DIR/backup.sh" << 'EOF'
-#!/bin/bash
-# Backup critical workspace data
-
-# Source common utilities
-source "$(dirname "$0")/lib/common.sh"
-
-BACKUP_DATE=$(get_timestamp)
-CRITICAL_DIRS="/workspace/projects /home/developer/.claude /workspace/.config"
-
-print_status "Creating backup: backup_$BACKUP_DATE.tar.gz"
-
-# Create backup directory
-create_directory "$BACKUPS_DIR"
-
-# Create tarball of critical directories
-if tar -czf "$BACKUPS_DIR/backup_$BACKUP_DATE.tar.gz" $CRITICAL_DIRS 2>/dev/null; then
-    print_success "Backup completed: backup_$BACKUP_DATE.tar.gz"
-else
-    print_warning "Some files may not be accessible, creating partial backup..."
-    tar --ignore-failed-read -czf "$BACKUPS_DIR/backup_$BACKUP_DATE.tar.gz" $CRITICAL_DIRS
-    print_success "Partial backup completed: backup_$BACKUP_DATE.tar.gz"
-fi
-
-# Keep only last 7 backups
-find "$BACKUPS_DIR" -name "backup_*.tar.gz" -mtime +7 -delete
-
-ls -lh "$BACKUPS_DIR/backup_$BACKUP_DATE.tar.gz"
-EOF
-    chmod +x "$SCRIPTS_DIR/backup.sh"
-
-    # Create restore script
-    cat > "$SCRIPTS_DIR/restore.sh" << 'EOF'
-#!/bin/bash
-# Restore from backup
-
-# Source common utilities
-source "$(dirname "$0")/lib/common.sh"
-
-if [ $# -eq 0 ]; then
-    echo "Usage: $0 <backup_filename>"
-    echo "Available backups:"
-    ls -1 "$BACKUPS_DIR"/backup_*.tar.gz 2>/dev/null || echo "  No backups found"
-    exit 1
-fi
-
-BACKUP_FILE="$BACKUPS_DIR/$1"
-
-if [ ! -f "$BACKUP_FILE" ]; then
-    print_error "Backup file not found: $BACKUP_FILE"
-    exit 1
-fi
-
-print_status "Restoring from: $1"
-
-if confirm "This will overwrite existing files. Continue?"; then
-    tar -xzf "$BACKUP_FILE" -C /
-    print_success "Restore completed"
-else
-    print_warning "Restore cancelled"
-fi
-EOF
-    chmod +x "$SCRIPTS_DIR/restore.sh"
-
-    # Create new project script
-    cat > "$SCRIPTS_DIR/new-project.sh" << 'EOF'
-#!/bin/bash
-# Create a new project with Claude configuration
-
-# Source common utilities
-source "$(dirname "$0")/lib/common.sh"
-
-if [ $# -eq 0 ]; then
-    echo "Usage: $0 <project_name> [project_type]"
-    echo "Project types: node, python, go, rust, web"
-    exit 1
-fi
-
-PROJECT_NAME="$1"
-PROJECT_TYPE="${2:-node}"
-PROJECT_DIR="$PROJECTS_DIR/active/$PROJECT_NAME"
-
-if [ -d "$PROJECT_DIR" ]; then
-    print_error "Project $PROJECT_NAME already exists"
-    exit 1
-fi
-
-print_status "Creating new $PROJECT_TYPE project: $PROJECT_NAME"
-
-# Create project directory
-create_directory "$PROJECT_DIR"
-cd "$PROJECT_DIR"
-
-# Initialize Git
-git init
-
-# Create basic project structure based on type
-case $PROJECT_TYPE in
-    node)
-        npm init -y
-        echo "node_modules/" > .gitignore
-        echo "*.log" >> .gitignore
-        ;;
-    python)
-        touch requirements.txt
-        echo "__pycache__/" > .gitignore
-        echo "*.pyc" >> .gitignore
-        echo ".env" >> .gitignore
-        echo "venv/" >> .gitignore
-        ;;
-    go)
-        go mod init "$PROJECT_NAME" 2>/dev/null || echo "module $PROJECT_NAME" > go.mod
-        echo "bin/" > .gitignore
-        echo "*.exe" >> .gitignore
-        ;;
-    rust)
-        cargo init --name "$PROJECT_NAME" 2>/dev/null || {
-            echo "[package]" > Cargo.toml
-            echo "name = \"$PROJECT_NAME\"" >> Cargo.toml
-            echo "version = \"0.1.0\"" >> Cargo.toml
-            echo "edition = \"2021\"" >> Cargo.toml
-            mkdir -p src
-            echo "fn main() { println!(\"Hello, world!\"); }" > src/main.rs
-        }
-        echo "target/" > .gitignore
-        echo "Cargo.lock" >> .gitignore
-        ;;
-    web)
-        mkdir -p src css js
-        touch src/index.html css/style.css js/app.js
-        echo "node_modules/" > .gitignore
-        echo "dist/" >> .gitignore
-        ;;
-esac
-
-# Create CLAUDE.md for project context
-cat > CLAUDE.md << CLAUDE_EOF
-# $PROJECT_NAME
-
-## Project Overview
-This is a $PROJECT_TYPE project for [brief description].
-
-## Setup Instructions
-[Add setup instructions here]
-
-## Development Commands
-[Add common commands here]
-
-## Architecture Notes
-[Add architectural decisions and patterns]
-
-## Important Files
-[List key files and their purposes]
-CLAUDE_EOF
-
-# Initialize Claude Flow if available
-if command_exists claude-flow || command_exists npx; then
-    npx claude-flow@alpha init --force 2>/dev/null || true
-fi
-
-print_success "Project $PROJECT_NAME created successfully"
-echo "📁 Location: $PROJECT_DIR"
-echo "📝 Next steps:"
-echo "   1. cd $PROJECT_DIR"
-echo "   2. Edit CLAUDE.md with project details"
-echo "   3. Start coding with: claude"
-EOF
-    chmod +x "$SCRIPTS_DIR/new-project.sh"
-
-    # Create system status script
-    cat > "$SCRIPTS_DIR/system-status.sh" << 'EOF'
-#!/bin/bash
-# Show system and development environment status
-
-# Source common utilities
-source "$(dirname "$0")/lib/common.sh"
-
-echo "🖥️  System Status"
-echo "=================="
-echo "Hostname: $(hostname)"
-echo "Uptime: $(uptime -p)"
-echo "Load: $(uptime | awk -F'load average:' '{print $2}')"
-echo "Memory: $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
-echo "Disk: $(df -h /workspace | awk 'NR==2 {print $3 "/" $2 " (" $5 ")"}')"
-echo
-
-echo "🔧 Development Tools"
-echo "===================="
-echo "Node.js: $(node --version 2>/dev/null || echo 'Not installed')"
-echo "npm: $(npm --version 2>/dev/null || echo 'Not installed')"
-echo "Python: $(python3 --version 2>/dev/null || echo 'Not installed')"
-echo "Git: $(git --version 2>/dev/null || echo 'Not installed')"
-echo "Claude Code: $(claude --version 2>/dev/null || echo 'Not installed/authenticated')"
-echo "Claude Flow: $(command -v claude-flow >/dev/null && echo 'Installed' || echo 'Available via npx')"
-echo
-
-echo "📁 Workspace"
-echo "============"
-echo "Projects: $(find /workspace/projects -mindepth 1 -maxdepth 2 -type d 2>/dev/null | wc -l) directories"
-echo "Backups: $(ls /workspace/backups/*.tar.gz 2>/dev/null | wc -l) files"
-echo "Extensions: $(ls /workspace/scripts/extensions.d/*.sh 2>/dev/null | wc -l) scripts"
-echo "Storage:"
-df -h /workspace | awk 'NR==2 {print "  Used: " $3 " / " $2 " (" $5 ")"}'
-echo
-
-echo "🌐 Network"
-echo "=========="
-echo "IP Address: $(hostname -I | awk '{print $1}')"
-echo "SSH Status: $(pgrep sshd >/dev/null && echo 'Running' || echo 'Not running')"
-
-# Check for custom extensions
-if [ -d "$EXTENSIONS_DIR" ] && [ "$(ls -A $EXTENSIONS_DIR/*.sh 2>/dev/null)" ]; then
-    echo
-    echo "🔌 Custom Extensions"
-    echo "===================="
-    for ext in "$EXTENSIONS_DIR"/*.sh; do
-        [ -f "$ext" ] && echo "  - $(basename "$ext")"
+    # Get the directory containing this script (should be lib/)
+    local lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    
+    # Ensure lib directory exists in scripts directory for dependencies
+    create_directory "$SCRIPTS_DIR/lib"
+    
+    # Copy library files to scripts/lib
+    cp "$lib_dir/common.sh" "$SCRIPTS_DIR/lib/"
+    cp "$lib_dir/git.sh" "$SCRIPTS_DIR/lib/"
+    
+    # Copy workspace utility scripts from lib directory
+    local scripts=(backup restore new-project system-status)
+    
+    for script in "${scripts[@]}"; do
+        if [ -f "$lib_dir/$script.sh" ]; then
+            cp "$lib_dir/$script.sh" "$SCRIPTS_DIR/"
+            chmod +x "$SCRIPTS_DIR/$script.sh"
+            print_debug "Copied $script.sh to workspace scripts"
+        else
+            print_warning "Script $script.sh not found in $lib_dir"
+        fi
     done
-fi
-EOF
-    chmod +x "$SCRIPTS_DIR/system-status.sh"
 
     print_success "Workspace utility scripts created"
 }
