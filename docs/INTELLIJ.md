@@ -344,25 +344,34 @@ Host claude-dev
 
 ## Troubleshooting
 
-### Common Issues and Solutions
+For comprehensive troubleshooting including SSH issues, VM management, and performance optimization, see our dedicated [Troubleshooting Guide](TROUBLESHOOTING.md).
 
-#### Issue 1: Connection Timeout During Setup
+### IntelliJ-Specific Issues
+
+#### Issue 1: SSH Connection Problems
+
+For SSH-related issues including:
+- Permission denied errors
+- Host key verification failures  
+- Connection timeouts
+- Authentication problems
+
+See [SSH Connection Issues](TROUBLESHOOTING.md#ssh-connection-issues) in our Troubleshooting Guide.
+
+**Quick Fix for Host Key Issues:**
+```bash
+# If you get host key verification failed after VM recreation:
+ssh-keygen -R "[your-app-name.fly.dev]:10022"
+```
+
+#### Issue 2: Connection Timeout During Setup
 **Symptoms**: Gateway hangs during IDE installation
 **Solutions**:
-1. **Check VM Status**:
-   ```bash
-   flyctl status -a your-app-name
-   flyctl machine list -a your-app-name
-   ```
+1. Check VM status: `flyctl status -a your-app-name`
+2. Restart VM if needed: `flyctl machine restart <machine-id> -a your-app-name`
+3. Increase timeout in Gateway settings
 
-2. **Restart VM if Needed**:
-   ```bash
-   flyctl machine restart <machine-id> -a your-app-name
-   ```
-
-3. **Increase Timeout**: Use longer connection timeout in Gateway settings
-
-#### Issue 2: IDE Won't Start
+#### Issue 3: IDE Won't Start
 **Symptoms**: IDE installation completes but IDE doesn't launch
 **Solutions**:
 1. **Check VM Resources**:
@@ -383,7 +392,7 @@ Host claude-dev
    rm -rf ~/.cache/JetBrains
    ```
 
-#### Issue 3: Slow Performance
+#### Issue 4: Slow Performance
 **Symptoms**: IDE is sluggish, high latency
 **Solutions**:
 1. **Check Network Latency**:
@@ -399,7 +408,7 @@ Host claude-dev
    - Upgrade to performance CPU
    - Increase memory allocation
 
-#### Issue 4: Project Not Loading
+#### Issue 5: Project Not Loading
 **Symptoms**: IDE opens but project files don't appear
 **Solutions**:
 1. **Check Project Path**:

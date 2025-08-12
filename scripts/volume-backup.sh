@@ -110,10 +110,10 @@ create_remote_backup() {
     backup_date=$(date +%Y%m%d_%H%M%S)
     local remote_backup_name="backup_${APP_NAME}_${backup_date}.tar.gz"
 
-    # Create backup on remote VM
-    ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST" bash << EOF
+    # Create backup on remote VM - all output to stderr except the filename
+    {
+        ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST" bash << EOF
 set -e
-echo "🔄 Creating remote backup..."
 
 # Define directories to backup
 BACKUP_DIRS="/workspace/projects /workspace/.config /home/developer/.claude /workspace/scripts"
@@ -121,6 +121,9 @@ BACKUP_FILE="/workspace/backups/$remote_backup_name"
 
 # Create backups directory
 mkdir -p /workspace/backups
+
+# Show progress
+echo "🔄 Creating remote backup..."
 
 # Create compressed backup
 tar --exclude='/workspace/backups' \\
@@ -149,8 +152,10 @@ find /workspace/backups -name "backup_*.tar.gz" -type f | sort | head -n -5 | xa
 echo "📊 Remaining backups:"
 ls -lh /workspace/backups/backup_*.tar.gz 2>/dev/null || echo "No backups found"
 EOF
+    } >&2  # Redirect all SSH output to stderr
 
     print_success "Remote backup created: $remote_backup_name"
+    # Return just the filename on stdout for capture
     echo "$remote_backup_name"
 }
 

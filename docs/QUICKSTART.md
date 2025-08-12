@@ -8,7 +8,7 @@ Before you begin, ensure you have:
 
 1. **[Fly.io CLI](https://fly.io/docs/flyctl/install/)** installed
 2. **[Fly.io account](https://fly.io/signup)** (free tier available)
-3. **SSH key pair** (if you don't have one, see [Creating SSH Keys](#creating-ssh-keys))
+3. **SSH key pair** (if you don't have one, see [SSH Key Setup](#ssh-key-setup))
 4. **[Claude Max](https://www.anthropic.com/max)** subscription OR **[Anthropic API key](https://console.anthropic.com/settings/keys)**
 
 ## ⚡ Automated Setup (Recommended)
@@ -175,6 +175,10 @@ flyctl machine restart <machine-id> -a my-claude-dev
 ```
 
 ### SSH connection fails?
+
+See our [Troubleshooting Guide](TROUBLESHOOTING.md#ssh-connection-issues) for comprehensive SSH debugging steps.
+
+Quick checks:
 ```bash
 # Test connection with verbose output
 ssh -vvv developer@my-claude-dev.fly.dev -p 10022
@@ -184,6 +188,7 @@ flyctl logs -a my-claude-dev
 ```
 
 ### Need more help?
+- See [Troubleshooting Guide](TROUBLESHOOTING.md) for comprehensive solutions
 - See [detailed setup guide](SETUP.md) for manual configuration
 - Check [VSCode setup](VSCODE.md) for IDE-specific help
 - Check [IntelliJ setup](INTELLIJ.md) for JetBrains IDEs
@@ -221,31 +226,13 @@ flyctl logs -a my-claude-dev
 
 ---
 
-## Creating SSH Keys
+## SSH Key Setup
 
-If you don't have SSH keys yet:
-
-```bash
-# Option 1: Ed25519 (recommended)
-ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
-
-# Option 2: RSA
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa
-```
-
-**Important: Set correct permissions after creating keys:**
-
-```bash
-# Set correct permissions for private keys (required for SSH to work)
-chmod 600 ~/.ssh/id_rsa        # Private key must be read-write for owner only
-chmod 644 ~/.ssh/id_rsa.pub    # Public key can be readable by others
-
-# Or for Ed25519 keys:
-chmod 600 ~/.ssh/id_ed25519
-chmod 644 ~/.ssh/id_ed25519.pub
-```
-
-**⚠️ Common Mistake:** When configuring SSH, make sure to use the private key file (without `.pub`) in your `IdentityFile` setting, not the public key file (with `.pub`).
+Need to create SSH keys? See our [SSH Key Management Guide](TROUBLESHOOTING.md#creating-and-managing-ssh-keys) for detailed instructions on:
+- Creating new SSH keys (Ed25519 or RSA)
+- Setting correct file permissions
+- Common SSH key mistakes and how to avoid them
+- Adding keys to SSH agent
 
 ---
 

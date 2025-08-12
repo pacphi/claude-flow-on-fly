@@ -55,7 +55,13 @@ command_exists() {
 
 # Function to check if running in Docker/VM environment
 is_in_vm() {
-    [[ -d "/workspace" ]] && [[ -f "/.dockerenv" || -d "/fly" ]]
+    # Check for workspace directory and Fly.io specific markers
+    [[ -d "/workspace" ]] && \
+    ( [[ -d "/.fly" ]] || \
+      [[ -d "/.fly-upper-layer" ]] || \
+      [[ -f "/health.sh" ]] || \
+      [[ -n "${FLY_APP_NAME:-}" ]] || \
+      [[ -n "${FLY_ALLOC_ID:-}" ]] )
 }
 
 # Function to ensure script is run with proper permissions

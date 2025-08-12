@@ -238,49 +238,28 @@ Add these settings to VSCode's `settings.json`:
 
 ## Troubleshooting
 
-### Common Issues and Solutions
+For comprehensive troubleshooting including SSH issues, VM management, and performance optimization, see our dedicated [Troubleshooting Guide](TROUBLESHOOTING.md).
 
-#### Issue 1: SSH Permission Denied (Most Common)
-**Symptoms**:
+### VSCode-Specific Issues
+
+#### Issue 1: SSH Connection Issues
+
+For detailed SSH troubleshooting including:
+- Permission denied errors
+- Host key verification failures
+- Connection timeouts
+- SSH key management
+
+See [SSH Connection Issues](TROUBLESHOOTING.md#ssh-connection-issues) in our Troubleshooting Guide.
+
+**Quick SSH Debug:**
+```bash
+# Test connection directly
+ssh -vvv developer@your-app-name.fly.dev -p 10022
+
+# If host key verification fails after VM recreation:
+ssh-keygen -R "[your-app-name.fly.dev]:10022"
 ```
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@         WARNING: UNPROTECTED PRIVATE KEY FILE!          @
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-Permissions 0644 for '/path/to/.ssh/id_rsa.pub' are too open.
-```
-
-**Root Causes & Solutions**:
-
-1. **Using public key instead of private key in SSH config**:
-   ```bash
-   # CHECK: Look for this mistake in ~/.ssh/config
-   IdentityFile ~/.ssh/id_rsa.pub  # ❌ WRONG - this is the public key
-
-   # FIX: Should be the private key (no .pub extension)
-   IdentityFile ~/.ssh/id_rsa      # ✅ CORRECT - this is the private key
-   ```
-
-2. **Wrong file permissions on SSH keys**:
-   ```bash
-   # CHECK: Verify current permissions
-   ls -la ~/.ssh/id_rsa*
-
-   # FIX: Set correct permissions
-   chmod 600 ~/.ssh/id_rsa        # Private key: owner read/write only
-   chmod 644 ~/.ssh/id_rsa.pub    # Public key: owner read/write, others read
-   ```
-
-3. **Debug SSH connection step by step**:
-   ```bash
-   # Test SSH connection directly
-   ssh -v developer@your-app-name.fly.dev -p 10022
-
-   # If that fails, check with your SSH config alias
-   ssh -v claude-dev
-
-   # Verify SSH config syntax
-   ssh -F ~/.ssh/config -T claude-dev
-   ```
 
 #### Issue 2: Connection Timeout
 **Symptoms**: VSCode fails to connect, timeout errors

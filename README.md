@@ -87,6 +87,7 @@ Before starting, you'll need:
 └── docs/                              # Documentation and guides
     ├── QUICKSTART.md                  # Quick start guide
     ├── SETUP.md                       # Complete setup guide
+    ├── TROUBLESHOOTING.md             # Comprehensive troubleshooting guide
     ├── VSCODE.md                      # VSCode remote development
     └── INTELLIJ.md                    # IntelliJ remote development
 ```
