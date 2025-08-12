@@ -32,7 +32,7 @@ apt-get install -y \
     net-tools \
     iputils-ping \
     telnet \
-    netcat \
+    netcat-openbsd \
     rsync \
     zip
 
