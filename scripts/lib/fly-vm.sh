@@ -337,16 +337,18 @@ show_vm_status() {
                 echo "  • SSH Access: ⚠️  STARTING UP"
             fi
             ;;
-        "stopped")
+        "stopped"|"suspended")
             echo "  • VM Status: ⏸️  SUSPENDED"
-            echo "  • Compute Costs: ✅ STOPPED"
+            echo "  • Compute Costs: ✅ STOPPED ($0/hour)"
             echo "  • SSH Access: ❌ UNAVAILABLE"
             echo "  • Resume: Run resume script or connect via SSH/IDE"
+            echo "  • Auto-Resume: VM will start automatically on SSH connection"
             ;;
         *)
             echo "  • VM Status: ❓ $current_state"
             echo "  • Compute Costs: ❓ UNKNOWN"
             echo "  • SSH Access: ❓ UNKNOWN"
+            echo "  • Action: Try using vm-resume.sh to start"
             ;;
     esac
 }

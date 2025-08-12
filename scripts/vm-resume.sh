@@ -124,7 +124,7 @@ full_resume() {
                 fi
             fi
             ;;
-        "stopped")
+        "stopped"|"suspended")
             print_status "VM is suspended, resuming..."
             start_machine "$machine_id"
 
@@ -187,16 +187,18 @@ show_status() {
                 echo "  • SSH Access: ⚠️  STARTING UP"
             fi
             ;;
-        "stopped")
+        "stopped"|"suspended")
             echo "  • VM Status: ⏸️  SUSPENDED"
-            echo "  • Compute Costs: ✅ STOPPED"
+            echo "  • Compute Costs: ✅ STOPPED ($0/hour)"
             echo "  • SSH Access: ❌ UNAVAILABLE"
             echo "  • Resume: Run this script or connect via SSH/IDE"
+            echo "  • Auto-Resume: VM will start automatically on SSH connection"
             ;;
         *)
             echo "  • VM Status: ❓ $current_state"
             echo "  • Compute Costs: ❓ UNKNOWN"
             echo "  • SSH Access: ❓ UNKNOWN"
+            echo "  • Action: Try running this script to resume"
             ;;
     esac
 

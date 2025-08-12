@@ -68,7 +68,7 @@ estimate_monthly_hours() {
         "started")
             echo "360"  # Assume 50% uptime
             ;;
-        "stopped")
+        "stopped"|"suspended")
             echo "120"  # Assume 20% uptime
             ;;
         *)
