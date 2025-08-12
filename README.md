@@ -59,12 +59,17 @@ Before starting, you'll need:
 │   ├── scripts/                       # Docker setup scripts
 │   │   ├── create-welcome.sh          # Welcome message creator
 │   │   ├── entrypoint.sh              # Container entrypoint
-│   │   ├── install-claude-tools.sh    # Claude tools installer
 │   │   ├── install-nvm.sh             # Node Version Manager installer
 │   │   ├── install-packages.sh        # System packages installer
 │   │   ├── setup-bashrc.sh            # Bash configuration
 │   │   ├── setup-user.sh              # User account setup
 │   │   └── vm-configure.sh            # VM configuration script
+│   ├── lib/                           # Shared utility libraries
+│   │   ├── common.sh                  # Core functions and utilities
+│   │   ├── workspace.sh               # Workspace management
+│   │   ├── tools.sh                   # Tool installation functions
+│   │   ├── git.sh                     # Git configuration utilities
+│   │   └── extensions.d/              # Extension examples
 │   └── templates/                     # Docker templates
 │       └── health-check.sh            # Health check script
 ├── scripts/                           # VM management scripts
@@ -85,6 +90,83 @@ Before starting, you'll need:
     ├── VSCODE.md                      # VSCode remote development
     └── INTELLIJ.md                    # IntelliJ remote development
 ```
+
+## 🔧 Customization and Extensions
+
+### Adding Custom Tools
+
+The environment supports custom tool installations via the extension system:
+
+1. **Create Extension Script**
+   ```bash
+   # Create a script in the extensions directory
+   cat > /workspace/scripts/extensions.d/50-mycustomtool.sh << 'EOF'
+   #!/bin/bash
+   # Custom tool installation
+   source /workspace/scripts/lib/common.sh
+
+   print_status "Installing my custom tool..."
+   # Your installation commands here
+   print_success "Custom tool installed"
+   EOF
+
+   chmod +x /workspace/scripts/extensions.d/50-mycustomtool.sh
+   ```
+
+2. **Run Configuration**
+   ```bash
+   # Extensions run automatically during configuration
+   /workspace/scripts/vm-configure.sh
+
+   # Or run only extensions
+   /workspace/scripts/vm-configure.sh --extensions-only
+   ```
+
+### Extension Examples
+
+**Install Rust toolchain:**
+```bash
+# Copy example and enable
+cp /workspace/scripts/extensions.d/10-rust.sh.example \
+   /workspace/scripts/extensions.d/10-rust.sh
+```
+
+**Install Go development tools:**
+```bash
+# Copy example and enable
+cp /workspace/scripts/extensions.d/20-golang.sh.example \
+   /workspace/scripts/extensions.d/20-golang.sh
+```
+
+**Install Docker utilities:**
+```bash
+# Copy example and enable
+cp /workspace/scripts/extensions.d/30-docker.sh.example \
+   /workspace/scripts/extensions.d/30-docker.sh
+```
+
+### Using Common Libraries
+
+All scripts now share common utilities in `/workspace/scripts/lib/`:
+
+```bash
+#!/bin/bash
+# Example: Using common libraries in your scripts
+source /workspace/scripts/lib/common.sh
+
+print_status "Starting my task..."
+if command_exists my-tool; then
+    print_success "Tool is available"
+else
+    print_error "Tool not found"
+fi
+```
+
+**Available Libraries:**
+- `common.sh` - Print functions, colors, and utilities
+- `workspace.sh` - Workspace management functions
+- `tools.sh` - Tool installation helpers
+- `git.sh` - Git configuration utilities
 
 ## 🚀 Getting Started
 

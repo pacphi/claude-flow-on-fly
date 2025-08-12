@@ -171,6 +171,7 @@ out/
 docker-compose.override.yml
 docker-compose.local.yml
 .dockerignore.local
+!docker/lib/
 
 # MacOS
 .AppleDouble
@@ -210,3 +211,6 @@ workspace/
 /workspace/
 projects/sensitive/
 projects/private/
+
+# Common functions (in scripts directory)
+!scripts/lib

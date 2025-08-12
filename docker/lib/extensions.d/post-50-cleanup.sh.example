@@ -1,0 +1,108 @@
+#!/bin/bash
+# post-50-cleanup.sh.example - Post-installation cleanup and optimization
+# Rename this file to post-50-cleanup.sh to enable
+
+# Source common utilities
+source /workspace/scripts/lib/common.sh
+
+print_status "Running post-installation cleanup..."
+
+# Clean package manager caches
+if command_exists apt-get; then
+    print_debug "Cleaning apt cache..."
+    sudo apt-get autoremove -y 2>/dev/null
+    sudo apt-get autoclean 2>/dev/null
+fi
+
+if command_exists npm; then
+    print_debug "Cleaning npm cache..."
+    npm cache clean --force 2>/dev/null
+fi
+
+if command_exists pip3; then
+    print_debug "Cleaning pip cache..."
+    pip3 cache purge 2>/dev/null || true
+fi
+
+if command_exists cargo; then
+    print_debug "Cleaning cargo cache..."
+    cargo cache --autoclean 2>/dev/null || true
+fi
+
+# Remove temporary files
+print_debug "Removing temporary files..."
+rm -rf /tmp/* 2>/dev/null || true
+rm -rf ~/.cache/pip/* 2>/dev/null || true
+
+# Set proper permissions on workspace
+print_debug "Setting workspace permissions..."
+sudo chown -R developer:developer /workspace 2>/dev/null || true
+chmod -R 755 /workspace/scripts 2>/dev/null || true
+
+# Create a summary of installed tools
+print_status "Creating tools summary..."
+
+summary_file="/workspace/.installed-tools.txt"
+{
+    echo "# Installed Development Tools"
+    echo "# Generated on $(date)"
+    echo
+
+    echo "## Core Tools"
+    command_exists node && echo "- Node.js: $(node --version)"
+    command_exists npm && echo "- npm: $(npm --version)"
+    command_exists python3 && echo "- Python: $(python3 --version)"
+    command_exists pip3 && echo "- pip: $(pip3 --version)"
+    command_exists git && echo "- Git: $(git --version)"
+    command_exists claude && echo "- Claude Code: $(claude --version 2>/dev/null || echo 'Installed')"
+
+    echo
+    echo "## Language-Specific Tools"
+    command_exists rustc && echo "- Rust: $(rustc --version)"
+    command_exists cargo && echo "- Cargo: $(cargo --version)"
+    command_exists go && echo "- Go: $(go version)"
+    command_exists java && echo "- Java: $(java --version | head -n1)"
+
+    echo
+    echo "## Development Utilities"
+    command_exists docker && echo "- Docker: $(docker --version)"
+    command_exists docker-compose && echo "- Docker Compose: $(docker-compose --version)"
+    command_exists prettier && echo "- Prettier: $(prettier --version)"
+    command_exists eslint && echo "- ESLint: $(eslint --version)"
+    command_exists black && echo "- Black: $(black --version)"
+
+    echo
+    echo "## Custom Extensions"
+    if [ -d "/workspace/scripts/extensions.d" ]; then
+        for ext in /workspace/scripts/extensions.d/*.sh; do
+            [ -f "$ext" ] && echo "- $(basename "$ext")"
+        done
+    fi
+
+} > "$summary_file"
+
+# Update system status script to show cleanup info
+if [ -f "/workspace/scripts/system-status.sh" ]; then
+    print_debug "Tools summary saved to $summary_file"
+fi
+
+# Run final system optimization
+print_status "Running system optimization..."
+
+# Update locate database if available
+if command_exists updatedb; then
+    sudo updatedb 2>/dev/null || true
+fi
+
+# Sync filesystem
+sync
+
+print_success "Post-installation cleanup completed"
+print_status "System ready for development!"
+
+# Show disk usage after cleanup
+if command_exists df; then
+    echo
+    print_status "Disk usage after cleanup:"
+    df -h /workspace | awk 'NR==2 {print "  Workspace: " $3 " used / " $2 " total (" $5 " full)"}'
+fi

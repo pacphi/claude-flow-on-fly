@@ -4,225 +4,47 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/fly-common.sh"
+source "$SCRIPT_DIR/lib/fly-vm.sh"
+source "$SCRIPT_DIR/lib/fly-backup.sh"
 
 # Configuration
-APP_NAME="${APP_NAME:-claude-dev-env}"
-REMOTE_USER="developer"
+APP_NAME="${APP_NAME:-${DEFAULT_APP_NAME:-claude-dev-env}}"
+REMOTE_USER="${DEFAULT_REMOTE_USER:-developer}"
 REMOTE_HOST="$APP_NAME.fly.dev"
-REMOTE_PORT="10022"
+REMOTE_PORT="${DEFAULT_REMOTE_PORT:-10022}"
 
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Function to check current VM status
+get_vm_state() {
+    check_vm_status "$APP_NAME"
 }
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Function to check current VM status (returns only state)
-check_vm_status() {
-    local machine_info
-    if ! machine_info=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null); then
-        print_error "Failed to get machine information"
-        print_error "Check that app '$APP_NAME' exists and you're authenticated"
-        exit 1
-    fi
-
-    local machine_state
-    machine_state=$(echo "$machine_info" | jq -r '.[0].state')
-    echo "$machine_state"
-}
-
-# Function to get full VM information (returns pipe-delimited format)
+# Function to get full VM information
 get_vm_info() {
-    local machine_info
-    if ! machine_info=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null); then
-        print_error "Failed to get machine information"
-        return 1
-    fi
-
-    # Check if we have valid JSON and at least one machine
-    if ! echo "$machine_info" | jq -e '.[0]' >/dev/null 2>&1; then
-        print_error "No machines found or invalid response"
-        return 1
-    fi
-
-    local machine_id machine_name machine_state machine_region cpu_kind cpus memory_mb machine_created
-
-    # Extract values with better error handling
-    machine_id=$(echo "$machine_info" | jq -r 'if .[0].id then .[0].id else "unknown" end' 2>/dev/null)
-    machine_name=$(echo "$machine_info" | jq -r 'if .[0].name then .[0].name else "unknown" end' 2>/dev/null)
-    machine_state=$(echo "$machine_info" | jq -r 'if .[0].state then .[0].state else "unknown" end' 2>/dev/null)
-    machine_region=$(echo "$machine_info" | jq -r 'if .[0].region then .[0].region else "unknown" end' 2>/dev/null)
-    cpu_kind=$(echo "$machine_info" | jq -r 'if .[0].config.guest.cpu_kind then .[0].config.guest.cpu_kind else "shared" end' 2>/dev/null)
-    cpus=$(echo "$machine_info" | jq -r 'if .[0].config.guest.cpus then .[0].config.guest.cpus else 1 end' 2>/dev/null)
-    memory_mb=$(echo "$machine_info" | jq -r 'if .[0].config.guest.memory_mb then .[0].config.guest.memory_mb else 256 end' 2>/dev/null)
-    machine_created=$(echo "$machine_info" | jq -r 'if .[0].created_at then .[0].created_at else "unknown" end' 2>/dev/null)
-
-    # Ensure all variables have values (fallback if jq fails)
-    machine_id=${machine_id:-"unknown"}
-    machine_name=${machine_name:-"unknown"}
-    machine_state=${machine_state:-"unknown"}
-    machine_region=${machine_region:-"unknown"}
-    cpu_kind=${cpu_kind:-"shared"}
-    cpus=${cpus:-"1"}
-    memory_mb=${memory_mb:-"256"}
-    machine_created=${machine_created:-"unknown"}
-
-    # Return pipe-delimited format
-    echo "${machine_id}|${machine_name}|${machine_state}|${machine_region}|${cpu_kind}|${cpus}|${memory_mb}|${machine_created}"
+    get_machine_info "$APP_NAME"
 }
 
-# Function to get volume information (returns pipe-delimited format)
-get_volume_info() {
-    local volume_info
-    if ! volume_info=$(flyctl volumes list -a "$APP_NAME" --json 2>/dev/null); then
-        print_error "Failed to get volume information"
-        return 1
-    fi
-
-    # Check if we have valid JSON and at least one volume
-    if ! echo "$volume_info" | jq -e '.[0]' >/dev/null 2>&1; then
-        print_error "No volumes found or invalid response"
-        return 1
-    fi
-
-    local volume_id volume_name volume_size volume_region volume_created
-
-    # Extract values with better error handling
-    volume_id=$(echo "$volume_info" | jq -r 'if .[0].id then .[0].id else "unknown" end' 2>/dev/null)
-    volume_name=$(echo "$volume_info" | jq -r 'if .[0].name then .[0].name else "unknown" end' 2>/dev/null)
-    volume_size=$(echo "$volume_info" | jq -r 'if .[0].size_gb then .[0].size_gb else 10 end' 2>/dev/null)
-    volume_region=$(echo "$volume_info" | jq -r 'if .[0].region then .[0].region else "unknown" end' 2>/dev/null)
-    volume_created=$(echo "$volume_info" | jq -r 'if .[0].created_at then .[0].created_at else "unknown" end' 2>/dev/null)
-
-    # Ensure all variables have values (fallback if jq fails)
-    volume_id=${volume_id:-"unknown"}
-    volume_name=${volume_name:-"unknown"}
-    volume_size=${volume_size:-"10"}
-    volume_region=${volume_region:-"unknown"}
-    volume_created=${volume_created:-"unknown"}
-
-    # Return pipe-delimited format
-    echo "${volume_id}|${volume_name}|${volume_size}|${volume_region}|${volume_created}"
+# Function to get volume information
+get_volume_data() {
+    get_volume_info "$APP_NAME"
 }
 
 # Function to gracefully shutdown active sessions
-graceful_shutdown() {
-    print_status "Performing graceful shutdown..."
-
-    # Check if SSH is accessible
-    if ! ssh -o ConnectTimeout=5 -o BatchMode=yes -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST" exit 2>/dev/null; then
-        print_warning "SSH not accessible, skipping graceful shutdown"
-        return 0
-    fi
-
-    # Send shutdown commands to VM
-    ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST" bash << 'EOF'
-echo "🔄 Preparing for shutdown..."
-
-# Save any tmux sessions
-if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
-    echo "💾 Saving tmux sessions..."
-    for session in $(tmux list-sessions -F "#{session_name}"); do
-        tmux send-keys -t "$session" C-s 2>/dev/null || true
-    done
-fi
-
-# Save any vim sessions
-if pgrep vim >/dev/null 2>&1; then
-    echo "💾 Saving vim sessions..."
-    pkill -USR1 vim 2>/dev/null || true
-    sleep 1
-fi
-
-# Sync filesystem
-echo "💾 Syncing filesystem..."
-sync
-
-# Stop any running development servers gracefully
-if pgrep -f "npm.*start\|npm.*dev\|node.*server" >/dev/null 2>&1; then
-    echo "🛑 Stopping development servers..."
-    pkill -TERM -f "npm.*start\|npm.*dev\|node.*server" 2>/dev/null || true
-    sleep 2
-fi
-
-echo "✅ Graceful shutdown preparation complete"
-EOF
-
-    print_success "Graceful shutdown completed"
+shutdown_gracefully() {
+    graceful_shutdown "$REMOTE_HOST" "$REMOTE_PORT" "$REMOTE_USER"
 }
 
 # Function to create pre-suspend backup
-create_suspend_backup() {
-    print_status "Creating pre-suspend backup..."
-
-    ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST" bash << 'EOF'
-set -e
-
-BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="/workspace/backups/suspend_backup_$BACKUP_DATE.tar.gz"
-CRITICAL_DIRS="/workspace/projects /home/developer/.claude /workspace/.config"
-
-# Create backups directory
-mkdir -p /workspace/backups
-
-# Create lightweight backup (exclude large files)
-echo "🔄 Creating suspend backup..."
-tar --exclude='/workspace/backups' \
-    --exclude='/workspace/.cache' \
-    --exclude='node_modules' \
-    --exclude='.git/objects' \
-    --exclude='*.log' \
-    --exclude='__pycache__' \
-    --exclude='*.tmp' \
-    -czf "$BACKUP_FILE" $CRITICAL_DIRS 2>/dev/null || {
-    echo "⚠️ Some files inaccessible, continuing..."
-    tar --ignore-failed-read \
-        --exclude='/workspace/backups' \
-        --exclude='/workspace/.cache' \
-        --exclude='node_modules' \
-        --exclude='.git/objects' \
-        --exclude='*.log' \
-        --exclude='__pycache__' \
-        --exclude='*.tmp' \
-        -czf "$BACKUP_FILE" $CRITICAL_DIRS
-}
-
-# Keep only last 3 suspend backups
-find /workspace/backups -name "suspend_backup_*.tar.gz" -type f | sort | head -n -3 | xargs -r rm
-
-echo "✅ Suspend backup created: suspend_backup_$BACKUP_DATE.tar.gz"
-ls -lh "$BACKUP_FILE"
-EOF
-
-    print_success "Pre-suspend backup created"
+create_backup() {
+    create_suspend_backup "$REMOTE_HOST" "$REMOTE_PORT" "$REMOTE_USER" "$APP_NAME"
 }
 
 # Function to suspend the VM
 suspend_vm() {
     local machine_id="$1"
-
-    print_status "Suspending VM..."
-
-    # Use fly machine stop to suspend
-    flyctl machine stop "$machine_id" -a "$APP_NAME"
-
-    print_success "VM suspended"
+    stop_vm "$APP_NAME" "$machine_id"
 }
 
 # Function to show cost savings
@@ -255,7 +77,7 @@ full_suspend() {
 
     # Get current VM status
     local current_state
-    current_state=$(check_vm_status)
+    current_state=$(get_vm_state)
 
     echo
 
@@ -303,11 +125,11 @@ full_suspend() {
 
     # Perform graceful shutdown if VM is accessible
     if [[ "$current_state" == "started" ]]; then
-        graceful_shutdown
+        shutdown_gracefully
 
         # Create backup if not skipped
         if [[ "$skip_backup" != "true" ]]; then
-            create_suspend_backup
+            create_backup
         fi
 
         # Brief pause to ensure operations complete
@@ -335,7 +157,7 @@ show_status() {
     fi
 
     local volume_info
-    if ! volume_info=$(get_volume_info); then
+    if ! volume_info=$(get_volume_data); then
         return 1
     fi
 
@@ -505,15 +327,7 @@ EOF
     echo
 
     # Check prerequisites
-    if ! command -v flyctl >/dev/null 2>&1; then
-        print_error "flyctl not found. Please install Fly.io CLI."
-        exit 1
-    fi
-
-    if ! command -v jq >/dev/null 2>&1; then
-        print_error "jq not found. Please install jq for JSON processing."
-        exit 1
-    fi
+    check_prerequisites "jq"
 
     case "$action" in
         suspend)

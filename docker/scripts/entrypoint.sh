@@ -28,11 +28,11 @@ sudo -u developer mkdir -p /workspace/scripts
 sudo -u developer mkdir -p /workspace/backups
 sudo -u developer mkdir -p /workspace/.cache
 
-# Copy install-claude-tools.sh if it doesn't exist
-if [ ! -f "/workspace/scripts/install-claude-tools.sh" ]; then
-    cp /docker/scripts/install-claude-tools.sh /workspace/scripts/
-    chown developer:developer /workspace/scripts/install-claude-tools.sh
-    chmod +x /workspace/scripts/install-claude-tools.sh
+# Copy lib directory if it doesn't exist
+if [ ! -d "/workspace/scripts/lib" ]; then
+    cp -r /docker/lib /workspace/scripts/
+    chown -R developer:developer /workspace/scripts/lib
+    chmod +x /workspace/scripts/lib/*.sh
 fi
 
 # Copy vm-configure.sh if it doesn't exist

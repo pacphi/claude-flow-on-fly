@@ -70,6 +70,17 @@ This is a complete remote AI-assisted development environment setup running Clau
 - Backup/restore utilities for data management
 - Cost monitoring and VM lifecycle management
 
+### Library Structure
+- `/workspace/scripts/lib/` - Shared utility libraries
+  - `common.sh` - Core functions used by all scripts (colors, print functions, utilities)
+  - `workspace.sh` - Workspace management utilities (project creation, templates)
+  - `tools.sh` - Tool installation functions (Node.js, Claude Code, language tools)
+  - `git.sh` - Git configuration helpers (setup, aliases, hooks)
+- `/workspace/scripts/extensions.d/` - Custom tool installations
+  - Add numbered scripts here for automatic execution during configuration
+  - Scripts run in alphabetical order: pre-*, *, post-*
+  - Examples: `10-rust.sh.example`, `20-golang.sh.example`, `30-docker.sh.example`
+
 ## Development Workflow
 
 ### Initial Setup

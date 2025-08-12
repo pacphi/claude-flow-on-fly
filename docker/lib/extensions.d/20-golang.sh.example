@@ -1,0 +1,61 @@
+#!/bin/bash
+# 20-golang.sh.example - Install Go toolchain and development tools
+# Rename this file to 20-golang.sh to enable
+
+# Source common utilities
+source /workspace/scripts/lib/common.sh
+
+# Check if Go is already installed
+if command_exists go; then
+    print_warning "Go is already installed: $(go version)"
+    return 0
+fi
+
+print_status "Installing Go toolchain..."
+
+# Install Go
+GO_VERSION="1.21.5"
+GO_ARCHIVE="go${GO_VERSION}.linux-amd64.tar.gz"
+
+if wget -q "https://go.dev/dl/$GO_ARCHIVE"; then
+    sudo tar -C /usr/local -xzf "$GO_ARCHIVE"
+    rm "$GO_ARCHIVE"
+
+    # Add to PATH
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    echo 'export GOPATH=$HOME/go' >> ~/.bashrc
+    echo 'export PATH=$PATH:$GOPATH/bin' >> ~/.bashrc
+
+    # Set for current session
+    export PATH=$PATH:/usr/local/go/bin
+    export GOPATH=$HOME/go
+    export PATH=$PATH:$GOPATH/bin
+
+    print_success "Go installed: $(go version)"
+else
+    print_error "Failed to download Go"
+    return 1
+fi
+
+# Install useful Go tools
+print_status "Installing Go development tools..."
+
+go_tools=(
+    "golang.org/x/tools/gopls@latest"                             # Language server
+    "github.com/go-delve/delve/cmd/dlv@latest"                    # Debugger
+    "golang.org/x/lint/golint@latest"                             # Linter
+    "golang.org/x/tools/cmd/goimports@latest"                     # Import formatter
+    "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"  # Advanced linter
+    "github.com/air-verse/air@latest"                             # Live reload
+)
+
+for tool in "${go_tools[@]}"; do
+    print_debug "Installing $tool..."
+    if go install "$tool" 2>/dev/null; then
+        print_debug "✓ $(basename "$tool") installed"
+    else
+        print_warning "Failed to install $tool"
+    fi
+done
+
+print_success "Go development environment configured"

@@ -1,0 +1,103 @@
+#!/bin/bash
+# 30-docker.sh.example - Install Docker tools and utilities
+# Rename this file to 30-docker.sh to enable
+
+# Source common utilities
+source /workspace/scripts/lib/common.sh
+
+print_status "Installing Docker development tools..."
+
+# Docker Compose (if not already installed)
+if ! command_exists docker-compose; then
+    print_status "Installing Docker Compose..."
+
+    COMPOSE_VERSION="v2.23.3"
+    if curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
+       -o /usr/local/bin/docker-compose 2>/dev/null; then
+        chmod +x /usr/local/bin/docker-compose
+        print_success "Docker Compose installed: $(docker-compose --version)"
+    else
+        print_warning "Failed to install Docker Compose"
+    fi
+fi
+
+# Docker development utilities
+print_status "Installing Docker utilities..."
+
+docker_tools=(
+    "dive"              # Docker image layer analyzer
+    "ctop"              # Container monitoring
+    "docker-clean"      # Docker cleanup utility
+)
+
+# Install via npm if available
+if command_exists npm; then
+    npm_docker_tools=(
+        "dockerfile-language-server-nodejs"  # Dockerfile language server
+    )
+
+    for tool in "${npm_docker_tools[@]}"; do
+        print_debug "Installing $tool via npm..."
+        if npm install -g "$tool" 2>/dev/null; then
+            print_debug "✓ $tool installed"
+        else
+            print_warning "Failed to install $tool"
+        fi
+    done
+fi
+
+# Install standalone binaries
+if command_exists wget; then
+    # Install dive
+    if ! command_exists dive; then
+        print_debug "Installing dive..."
+        DIVE_VERSION="0.11.0"
+        if wget -q "https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.deb" \
+           && sudo dpkg -i "dive_${DIVE_VERSION}_linux_amd64.deb" 2>/dev/null; then
+            rm "dive_${DIVE_VERSION}_linux_amd64.deb"
+            print_debug "✓ dive installed"
+        else
+            print_warning "Failed to install dive"
+        fi
+    fi
+
+    # Install ctop
+    if ! command_exists ctop; then
+        print_debug "Installing ctop..."
+        if wget -q "https://github.com/bcicen/ctop/releases/download/v0.7.7/ctop-0.7.7-linux-amd64" \
+           -O /usr/local/bin/ctop && chmod +x /usr/local/bin/ctop; then
+            print_debug "✓ ctop installed"
+        else
+            print_warning "Failed to install ctop"
+        fi
+    fi
+fi
+
+# Create useful Docker aliases
+print_status "Creating Docker aliases..."
+
+docker_aliases="
+# Docker aliases
+alias dps='docker ps'
+alias dpa='docker ps -a'
+alias di='docker images'
+alias drmi='docker rmi'
+alias dstop='docker stop'
+alias dstart='docker start'
+alias drestart='docker restart'
+alias dlogs='docker logs'
+alias dexec='docker exec -it'
+alias dclean='docker system prune -f'
+alias dcleanall='docker system prune -a -f'
+
+# Docker Compose aliases
+alias dc='docker-compose'
+alias dcup='docker-compose up'
+alias dcdown='docker-compose down'
+alias dcbuild='docker-compose build'
+alias dclogs='docker-compose logs'
+"
+
+echo "$docker_aliases" >> ~/.bashrc
+
+print_success "Docker development tools configured"

@@ -452,7 +452,88 @@ If you need to reconfigure later or skip certain parts:
 
 # Skip Claude tools installation (if already installed)
 /workspace/scripts/vm-configure.sh --skip-claude
+
+# Install tools for specific language
+/workspace/scripts/vm-configure.sh --language rust
+
+# Run only custom extensions
+/workspace/scripts/vm-configure.sh --extensions-only
 ```
+
+### Extending the Environment
+
+#### Custom Tool Installation
+You can extend the environment with custom tools by adding scripts to the extensions directory:
+
+1. **Create Extension Script**
+   ```bash
+   # Create extensions directory if it doesn't exist
+   mkdir -p /workspace/scripts/extensions.d/
+
+   # Create your custom installation script
+   cat > /workspace/scripts/extensions.d/50-mycustomtool.sh << 'EOF'
+   #!/bin/bash
+   source /workspace/scripts/lib/common.sh
+
+   print_status "Installing my custom tool..."
+   # Your installation commands here
+   print_success "Custom tool installed"
+   EOF
+
+   chmod +x /workspace/scripts/extensions.d/50-mycustomtool.sh
+   ```
+
+2. **Run Configuration**
+   ```bash
+   /workspace/scripts/vm-configure.sh
+   # Your extension will run automatically
+   ```
+
+3. **Available Examples**
+   ```bash
+   # Enable Rust toolchain
+   cp /workspace/scripts/extensions.d/10-rust.sh.example \
+      /workspace/scripts/extensions.d/10-rust.sh
+
+   # Enable Go development tools
+   cp /workspace/scripts/extensions.d/20-golang.sh.example \
+      /workspace/scripts/extensions.d/20-golang.sh
+
+   # Enable Docker utilities
+   cp /workspace/scripts/extensions.d/30-docker.sh.example \
+      /workspace/scripts/extensions.d/30-docker.sh
+   ```
+
+#### Using Shared Libraries
+All management scripts now use shared libraries for consistency:
+
+```bash
+#!/bin/bash
+# Example: Using common libraries in your own scripts
+source /workspace/scripts/lib/common.sh
+
+print_status "Starting my task..."
+if command_exists my-tool; then
+    print_success "Tool is available"
+else
+    print_error "Tool not found"
+fi
+```
+
+**Available Libraries:**
+- `common.sh` - Print functions, colors, command checking
+- `workspace.sh` - Project creation, templates, backup scripts
+- `tools.sh` - Tool installation (Node.js, Claude, language tools)
+- `git.sh` - Git setup, aliases, hooks
+
+#### Extension Execution Order
+Extensions run in three phases during configuration:
+
+1. **Pre-install** (`pre-*.sh`) - Before main tool installation
+2. **Install** (`*.sh`) - During main installation phase
+3. **Post-install** (`post-*.sh`) - After all tools are installed
+
+Use numbered prefixes (10-, 20-, 30-) to control execution order within each phase.
 
 ### What Gets Created
 

@@ -675,6 +675,73 @@ Add custom tools:
 - SQL development
 - Multiple database support
 
+## Terminal Utilities
+
+The environment provides helpful utilities you can use directly in IntelliJ's integrated terminal:
+
+### Using Common Libraries
+
+Source the common library for colored output and utilities:
+
+```bash
+# Source the common library for colored output
+source /workspace/scripts/lib/common.sh
+
+# Use print functions in your terminal
+print_success "Build completed!"
+print_error "Tests failed"
+print_warning "Low disk space"
+print_status "Running deployment..."
+```
+
+### Available Utilities
+
+**Common Functions:**
+```bash
+# Check if a command exists
+if command_exists docker; then
+    echo "Docker is available"
+fi
+
+# Create directories with proper ownership
+create_directory "/workspace/my-project"
+
+# Run commands with retry logic
+retry_with_backoff 3 2 "mvn clean install"
+```
+
+**Workspace Functions:**
+```bash
+# Source workspace utilities
+source /workspace/scripts/lib/workspace.sh
+
+# Create a new project
+setup_workspace_structure
+create_project_templates
+```
+
+**Git Utilities:**
+```bash
+# Source Git utilities
+source /workspace/scripts/lib/git.sh
+
+# Setup Git aliases and hooks
+setup_git_aliases
+setup_git_hooks
+```
+
+**Quick Commands:**
+```bash
+# System status
+/workspace/scripts/system-status.sh
+
+# Backup workspace
+/workspace/scripts/backup.sh
+
+# Create new project
+/workspace/scripts/new-project.sh my-app java
+```
+
 ## Summary
 
 With this setup, you have:

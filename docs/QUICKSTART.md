@@ -91,6 +91,34 @@ This will:
 - Create workspace directories
 - Configure development tools
 
+### Optional: Add Custom Tools
+You can extend your environment with additional tools:
+
+```bash
+# Example: Add Rust support
+cat > /workspace/scripts/extensions.d/50-rust.sh << 'EOF'
+#!/bin/bash
+source /workspace/scripts/lib/common.sh
+print_status "Installing Rust..."
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+print_success "Rust installed"
+EOF
+chmod +x /workspace/scripts/extensions.d/50-rust.sh
+
+# Re-run configuration to install
+/workspace/scripts/vm-configure.sh
+```
+
+**Available Examples:**
+```bash
+# Enable pre-built examples
+cp /workspace/scripts/extensions.d/10-rust.sh.example \
+   /workspace/scripts/extensions.d/10-rust.sh
+
+cp /workspace/scripts/extensions.d/20-golang.sh.example \
+   /workspace/scripts/extensions.d/20-golang.sh
+```
+
 ## 🤖 Start Using Claude
 
 ### Authenticate Claude Code

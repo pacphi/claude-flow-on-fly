@@ -4,56 +4,21 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/fly-common.sh"
+source "$SCRIPT_DIR/lib/fly-vm.sh"
 
 # Configuration
-APP_NAME="${APP_NAME:-claude-dev-env}"
-REMOTE_USER="developer"
+APP_NAME="${APP_NAME:-${DEFAULT_APP_NAME:-claude-dev-env}}"
+REMOTE_USER="${DEFAULT_REMOTE_USER:-developer}"
 REMOTE_HOST="$APP_NAME.fly.dev"
-REMOTE_PORT="10022"
+REMOTE_PORT="${DEFAULT_REMOTE_PORT:-10022}"
 MAX_WAIT_TIME=120  # Maximum wait time in seconds
 
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Function to check current VM status (returns only state for parsing)
-check_vm_status() {
-    local machine_info
-    if ! machine_info=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null); then
-        print_error "Failed to get machine information"
-        print_error "Check that app '$APP_NAME' exists and you're authenticated"
-        exit 1
-    fi
-
-    # Check if we have valid JSON and at least one machine
-    if ! echo "$machine_info" | jq -e '.[0]' >/dev/null 2>&1; then
-        print_error "No machines found or invalid response"
-        exit 1
-    fi
-
-    local machine_state
-    machine_state=$(echo "$machine_info" | jq -r 'if .[0].state then .[0].state else "unknown" end' 2>/dev/null)
-    machine_state=${machine_state:-"unknown"}
-
-    echo "$machine_state"
+# Function to check current VM status
+get_vm_status() {
+    check_vm_status "$APP_NAME"
 }
 
 # Function to get detailed VM information for status display
@@ -85,170 +50,29 @@ get_vm_details() {
 }
 
 # Function to start the VM
-start_vm() {
+start_machine() {
     local machine_id="$1"
-
-    print_status "Starting VM..."
-
-    flyctl machine start "$machine_id" -a "$APP_NAME"
-
-    print_success "VM start command sent"
+    start_vm "$APP_NAME" "$machine_id"
 }
 
 # Function to wait for VM to be ready
-wait_for_vm_ready() {
-    print_status "Waiting for VM to be fully operational..."
-
-    local start_time
-    start_time=$(date +%s)
-    local retries=0
-    local max_retries=$((MAX_WAIT_TIME / 2))
-
-    # First, wait for machine state to be 'started'
-    while [[ $retries -lt $max_retries ]]; do
-        local current_state
-        current_state=$(flyctl machine list -a "$APP_NAME" --json | jq -r '.[0].state' 2>/dev/null || echo "unknown")
-
-        if [[ "$current_state" == "started" ]]; then
-            print_success "VM is in started state"
-            break
-        fi
-
-        if [[ $retries -eq 0 ]]; then
-            echo -n "Waiting for VM to start"
-        fi
-        echo -n "."
-        sleep 2
-        ((retries++))
-    done
-    echo
-
-    if [[ $retries -eq $max_retries ]]; then
-        print_error "VM failed to start within timeout"
-        return 1
-    fi
-
-    # Then wait for SSH to be available
-    print_status "Waiting for SSH service to be available..."
-    retries=0
-
-    while [[ $retries -lt $max_retries ]]; do
-        if ssh -o ConnectTimeout=3 -o BatchMode=yes -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST" exit 2>/dev/null; then
-            local end_time
-            end_time=$(date +%s)
-            local duration=$((end_time - start_time))
-            print_success "SSH is ready (took ${duration}s)"
-            return 0
-        fi
-
-        if [[ $retries -eq 0 ]]; then
-            echo -n "Waiting for SSH"
-        fi
-        echo -n "."
-        sleep 2
-        ((retries++))
-    done
-    echo
-
-    print_error "SSH service failed to become available within timeout"
-    return 1
+wait_for_ready() {
+    wait_for_vm_ready "$APP_NAME" "$REMOTE_HOST" "$REMOTE_PORT" "$REMOTE_USER" "$MAX_WAIT_TIME"
 }
 
 # Function to verify VM functionality
-verify_vm_functionality() {
-    print_status "Verifying VM functionality..."
-
-    # Test SSH connection and run basic commands
-    ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST" bash << 'EOF'
-echo "🔍 VM Functionality Check:"
-echo "=========================="
-
-echo "✅ SSH connection: Working"
-
-echo -n "✅ Workspace mount: "
-if [[ -d /workspace ]]; then
-    echo "OK ($(df -h /workspace | awk 'NR==2 {print $4}' | head -1) available)"
-else
-    echo "❌ Missing"
-fi
-
-echo -n "✅ Node.js: "
-if command -v node >/dev/null 2>&1; then
-    echo "$(node --version)"
-else
-    echo "❌ Not found"
-fi
-
-echo -n "✅ Claude Code: "
-if command -v claude >/dev/null 2>&1; then
-    echo "Available"
-else
-    echo "❌ Not found"
-fi
-
-echo -n "✅ Git: "
-if command -v git >/dev/null 2>&1; then
-    echo "$(git --version | head -1)"
-else
-    echo "❌ Not found"
-fi
-
-echo "✅ System uptime: $(uptime -p)"
-
-echo -e "\n📁 Workspace structure:"
-find /workspace -maxdepth 2 -type d 2>/dev/null | head -5 | sed 's/^/   /'
-EOF
-
-    print_success "VM functionality verified"
+verify_functionality() {
+    verify_vm_functionality "$REMOTE_HOST" "$REMOTE_PORT" "$REMOTE_USER"
 }
 
-# Function to restore any suspended sessions
-restore_sessions() {
-    print_status "Checking for suspended sessions to restore..."
-
-    ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST" bash << 'EOF'
-# Check for tmux sessions
-if command -v tmux >/dev/null 2>&1; then
-    session_count=$(tmux list-sessions 2>/dev/null | wc -l || echo 0)
-    if [[ $session_count -gt 0 ]]; then
-        echo "🔄 Found $session_count tmux session(s):"
-        tmux list-sessions 2>/dev/null | sed 's/^/   /'
-        echo "   💡 Reconnect with: tmux attach"
-    else
-        echo "📱 No tmux sessions found"
-    fi
-else
-    echo "📱 tmux not available"
-fi
-
-# Check for any restore scripts or suspend backups
-if ls /workspace/backups/suspend_backup_*.tar.gz >/dev/null 2>&1; then
-    echo "💾 Suspend backups available:"
-    ls -1t /workspace/backups/suspend_backup_*.tar.gz | head -3 | sed 's/^/   /'
-fi
-EOF
-
-    print_success "Session check completed"
+# Function to restore suspended sessions
+restore_vm_sessions() {
+    restore_sessions "$REMOTE_HOST" "$REMOTE_PORT" "$REMOTE_USER"
 }
 
 # Function to show connection information
-show_connection_info() {
-    print_success "🔌 VM Ready for Connection!"
-    echo
-    print_status "Connection Options:"
-    echo "  • SSH: ssh $REMOTE_USER@$REMOTE_HOST -p $REMOTE_PORT"
-    echo "  • VSCode Remote-SSH: Connect to configured host"
-    echo "  • IntelliJ Gateway: Use existing SSH configuration"
-    echo
-    print_status "Quick Commands:"
-    echo "  • Check status: ssh $REMOTE_USER@$REMOTE_HOST -p $REMOTE_PORT 'uptime'"
-    echo "  • Start Claude: ssh $REMOTE_USER@$REMOTE_HOST -p $REMOTE_PORT 'cd /workspace && claude'"
-    echo "  • View projects: ssh $REMOTE_USER@$REMOTE_HOST -p $REMOTE_PORT 'ls -la /workspace/projects/'"
-    echo
-    print_status "💡 Tips:"
-    echo "  • Use tmux for persistent sessions: tmux new-session -s work"
-    echo "  • All work should be in /workspace (persistent across suspends)"
-    echo "  • VM will auto-suspend after period of inactivity"
+show_connection_details() {
+    show_connection_info "$APP_NAME" "$REMOTE_HOST" "$REMOTE_PORT" "$REMOTE_USER"
 }
 
 # Function to perform full resume workflow
@@ -257,7 +81,7 @@ full_resume() {
 
     # Get current VM status
     local current_state
-    current_state=$(check_vm_status)
+    current_state=$(get_vm_status)
 
     # Get machine details for machine ID
     local vm_details
@@ -282,17 +106,17 @@ full_resume() {
 
                 if [[ "$skip_verification" != "true" ]]; then
                     echo
-                    restore_sessions
+                    restore_vm_sessions
                 fi
 
                 echo
-                show_connection_info
+                show_connection_details
                 return 0
             else
                 print_warning "VM is started but SSH is not accessible"
                 print_status "This may be normal if VM just started, waiting..."
 
-                if wait_for_vm_ready; then
+                if wait_for_ready; then
                     print_success "SSH is now accessible"
                 else
                     print_error "SSH failed to become accessible"
@@ -302,9 +126,9 @@ full_resume() {
             ;;
         "stopped")
             print_status "VM is suspended, resuming..."
-            start_vm "$machine_id"
+            start_machine "$machine_id"
 
-            if ! wait_for_vm_ready; then
+            if ! wait_for_ready; then
                 print_error "Failed to resume VM properly"
                 return 1
             fi
@@ -312,9 +136,9 @@ full_resume() {
         *)
             print_warning "VM is in '$current_state' state"
             print_status "Attempting to start anyway..."
-            start_vm "$machine_id"
+            start_machine "$machine_id"
 
-            if ! wait_for_vm_ready; then
+            if ! wait_for_ready; then
                 print_error "Failed to start VM properly"
                 return 1
             fi
@@ -324,13 +148,13 @@ full_resume() {
     # Verify functionality unless skipped
     if [[ "$skip_verification" != "true" ]]; then
         echo
-        verify_vm_functionality
+        verify_functionality
         echo
-        restore_sessions
+        restore_vm_sessions
     fi
 
     echo
-    show_connection_info
+    show_connection_details
 
     print_success "🎉 VM resumed successfully!"
 }
@@ -338,7 +162,7 @@ full_resume() {
 # Function to show current status
 show_status() {
     local current_state
-    current_state=$(check_vm_status)
+    current_state=$(get_vm_status)
 
     echo
     print_status "📊 Current Status:"
@@ -379,7 +203,7 @@ show_status() {
     # Show connection info if running
     if [[ "$current_state" == "started" ]]; then
         echo
-        show_connection_info
+        show_connection_details
     fi
 }
 
@@ -451,15 +275,7 @@ EOF
     echo
 
     # Check prerequisites
-    if ! command -v flyctl >/dev/null 2>&1; then
-        print_error "flyctl not found. Please install Fly.io CLI."
-        exit 1
-    fi
-
-    if ! command -v jq >/dev/null 2>&1; then
-        print_error "jq not found. Please install jq for JSON processing."
-        exit 1
-    fi
+    check_prerequisites "jq"
 
     case "$action" in
         resume)

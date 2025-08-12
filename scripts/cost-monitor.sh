@@ -4,47 +4,13 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-PURPLE='\033[0;35m'
-NC='\033[0m'
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/fly-common.sh"
 
 # Configuration
-APP_NAME="${APP_NAME:-claude-dev-env}"
+APP_NAME="${APP_NAME:-$DEFAULT_APP_NAME}"
 HISTORY_FILE="$HOME/.claude_cost_history"
-
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-print_header() {
-    echo -e "${CYAN}$1${NC}"
-}
-
-print_metric() {
-    echo -e "${PURPLE}$1${NC} $2"
-}
-
-# Function to get current timestamp
-get_timestamp() {
-    date +"%Y-%m-%d %H:%M:%S"
-}
 
 # Function to calculate costs
 calculate_costs() {
@@ -54,96 +20,21 @@ calculate_costs() {
     local volume_size="$4"
     local hours_running="$5"
 
-    # Pricing per hour (as of 2025)
-    # Based on Fly.io pricing: https://fly.io/docs/about/pricing/
-    local cpu_cost_per_hour
-
-    if [[ "$cpu_kind" == "performance" ]]; then
-        # Performance CPUs: $0.035/vCPU/hour + $0.005/GB/hour
-        local cpu_component=$(echo "scale=4; $cpus * 0.035" | bc 2>/dev/null || echo "0.035")
-        local memory_gb=$(echo "scale=2; $memory_mb / 1024" | bc 2>/dev/null || echo "0.25")
-        local memory_component=$(echo "scale=4; $memory_gb * 0.005" | bc 2>/dev/null || echo "0.00125")
-        cpu_cost_per_hour=$(echo "scale=4; $cpu_component + $memory_component" | bc 2>/dev/null || echo "0.03625")
-    else
-        # Shared CPUs: based on memory size
-        if [[ $memory_mb -le 256 ]]; then
-            cpu_cost_per_hour=0.0067
-        elif [[ $memory_mb -le 512 ]]; then
-            cpu_cost_per_hour=0.0134
-        elif [[ $memory_mb -le 1024 ]]; then
-            cpu_cost_per_hour=0.0268
-        elif [[ $memory_mb -le 2048 ]]; then
-            cpu_cost_per_hour=0.0536
-        elif [[ $memory_mb -le 4096 ]]; then
-            cpu_cost_per_hour=0.1072
-        elif [[ $memory_mb -le 8192 ]]; then
-            cpu_cost_per_hour=0.2144
-        else
-            cpu_cost_per_hour=0.4288  # 16GB
-        fi
-    fi
-
-    # Volume cost per month
-    local volume_cost_per_month
-    volume_cost_per_month=$(echo "scale=2; $volume_size * 0.15" | bc 2>/dev/null || echo "1.50")
-
-    # Calculate compute cost
-    local compute_cost
-    compute_cost=$(echo "scale=4; $hours_running * $cpu_cost_per_hour" | bc 2>/dev/null || echo "0.0000")
+    # Use shared library functions
+    local cpu_cost_per_hour=$(calculate_hourly_cost "$cpu_kind" "$cpus" "$memory_mb")
+    local volume_cost_per_month=$(calculate_volume_cost "$volume_size")
+    local compute_cost=$(echo "scale=4; $hours_running * $cpu_cost_per_hour" | bc 2>/dev/null || echo "0.0000")
 
     echo "$compute_cost|$volume_cost_per_month|$cpu_cost_per_hour"
 }
 
-# Function to get VM information
+# Functions use shared libraries directly
 get_vm_info() {
-    local machine_info
-    if ! machine_info=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null); then
-        print_error "Failed to get machine information"
-        return 1
-    fi
-
-    local machine_id
-    local machine_name
-    local machine_state
-    local machine_region
-    local cpu_kind
-    local cpus
-    local memory_mb
-    local machine_created
-
-    machine_id=$(echo "$machine_info" | jq -r '.[0].id' 2>/dev/null || echo "unknown")
-    machine_name=$(echo "$machine_info" | jq -r '.[0].name' 2>/dev/null || echo "unknown")
-    machine_state=$(echo "$machine_info" | jq -r '.[0].state' 2>/dev/null || echo "unknown")
-    machine_region=$(echo "$machine_info" | jq -r '.[0].region' 2>/dev/null || echo "unknown")
-    cpu_kind=$(echo "$machine_info" | jq -r '.[0].config.guest.cpu_kind' 2>/dev/null || echo "shared")
-    cpus=$(echo "$machine_info" | jq -r '.[0].config.guest.cpus' 2>/dev/null || echo "1")
-    memory_mb=$(echo "$machine_info" | jq -r '.[0].config.guest.memory_mb' 2>/dev/null || echo "256")
-    machine_created=$(echo "$machine_info" | jq -r '.[0].created_at' 2>/dev/null || echo "unknown")
-
-    echo "$machine_id|$machine_name|$machine_state|$machine_region|$cpu_kind|$cpus|$memory_mb|$machine_created"
+    get_machine_info "$APP_NAME"
 }
 
-# Function to get volume information
-get_volume_info() {
-    local volume_info
-    if ! volume_info=$(flyctl volumes list -a "$APP_NAME" --json 2>/dev/null); then
-        print_error "Failed to get volume information"
-        return 1
-    fi
-
-    local volume_id
-    local volume_name
-    local volume_size
-    local volume_region
-    local volume_created
-
-    volume_id=$(echo "$volume_info" | jq -r '.[0].id' 2>/dev/null || echo "unknown")
-    volume_name=$(echo "$volume_info" | jq -r '.[0].name' 2>/dev/null || echo "unknown")
-    volume_size=$(echo "$volume_info" | jq -r '.[0].size_gb' 2>/dev/null || echo "10")
-    volume_region=$(echo "$volume_info" | jq -r '.[0].region' 2>/dev/null || echo "unknown")
-    volume_created=$(echo "$volume_info" | jq -r '.[0].created_at' 2>/dev/null || echo "unknown")
-
-    echo "$volume_id|$volume_name|$volume_size|$volume_region|$volume_created"
+get_volume_data() {
+    get_volume_info "$APP_NAME"
 }
 
 # Function to estimate monthly hours
@@ -215,7 +106,7 @@ show_current_status() {
     fi
 
     local volume_info
-    if ! volume_info=$(get_volume_info); then
+    if ! volume_info=$(get_volume_data); then
         return 1
     fi
 
@@ -228,12 +119,7 @@ show_current_status() {
     IFS='|' read -r volume_id volume_name volume_size volume_region volume_created <<< "$volume_info"
 
     # Format VM size display
-    local vm_size_display
-    if [[ "$cpu_kind" == "performance" ]]; then
-        vm_size_display="Performance ${cpus}vCPU / ${memory_mb}MB"
-    else
-        vm_size_display="Shared ${cpus}vCPU / ${memory_mb}MB"
-    fi
+    local vm_size_display=$(format_vm_size "$cpu_kind" "$cpus" "$memory_mb")
 
     print_metric "App Name:" "$APP_NAME"
     print_metric "Machine Name:" "$machine_name"
@@ -537,19 +423,7 @@ EOF
     echo
 
     # Check prerequisites
-    if ! command -v flyctl >/dev/null 2>&1; then
-        print_error "flyctl not found. Please install Fly.io CLI."
-        exit 1
-    fi
-
-    if ! command -v jq >/dev/null 2>&1; then
-        print_error "jq not found. Please install jq for JSON processing."
-        exit 1
-    fi
-
-    if ! command -v bc >/dev/null 2>&1; then
-        print_warning "bc not found. Cost calculations may be limited."
-    fi
+    check_prerequisites "jq" "bc"
 
     case "$action" in
         monitor)
@@ -560,7 +434,7 @@ EOF
             fi
 
             local volume_info
-            if ! volume_info=$(get_volume_info); then
+            if ! volume_info=$(get_volume_data); then
                 exit 1
             fi
 
@@ -572,12 +446,7 @@ EOF
             IFS='|' read -r volume_id volume_name volume_size volume_region volume_created <<< "$volume_info"
 
             # Format VM size display
-            local vm_size_display
-            if [[ "$cpu_kind" == "performance" ]]; then
-                vm_size_display="Performance ${cpus}vCPU / ${memory_mb}MB"
-            else
-                vm_size_display="Shared ${cpus}vCPU / ${memory_mb}MB"
-            fi
+            local vm_size_display=$(format_vm_size "$cpu_kind" "$cpus" "$memory_mb")
 
             print_header "📊 Current VM Status"
             print_header "===================="

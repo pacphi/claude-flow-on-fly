@@ -1,0 +1,51 @@
+#!/bin/bash
+# 10-rust.sh.example - Install Rust toolchain and development tools
+# Rename this file to 10-rust.sh to enable
+
+# Source common utilities
+source /workspace/scripts/lib/common.sh
+
+# Check if Rust is already installed
+if command_exists rustc; then
+    print_warning "Rust is already installed: $(rustc --version)"
+    return 0
+fi
+
+print_status "Installing Rust toolchain..."
+
+# Install Rust via rustup
+if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
+    # Source cargo environment
+    source $HOME/.cargo/env
+
+    # Add to bashrc for future sessions
+    echo 'source $HOME/.cargo/env' >> ~/.bashrc
+
+    print_success "Rust installed: $(rustc --version)"
+else
+    print_error "Failed to install Rust"
+    return 1
+fi
+
+# Install useful Rust tools
+print_status "Installing additional Rust tools..."
+
+rust_tools=(
+    "cargo-watch"     # Watch for changes and rebuild
+    "cargo-edit"      # Add/remove dependencies from command line
+    "cargo-audit"     # Security audit for dependencies
+    "ripgrep"         # Fast grep alternative
+    "fd-find"         # Fast find alternative
+    "exa"             # Modern ls replacement
+)
+
+for tool in "${rust_tools[@]}"; do
+    print_debug "Installing $tool..."
+    if cargo install "$tool" 2>/dev/null; then
+        print_debug "✓ $tool installed"
+    else
+        print_warning "Failed to install $tool"
+    fi
+done
+
+print_success "Rust development environment configured"
