@@ -33,10 +33,10 @@ show_environment_status() {
     echo "  • Git: $(git config --global user.name 2>/dev/null || echo 'Not configured') <$(git config --global user.email 2>/dev/null || echo 'Not configured')>"
     echo
     print_status "🔧 Available Scripts:"
-    echo "  • $SCRIPTS_DIR/backup.sh - Backup workspace data"
-    echo "  • $SCRIPTS_DIR/restore.sh - Restore from backup"
-    echo "  • $SCRIPTS_DIR/new-project.sh - Create new project"
-    echo "  • $SCRIPTS_DIR/system-status.sh - Show system status"
+    echo "  • $SCRIPTS_DIR/lib/backup.sh - Backup workspace data"
+    echo "  • $SCRIPTS_DIR/lib/restore.sh - Restore from backup"
+    echo "  • $SCRIPTS_DIR/lib/new-project.sh - Create new project"
+    echo "  • $SCRIPTS_DIR/lib/system-status.sh - Show system status"
     echo
     print_status "📁 Project Structure:"
     echo "  • $PROJECTS_DIR/active/ - Active projects"
@@ -178,7 +178,6 @@ EOF
     # Run main install extensions
     run_extensions "install"
 
-    create_workspace_scripts
     setup_claude_config
 
     # Run post-install extensions
