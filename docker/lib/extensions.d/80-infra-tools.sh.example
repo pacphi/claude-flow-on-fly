@@ -1,0 +1,178 @@
+#!/bin/bash
+# Infrastructure and DevOps tooling setup
+
+# Source common utilities
+source "${WORKSPACE_DIR:-/workspace}/scripts/lib/common.sh"
+
+print_header "Infrastructure Tooling Setup"
+
+# Terraform
+print_info "Installing Terraform..."
+if ! command -v terraform &> /dev/null; then
+    TERRAFORM_VERSION="1.9.5"
+    wget -q "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+    unzip -q "terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+    sudo mv terraform /usr/local/bin/
+    rm "terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+    print_success "Terraform ${TERRAFORM_VERSION} installed"
+else
+    print_info "Terraform already installed: $(terraform version | head -1)"
+fi
+
+# Kubernetes CLI (kubectl)
+print_info "Installing kubectl..."
+if ! command -v kubectl &> /dev/null; then
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    sudo mv kubectl /usr/local/bin/
+    print_success "kubectl installed"
+else
+    print_info "kubectl already installed: $(kubectl version --client --short 2>/dev/null)"
+fi
+
+# Helm
+print_info "Installing Helm..."
+if ! command -v helm &> /dev/null; then
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    chmod 700 get_helm.sh
+    ./get_helm.sh
+    rm get_helm.sh
+    print_success "Helm installed"
+else
+    print_info "Helm already installed: $(helm version --short)"
+fi
+
+# Carvel tools suite
+print_info "Installing Carvel tools..."
+CARVEL_TOOLS=(kapp ytt kbld vendir imgpkg)
+for tool in "${CARVEL_TOOLS[@]}"; do
+    if ! command -v "$tool" &> /dev/null; then
+        print_info "  Installing $tool..."
+        wget -qO- "https://carvel.dev/install.sh" | bash -s -- "$tool"
+        sudo mv "$tool" /usr/local/bin/
+        print_success "  $tool installed"
+    else
+        print_info "  $tool already installed"
+    fi
+done
+
+# Crossplane CLI
+print_info "Installing Crossplane CLI..."
+if ! command -v crossplane &> /dev/null; then
+    curl -sL "https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh" | sh
+    sudo mv crossplane /usr/local/bin/
+    print_success "Crossplane CLI installed"
+else
+    print_info "Crossplane CLI already installed"
+fi
+
+# Pulumi
+print_info "Installing Pulumi..."
+if ! command -v pulumi &> /dev/null; then
+    curl -fsSL https://get.pulumi.com | sh
+    # Add Pulumi to PATH for current session
+    export PATH=$PATH:$HOME/.pulumi/bin
+    # Add to bashrc for persistence
+    echo 'export PATH=$PATH:$HOME/.pulumi/bin' >> ~/.bashrc
+    print_success "Pulumi installed"
+else
+    print_info "Pulumi already installed: $(pulumi version)"
+fi
+
+# Optional: Install additional useful infra tools
+print_info "Installing additional tools..."
+
+# k9s - Kubernetes TUI
+if ! command -v k9s &> /dev/null; then
+    K9S_VERSION="v0.32.5"
+    wget -q "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz"
+    tar xzf k9s_Linux_amd64.tar.gz k9s
+    sudo mv k9s /usr/local/bin/
+    rm k9s_Linux_amd64.tar.gz
+    print_success "k9s installed"
+fi
+
+# kubectx and kubens for context/namespace switching
+if ! command -v kubectx &> /dev/null; then
+    sudo git clone https://github.com/ahmetb/kubectx /opt/kubectx
+    sudo ln -s /opt/kubectx/kubectx /usr/local/bin/kubectx
+    sudo ln -s /opt/kubectx/kubens /usr/local/bin/kubens
+    print_success "kubectx/kubens installed"
+fi
+
+# Create infrastructure project directories
+print_info "Setting up infrastructure workspace directories..."
+mkdir -p "$WORKSPACE_DIR/infrastructure"/{terraform,kubernetes,helm-charts,crossplane,pulumi}
+
+# Create sample configuration files
+cat > "$WORKSPACE_DIR/infrastructure/README.md" << 'EOF'
+# Infrastructure as Code Workspace
+
+## Available Tools
+
+### Core IaC Tools
+- **Terraform**: Infrastructure provisioning and management
+- **Pulumi**: Infrastructure as code using general-purpose languages
+- **Crossplane**: Kubernetes-native infrastructure management
+
+### Kubernetes Tools
+- **kubectl**: Kubernetes command-line tool
+- **Helm**: Kubernetes package manager
+- **k9s**: Terminal UI for Kubernetes clusters
+
+### Carvel Suite
+- **kapp**: Deploy and view groups of Kubernetes resources
+- **ytt**: Template and overlay Kubernetes configuration
+- **kbld**: Build or reference container images in Kubernetes configuration
+- **vendir**: Declaratively state directory contents
+- **imgpkg**: Bundle and relocate application configuration and images
+
+## Directory Structure
+```
+infrastructure/
+├── terraform/     # Terraform configurations
+├── kubernetes/    # Raw Kubernetes manifests
+├── helm-charts/   # Helm charts
+├── crossplane/    # Crossplane compositions
+└── pulumi/        # Pulumi projects
+```
+
+## Quick Start
+
+### Terraform
+```bash
+cd terraform/
+terraform init
+terraform plan
+terraform apply
+```
+
+### Kubernetes
+```bash
+kubectl config get-contexts
+kubectl apply -f kubernetes/
+```
+
+### Helm
+```bash
+helm repo add stable https://charts.helm.sh/stable
+helm search repo stable
+helm install myapp ./helm-charts/myapp
+```
+
+### Carvel
+```bash
+# Deploy with kapp
+kapp deploy -a myapp -f kubernetes/
+
+# Template with ytt
+ytt -f config/ --data-values-file values.yaml
+
+# Bundle with imgpkg
+imgpkg push -b registry.example.com/my-bundle:v1.0.0 -f config/
+```
+EOF
+
+print_success "Infrastructure tooling setup complete!"
+print_info "Infrastructure workspace created at: $WORKSPACE_DIR/infrastructure"
+print_info "Run 'source ~/.bashrc' to update PATH if needed"

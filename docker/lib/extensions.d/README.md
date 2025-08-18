@@ -52,6 +52,7 @@ print_success "Rust toolchain installed successfully"
 ### Tools & Utilities
 
 - `30-docker.sh.example` - Docker tools installation
+- `80-infra-tools.sh.example` - Curated infrastructure tooling
 - `post-50-cleanup.sh.example` - Post-installation cleanup
 
 ## Best Practices
