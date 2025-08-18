@@ -36,17 +36,17 @@ create_workspace_scripts() {
 
     # Get the directory containing this script (should be lib/)
     local lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    
+
     # Ensure lib directory exists in scripts directory for dependencies
     create_directory "$SCRIPTS_DIR/lib"
-    
+
     # Copy library files to scripts/lib
     cp "$lib_dir/common.sh" "$SCRIPTS_DIR/lib/"
     cp "$lib_dir/git.sh" "$SCRIPTS_DIR/lib/"
-    
+
     # Copy workspace utility scripts from lib directory
     local scripts=(backup restore new-project system-status)
-    
+
     for script in "${scripts[@]}"; do
         if [ -f "$lib_dir/$script.sh" ]; then
             cp "$lib_dir/$script.sh" "$SCRIPTS_DIR/"

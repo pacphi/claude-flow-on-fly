@@ -352,7 +352,7 @@ For comprehensive troubleshooting including SSH issues, VM management, and perfo
 
 For SSH-related issues including:
 - Permission denied errors
-- Host key verification failures  
+- Host key verification failures
 - Connection timeouts
 - Authentication problems
 
