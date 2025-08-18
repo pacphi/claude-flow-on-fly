@@ -40,8 +40,17 @@ print_success "Rust toolchain installed successfully"
 
 ## Available Examples
 
+### Language & Runtime Environments
+
 - `10-rust.sh.example` - Rust toolchain installation
 - `20-golang.sh.example` - Go toolchain installation
+- `40-jvm.sh.example` - JVM languages (Java, Kotlin, Scala, Clojure) with SDKMAN
+- `50-php.sh.example` - PHP 8.3 and Symfony framework development
+- `60-ruby.sh.example` - Ruby with Rails and Sinatra frameworks
+- `70-dotnet.sh.example` - .NET SDK with ASP.NET Core and development tools
+
+### Tools & Utilities
+
 - `30-docker.sh.example` - Docker tools installation
 - `post-50-cleanup.sh.example` - Post-installation cleanup
 
