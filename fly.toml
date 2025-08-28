@@ -107,6 +107,12 @@ primary_region = "{{REGION}}"
 # 2. Non-standard SSH port (10022) reduces automated attacks
 # 3. Auto-restart on failure provides resilience
 # 4. No root access via SSH (configured in Dockerfile)
+# 5. Secrets management via Fly.io secrets:
+#    - ANTHROPIC_API_KEY: Claude API authentication
+#    - GITHUB_TOKEN: GitHub authentication for git operations
+#    - GIT_USER_NAME: Git config user.name
+#    - GIT_USER_EMAIL: Git config user.email
+#    - GITHUB_USER: GitHub username for gh CLI
 
 # Scaling notes:
 # 1. Machines will automatically start on incoming connections
@@ -116,7 +122,12 @@ primary_region = "{{REGION}}"
 
 # Development workflow:
 # 1. Deploy: flyctl deploy
-# 2. Connect: ssh developer@<app-name>.fly.dev -p 10022
-# 3. Work: All files in /workspace are persistent
-# 4. Idle: VM automatically suspends after inactivity
-# 5. Resume: VM starts automatically on next connection
+# 2. Set secrets (optional):
+#    flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a <app-name>
+#    flyctl secrets set GITHUB_TOKEN=ghp_... -a <app-name>
+#    flyctl secrets set GIT_USER_NAME="Your Name" -a <app-name>
+#    flyctl secrets set GIT_USER_EMAIL="you@example.com" -a <app-name>
+# 3. Connect: ssh developer@<app-name>.fly.dev -p 10022
+# 4. Work: All files in /workspace are persistent
+# 5. Idle: VM automatically suspends after inactivity
+# 6. Resume: VM starts automatically on next connection

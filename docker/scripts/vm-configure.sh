@@ -18,6 +18,7 @@ source "$LIB_DIR/common.sh"
 source "$LIB_DIR/workspace.sh"
 source "$LIB_DIR/tools.sh"
 source "$LIB_DIR/git.sh"
+source "$LIB_DIR/gh.sh"
 
 # Function to show environment status
 show_environment_status() {
@@ -31,6 +32,8 @@ show_environment_status() {
     echo "  • Claude Code: $(command_exists claude && echo "Installed" || echo "Installation failed")"
     echo "  • Claude Flow: Available via npx"
     echo "  • Git: $(git config --global user.name 2>/dev/null || echo 'Not configured') <$(git config --global user.email 2>/dev/null || echo 'Not configured')>"
+    echo "  • GitHub CLI: $(command_exists gh && gh --version 2>/dev/null | head -n1 || echo 'Not installed')"
+    echo "  • GitHub Auth: $(gh auth status >/dev/null 2>&1 && echo "Authenticated" || echo "Not authenticated")"
     echo
     print_status "🔧 Available Scripts:"
     echo "  • $SCRIPTS_DIR/lib/backup.sh - Backup workspace data"
@@ -179,6 +182,12 @@ EOF
     run_extensions "install"
 
     setup_claude_config
+
+    # Setup GitHub CLI if token is available
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        configure_github_cli
+        setup_gh_aliases
+    fi
 
     # Run post-install extensions
     run_extensions "post-install"

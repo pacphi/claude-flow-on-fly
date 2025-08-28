@@ -1,0 +1,147 @@
+#!/bin/bash
+# 05-python.sh.example - Install Python development tools
+# Rename this file to 05-python.sh to enable
+
+# Source common utilities
+source /workspace/scripts/lib/common.sh
+
+# Check if Python3 is already sufficient
+if command_exists python3 && command_exists pip3; then
+    print_warning "Python3 and pip3 already available from system"
+    current_version=$(python3 --version)
+    print_status "Current version: $current_version"
+else
+    print_error "Python3 not found in system packages"
+    print_status "Python should be installed via system packages"
+    return 1
+fi
+
+print_status "Installing Python development tools..."
+
+# Essential Python development packages
+python_packages=(
+    "virtualenv"      # Virtual environment management
+    "pipenv"          # Python dependency management
+    "poetry"          # Modern Python packaging and dependency management
+    "black"           # Code formatter
+    "flake8"          # Linting tool
+    "autopep8"        # Auto-formatter
+    "mypy"            # Static type checker
+    "pytest"          # Testing framework
+    "ipython"         # Enhanced interactive Python shell
+    "requests"        # HTTP library
+    "numpy"           # Numerical computing
+    "pandas"          # Data analysis
+    "jupyter"         # Jupyter notebook
+    "notebook"        # Jupyter notebook interface
+)
+
+# Install packages
+for package in "${python_packages[@]}"; do
+    print_debug "Installing $package..."
+    if pip3 install --user "$package" 2>/dev/null; then
+        print_debug "✓ $package installed"
+    else
+        print_warning "Failed to install $package"
+    fi
+done
+
+# Setup Python virtual environment template
+print_status "Setting up Python project template..."
+
+# Create a template for new Python projects
+cat > /workspace/scripts/create-python-project.sh << 'EOF'
+#!/bin/bash
+# Create a new Python project with virtual environment
+
+project_name="$1"
+if [[ -z "$project_name" ]]; then
+    echo "Usage: $0 <project-name>"
+    exit 1
+fi
+
+# Create project directory
+mkdir -p "/workspace/projects/active/$project_name"
+cd "/workspace/projects/active/$project_name"
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Create project structure
+mkdir -p src tests docs
+touch src/__init__.py
+touch tests/__init__.py
+
+# Create requirements files
+cat > requirements.txt << 'REQ'
+# Production dependencies
+REQ
+
+cat > requirements-dev.txt << 'REQ'
+# Development dependencies
+pytest>=7.0.0
+black>=22.0.0
+flake8>=4.0.0
+mypy>=0.910
+ipython>=8.0.0
+REQ
+
+# Create setup.py
+cat > setup.py << 'SETUP'
+from setuptools import setup, find_packages
+
+setup(
+    name="$project_name",
+    version="0.1.0",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    python_requires=">=3.8",
+)
+SETUP
+
+# Create README
+cat > README.md << 'README'
+# $project_name
+
+## Setup
+
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+## Testing
+
+```bash
+pytest tests/
+```
+
+## Formatting
+
+```bash
+black src/ tests/
+flake8 src/ tests/
+mypy src/
+```
+README
+
+# Install dev dependencies
+pip install -r requirements-dev.txt
+
+echo "Python project '$project_name' created successfully!"
+echo "To activate: source /workspace/projects/active/$project_name/venv/bin/activate"
+EOF
+
+chmod +x /workspace/scripts/create-python-project.sh
+
+# Add Python-specific Git aliases
+if command_exists git; then
+    git config --global alias.pytest '!python -m pytest'
+    git config --global alias.black '!black .'
+    git config --global alias.flake '!flake8 .'
+fi
+
+print_success "Python development environment configured"
+print_status "Create new Python projects with: /workspace/scripts/create-python-project.sh <name>"

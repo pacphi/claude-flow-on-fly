@@ -226,6 +226,31 @@ configure_secrets() {
         print_warning "ANTHROPIC_API_KEY not set. You can set it later with:"
         print_warning "  flyctl secrets set ANTHROPIC_API_KEY=your_api_key -a $APP_NAME"
     fi
+
+    # Optionally set GitHub credentials
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        print_status "Setting GitHub token..."
+        flyctl secrets set GITHUB_TOKEN="$GITHUB_TOKEN" -a "$APP_NAME"
+        print_success "GitHub token configured"
+    else
+        print_status "No GITHUB_TOKEN found. You can set it later with:"
+        print_status "  flyctl secrets set GITHUB_TOKEN=<your-token> -a $APP_NAME"
+    fi
+
+    if [[ -n "${GIT_USER_NAME:-}" ]]; then
+        flyctl secrets set GIT_USER_NAME="$GIT_USER_NAME" -a "$APP_NAME"
+        print_success "Git user name configured: $GIT_USER_NAME"
+    fi
+
+    if [[ -n "${GIT_USER_EMAIL:-}" ]]; then
+        flyctl secrets set GIT_USER_EMAIL="$GIT_USER_EMAIL" -a "$APP_NAME"
+        print_success "Git user email configured: $GIT_USER_EMAIL"
+    fi
+
+    if [[ -n "${GITHUB_USER:-}" ]]; then
+        flyctl secrets set GITHUB_USER="$GITHUB_USER" -a "$APP_NAME"
+        print_success "GitHub username configured: $GITHUB_USER"
+    fi
 }
 
 # Function to update fly.toml with correct app name
@@ -362,12 +387,17 @@ Options:
 
 Environment Variables:
   ANTHROPIC_API_KEY   Your Anthropic API key (optional)
+  GITHUB_TOKEN        GitHub personal access token for authentication (optional)
+  GIT_USER_NAME       Git config user.name (optional)
+  GIT_USER_EMAIL      Git config user.email (optional)
+  GITHUB_USER         GitHub username for gh CLI (optional)
 
 Examples:
   $0
   $0 --app-name my-dev --region sjc --volume-size 20
   $0 --cpu-kind performance --cpu-count 2 --memory 2048
   ANTHROPIC_API_KEY=sk-ant-... $0 --app-name claude-dev
+  GITHUB_TOKEN=ghp_... GIT_USER_NAME="John Doe" GIT_USER_EMAIL="john@example.com" $0
 
 EOF
                 exit 0
