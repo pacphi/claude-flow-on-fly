@@ -34,6 +34,16 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
+# Source agent discovery utilities if available
+if [ -f /workspace/scripts/lib/agent-discovery.sh ]; then
+    source /workspace/scripts/lib/agent-discovery.sh
+fi
+
+# Source agent aliases if available
+if [ -f /workspace/.agent-aliases ]; then
+    source /workspace/.agent-aliases
+fi
+
 # Show welcome message on first login
 if [ ! -f ~/.welcome_shown ]; then
     [ -f ~/welcome.sh ] && ~/welcome.sh

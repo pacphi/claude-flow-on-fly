@@ -116,7 +116,7 @@ setup_agents_config() {
 
     local config_dir="/workspace/config"
     local config_file="${config_dir}/agents-config.yaml"
-    local template_file="/docker/templates/agents-config.yaml"
+    local template_file="/docker/config/agents-config.yaml"
 
     mkdir -p "$config_dir"
 
@@ -165,7 +165,7 @@ setup_agent_aliases() {
     print_status "🔗 Setting up agent management aliases..."
 
     local aliases_file="/workspace/.agent-aliases"
-    local template_file="/docker/templates/agent-aliases"
+    local template_file="/docker/config/agent-aliases"
 
     # Copy from template - fail if not found
     if [[ -f "$template_file" ]]; then
@@ -195,7 +195,7 @@ setup_agent_discovery() {
     print_status "🔍 Setting up agent discovery utilities..."
 
     local discovery_script="/workspace/scripts/lib/agent-discovery.sh"
-    local template_file="/docker/templates/agent-discovery.sh"
+    local template_file="/docker/lib/agent-discovery.sh"
 
     # Ensure scripts/lib directory exists
     mkdir -p "/workspace/scripts/lib"
@@ -206,6 +206,23 @@ setup_agent_discovery() {
         cp "$template_file" "$discovery_script"
         chmod +x "$discovery_script"
         print_success "✅ Agent discovery utilities copied from template"
+
+        # Source the discovery script for immediate availability
+        source "$discovery_script"
+
+        # Add sourcing to bashrc if not already present
+        local bashrc_file="/home/developer/.bashrc"
+        if [[ -f "$bashrc_file" ]]; then
+            if ! grep -q "agent-discovery.sh" "$bashrc_file"; then
+                print_status "📝 Adding agent-discovery.sh to .bashrc..."
+                echo "" >> "$bashrc_file"
+                echo "# Source agent discovery utilities" >> "$bashrc_file"
+                echo "if [ -f /workspace/scripts/lib/agent-discovery.sh ]; then" >> "$bashrc_file"
+                echo "    source /workspace/scripts/lib/agent-discovery.sh" >> "$bashrc_file"
+                echo "fi" >> "$bashrc_file"
+                print_success "✅ Added agent-discovery.sh to .bashrc"
+            fi
+        fi
     else
         print_error "❌ Template not found at $template_file"
         print_error "Required template file is missing. Please ensure templates/agent-discovery.sh exists."

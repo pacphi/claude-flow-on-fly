@@ -51,12 +51,12 @@ git clone https://github.com/pacphi/claude-flow-on-fly
 cd claude-flow-on-fly
 
 # Optional: Customize configuration before deployment
-nano templates/agents-config.yaml    # Configure agent sources
-nano templates/agent-aliases         # Customize agent aliases
-nano templates/agent-discovery.sh    # Add discovery functions
-nano templates/tmux.conf             # Customize tmux settings
-nano templates/tmux-workspace.sh     # Modify workspace launcher
-nano templates/tmux-aliases          # Customize tmux shortcuts
+nano docker/config/agents-config.yaml    # Configure agent sources
+nano docker/config/agent-aliases         # Customize agent aliases
+nano docker/lib/agent-discovery.sh       # Add discovery functions
+nano docker/config/tmux.conf             # Customize tmux settings
+nano docker/lib/tmux-workspace.sh        # Modify workspace launcher
+nano docker/config/tmux-aliases          # Customize tmux shortcuts
 
 # Deploy with your configuration
 ./scripts/vm-setup.sh --app-name my-claude-env
@@ -113,17 +113,34 @@ agent-update
 
 #### Finding Agents
 
+The agent discovery system provides powerful search capabilities:
+
 ```bash
-# Count total agents
-agent-count
+# Get help on all agent commands
+agent-help
 
-# Search for specific functionality
-agent-find "testing"
-agent-find "react"
-agent-find "security"
+# Basic search
+agent-find "testing"         # Search by name
+agent-search "react"          # Search by content
+agent-by-category            # Browse by category
+agent-by-tag "security"      # Find by tag
+agent-with-keyword "api"     # Find by filename keyword
 
-# Sample random agents
-agent-sample
+# Information and statistics
+agent-count                  # Total agent count
+agent-stats                  # Comprehensive statistics
+agent-list-all               # List all with descriptions
+agent-info <file>            # Show agent metadata
+
+# Advanced features
+agent-index                  # Create search index for speed
+agent-search-fast "term"     # Use indexed search (faster)
+agent-duplicates             # Find duplicate agents
+agent-validate-all           # Validate all agents
+
+# Random discovery
+agent-sample                 # Show 5 random agents
+agent-sample 10              # Show 10 random agents
 ```
 
 #### Adding Custom Agent Sources
@@ -134,11 +151,11 @@ You can customize agent sources in two ways:
 
 ```bash
 # Edit templates before VM setup
-nano templates/agents-config.yaml    # Configure agent sources
-nano templates/agent-aliases         # Customize agent aliases
-nano templates/agent-discovery.sh    # Add discovery functions
-nano templates/tmux.conf             # Customize tmux settings
-nano templates/tmux-workspace.sh     # Modify workspace launcher
+nano docker/config/agents-config.yaml    # Configure agent sources
+nano docker/config/agent-aliases         # Customize agent aliases
+nano docker/lib/agent-discovery.sh       # Add discovery functions
+nano docker/config/tmux.conf             # Customize tmux settings
+nano docker/lib/tmux-workspace.sh        # Modify workspace launcher
 ```
 
 **After deployment**:
@@ -152,7 +169,7 @@ nano /workspace/config/tmux.conf                   # Tmux configuration
 nano /workspace/scripts/tmux-workspace.sh          # Workspace launcher
 nano /workspace/.tmux-aliases                      # Tmux aliases
 
-# Then reload/reinstall
+# Then reload/reinstall (these are auto-sourced in new sessions)
 source /workspace/.agent-aliases                   # Reload agent aliases
 source /workspace/scripts/lib/agent-discovery.sh   # Reload discovery functions
 source /workspace/.tmux-aliases                    # Reload tmux aliases

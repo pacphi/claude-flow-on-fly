@@ -55,7 +55,7 @@ alias tmux-restore-last='function _restore_last() { local backup_dir=$(find /wor
 
 alias tmux-find-backups='function _find_backups() { echo "🔍 Available session backups:"; echo ""; echo "Shutdown backups:"; find /workspace/backups -name "shutdown-*" -type d 2>/dev/null | sort -r | head -5 | while read -r dir; do date_str=$(basename "$dir" | sed "s/shutdown-//"); save_count=$(find "$dir" -name "*.save" 2>/dev/null | wc -l); echo "  📁 $date_str ($save_count sessions)"; done; echo ""; echo "Session saves:"; find /workspace -name ".tmux-session-*.save" 2>/dev/null | sort -r | head -5 | while read -r file; do session_name=$(basename "$file" .save | sed "s/.tmux-session-//"); echo "  📄 $session_name"; done; }; _find_backups'
 
-# Development session management  
+# Development session management
 alias tmux-dev-quick='function _dev_quick() { if ! tmux has-session -t dev 2>/dev/null; then tmux new-session -d -s dev -c "/workspace"; tmux split-window -h -t dev -c "/workspace"; tmux split-window -v -t dev.1 -c "/workspace"; tmux select-pane -t dev.0; fi; tmux attach -t dev; }; _dev_quick'
 
 alias tmux-resume-workspace='function _resume_workspace() { if tmux has-session -t claude-workspace 2>/dev/null; then echo "✅ Resuming existing workspace..."; tmux attach -t claude-workspace; else echo "🔄 No existing workspace found, starting new..."; tmux-workspace; fi; }; _resume_workspace'

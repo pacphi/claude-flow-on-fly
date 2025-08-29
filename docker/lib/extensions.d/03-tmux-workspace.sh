@@ -29,7 +29,7 @@ setup_tmux_config() {
     print_status "⚙️ Setting up tmux configuration..."
 
     local config_file="/workspace/config/tmux.conf"
-    local template_file="/docker/templates/tmux.conf"
+    local template_file="/docker/config/tmux.conf"
 
     # Create tmux config directory
     mkdir -p /workspace/config
@@ -55,7 +55,7 @@ setup_workspace_launcher() {
     print_status "🚀 Setting up tmux workspace launcher..."
 
     local launcher_script="/workspace/scripts/tmux-workspace.sh"
-    local template_file="/docker/templates/tmux-workspace.sh"
+    local template_file="/docker/lib/tmux-workspace.sh"
 
     # Ensure scripts directory exists
     mkdir -p /workspace/scripts
@@ -78,7 +78,7 @@ setup_tmux_helpers() {
     print_status "🔧 Setting up tmux helper functions..."
 
     local helpers_script="/workspace/scripts/lib/tmux-helpers.sh"
-    local template_file="/docker/templates/tmux-helpers.sh"
+    local template_file="/docker/lib/tmux-helpers.sh"
 
     # Ensure scripts/lib directory exists
     mkdir -p /workspace/scripts/lib
@@ -101,7 +101,7 @@ setup_tmux_aliases() {
     print_status "🔗 Setting up tmux aliases..."
 
     local aliases_file="/workspace/.tmux-aliases"
-    local template_file="/docker/templates/tmux-aliases"
+    local template_file="/docker/config/tmux-aliases"
 
     # Copy from template - fail if not found
     if [[ -f "$template_file" ]]; then
@@ -130,7 +130,7 @@ setup_auto_start() {
     print_status "🔄 Setting up auto-start functionality..."
 
     local auto_start_script="/workspace/scripts/tmux-auto-start.sh"
-    local template_file="/docker/templates/tmux-auto-start.sh"
+    local template_file="/docker/lib/tmux-auto-start.sh"
 
     # Ensure scripts directory exists
     mkdir -p /workspace/scripts

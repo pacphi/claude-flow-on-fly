@@ -242,32 +242,32 @@ echo "🔄 Preparing for graceful shutdown..."
 # Enhanced tmux session management using helper functions
 if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
     echo "📺 Managing tmux sessions..."
-    
+
     # Source tmux helper functions if available
     if [[ -f /workspace/scripts/lib/tmux-helpers.sh ]]; then
         source /workspace/scripts/lib/tmux-helpers.sh 2>/dev/null || true
     fi
-    
+
     # Get list of active sessions
     active_sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null || true)
     session_count=$(echo "$active_sessions" | wc -l)
-    
+
     if [[ -n "$active_sessions" && "$session_count" -gt 0 ]]; then
         echo "  Found $session_count active tmux session(s)"
-        
+
         # Create shutdown backup directory
         backup_dir="/workspace/backups/shutdown-$(date +%Y%m%d-%H%M%S)"
         mkdir -p "$backup_dir"
         echo "  📁 Creating session backups in $backup_dir"
-        
+
         # Process each session
         echo "$active_sessions" | while read -r session_name; do
             if [[ -n "$session_name" ]]; then
                 echo "  🔄 Processing session: $session_name"
-                
+
                 # Notify users in session about shutdown
                 tmux display-message -t "$session_name" "⚠️ VM suspension in 10 seconds - saving session..." 2>/dev/null || true
-                
+
                 # Save session layout using helper function if available
                 if command -v tmux_save_session >/dev/null 2>&1; then
                     tmux_save_session "$session_name" 2>/dev/null || true
@@ -275,24 +275,24 @@ if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
                     # Fallback: manual session save
                     tmux list-windows -t "$session_name" -F "#{session_name}:#{window_index}:#{window_name}:#{pane_current_path}" > "$backup_dir/${session_name}.save" 2>/dev/null || true
                 fi
-                
+
                 # Send Ctrl+S to each pane for editor saves
                 tmux list-panes -s -t "$session_name" -F "#{session_name}:#{window_index}.#{pane_index}" 2>/dev/null | while read -r pane; do
                     tmux send-keys -t "$pane" C-s 2>/dev/null || true
                 done
-                
+
                 # Give a moment for saves to complete
                 sleep 1
-                
+
                 # Send graceful shutdown message
                 tmux send-keys -t "$session_name" "" 2>/dev/null || true
                 tmux display-message -t "$session_name" "💾 Session saved for restore after VM resume" 2>/dev/null || true
             fi
         done
-        
+
         # Brief pause to let users see messages
         sleep 2
-        
+
         echo "  ✅ All tmux sessions prepared for suspension"
     else
         echo "  ℹ️ No active tmux sessions found"
@@ -376,7 +376,7 @@ if command -v tmux >/dev/null 2>&1; then
     if [[ -f /workspace/scripts/lib/tmux-helpers.sh ]]; then
         source /workspace/scripts/lib/tmux-helpers.sh 2>/dev/null || true
     fi
-    
+
     # Check for active sessions
     session_count=$(tmux list-sessions 2>/dev/null | wc -l || echo 0)
     if [[ $session_count -gt 0 ]]; then
@@ -392,10 +392,10 @@ if command -v tmux >/dev/null 2>&1; then
         echo "      • tmux list-sessions             # List all sessions"
     else
         echo "📱 No active tmux sessions found"
-        
+
         # Check for session backups to restore
         echo "🔍 Checking for session backups to restore..."
-        
+
         # Look for shutdown backups (most recent)
         shutdown_backups=$(find /workspace/backups -name "shutdown-*" -type d 2>/dev/null | sort -r | head -3)
         if [[ -n "$shutdown_backups" ]]; then
@@ -414,7 +414,7 @@ if command -v tmux >/dev/null 2>&1; then
             echo "   ℹ️ No session backups found"
             echo "   🚀 Start new workspace: tmux-workspace"
         fi
-        
+
         # Check for tmux session save files (from helper functions)
         tmux_saves=$(find /workspace -name ".tmux-session-*.save" 2>/dev/null | sort -r | head -3)
         if [[ -n "$tmux_saves" ]]; then

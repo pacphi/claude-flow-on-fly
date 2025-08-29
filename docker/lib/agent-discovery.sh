@@ -67,7 +67,7 @@ get_agent_description() {
     # Try to get description field first
     local desc
     desc=$(grep "^description:" "$file" 2>/dev/null | cut -d: -f2- | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
-    
+
     if [[ -n "$desc" ]]; then
         echo "$desc"
         return 0
@@ -141,7 +141,7 @@ get_agent_metadata() {
 # Function to list all agents with metadata
 list_all_agents_with_metadata() {
     local format=${1:-"simple"}
-    
+
     find /workspace/agents -name "*.md" 2>/dev/null | while read -r file; do
         if [[ "$format" == "detailed" ]]; then
             echo "================================"
@@ -172,7 +172,7 @@ validate_all_agents() {
     local total=0
 
     echo "🔍 Validating all agents..."
-    
+
     find /workspace/agents -name "*.md" 2>/dev/null | while read -r file; do
         total=$((total + 1))
         if ! validate_agent_file "$file" >/dev/null; then
@@ -199,7 +199,7 @@ create_agent_index() {
             name=$(get_agent_name "$file")
             description=$(get_agent_description "$file")
             tags=$(grep "^tags:" "$file" 2>/dev/null | cut -d: -f2-)
-            
+
             echo "$file|${name:-}|${description:-}|${tags:-}"
         done
     } > "$index_file"
@@ -211,7 +211,7 @@ create_agent_index() {
 search_agent_index() {
     local search_term="$1"
     local index_file="/workspace/.agent-index"
-    
+
     if [[ -z "$search_term" ]]; then
         echo "Usage: search_agent_index <search_term>"
         return 1
@@ -254,7 +254,7 @@ get_agent_stats() {
 # Function to find duplicate agents (by name)
 find_duplicate_agents() {
     echo "🔍 Checking for duplicate agents..."
-    
+
     find /workspace/agents -name "*.md" 2>/dev/null | while read -r file; do
         local name
         name=$(get_agent_name "$file")

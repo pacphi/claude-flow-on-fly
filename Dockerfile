@@ -31,16 +31,12 @@ RUN /docker/scripts/install-nvm.sh
 # Create welcome script for developer user
 RUN /docker/scripts/create-welcome.sh
 
-# Copy health check script
-RUN cp /docker/templates/health-check.sh /health.sh && \
-    chmod +x /health.sh
-
 # Expose SSH port
 EXPOSE 22
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD /health.sh
+    CMD /docker/scripts/health-check.sh
 
 # Use startup script as entry point
 CMD ["/docker/scripts/entrypoint.sh"]

@@ -185,26 +185,6 @@ check_tool_versions() {
     done
 }
 
-# Function to install language-specific tools via extensions
-install_language_tools() {
-    local language="$1"
-
-    print_status "Language-specific tools should be installed via extensions"
-    print_status "Available extension examples in $EXTENSIONS_DIR:"
-    print_status "  - 05-python.sh.example - Python toolchain"
-    print_status "  - 10-rust.sh.example - Rust toolchain"
-    print_status "  - 20-golang.sh.example - Go toolchain"
-    print_status "  - 30-docker.sh.example - Docker tools"
-    print_status "  - 40-jvm.sh.example - Java/JVM tools"
-    print_status "..."
-    print_status ""
-    print_status "To enable an extension:"
-    print_status "  1. Rename the .example file (e.g., mv 10-rust.sh.example 10-rust.sh)"
-    print_status "  2. Run: $0 --extensions-only"
-
-    return 0
-}
-
 # Function to run custom extensions
 run_extensions() {
     local phase="${1:-install}"
@@ -246,4 +226,4 @@ run_extensions() {
 
 # Export functions
 export -f setup_nodejs install_claude_code install_dev_tools setup_claude_config
-export -f check_tool_versions install_language_tools run_extensions
+export -f check_tool_versions run_extensions

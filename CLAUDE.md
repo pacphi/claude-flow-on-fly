@@ -53,6 +53,34 @@ This is a complete remote AI-assisted development environment setup running Clau
 - Persistent volumes maintain data during suspension
 - Estimated costs: $2-15/month depending on usage
 
+## File Organization
+
+### Build-time vs Runtime Structure
+
+This project has two distinct file structures:
+
+1. **Build-time (Repository)**: Files in this repository used to build and deploy the VM
+   - `docker/` - Source files for the Docker image
+   - `scripts/` - Local management scripts run from your machine
+   - `templates/` - User-editable configuration templates
+   - Configuration and library files that get copied to the VM
+
+2. **Runtime (VM)**: File locations after deployment to the VM
+   - `/workspace/` - Persistent volume mount point
+   - `/workspace/scripts/` - Management scripts available on the VM
+   - `/workspace/scripts/lib/` - Shared libraries used by scripts
+   - `/home/developer/` - User home directory (ephemeral)
+
+### File Mapping
+
+| Repository Location | Runtime Location (on VM) | Purpose |
+|-------------------|-------------------------|----------|
+| `docker/scripts/vm-configure.sh` | `/workspace/scripts/vm-configure.sh` | Main configuration script |
+| `docker/lib/*.sh` | `/workspace/scripts/lib/*.sh` | Shared utility libraries |
+| `docker/config/*` | Copied to various locations | Configuration files |
+| `docker/lib/extensions.d/*.sh` | `/workspace/scripts/extensions.d/*.sh` | Extension scripts |
+| `templates/*.example` | User reference only | Example configurations |
+
 ## Configuration Files
 
 ### Core Infrastructure
@@ -64,14 +92,14 @@ This is a complete remote AI-assisted development environment setup running Clau
 - `templates/CLAUDE.md.example` - Project context template for Claude
 - `templates/settings.json.example` - Claude Code hooks configuration
 - `templates/ssh_config.example` - SSH client configuration
-- `templates/agents-config.yaml` - Agent manager configuration template
-- `templates/agent-aliases` - Agent management shell aliases
-- `templates/agent-discovery.sh` - Agent discovery utility functions
-- `templates/tmux.conf` - Tmux configuration with keybindings and styling
-- `templates/tmux-workspace.sh` - Main tmux workspace launcher script
-- `templates/tmux-helpers.sh` - Tmux session management utility functions
-- `templates/tmux-aliases` - Tmux operation shell aliases
-- `templates/tmux-auto-start.sh` - Optional SSH auto-start functionality
+- `docker/config/agents-config.yaml` - Agent manager configuration template
+- `docker/config/agent-aliases` - Agent management shell aliases
+- `docker/lib/agent-discovery.sh` - Agent discovery utility functions
+- `docker/config/tmux.conf` - Tmux configuration with keybindings and styling
+- `docker/lib/tmux-workspace.sh` - Main tmux workspace launcher script
+- `docker/lib/tmux-helpers.sh` - Tmux session management utility functions
+- `docker/config/tmux-aliases` - Tmux operation shell aliases
+- `docker/lib/tmux-auto-start.sh` - Optional SSH auto-start functionality
 
 ### VM Scripts (Created on first run)
 - `vm-configure.sh` - Complete environment setup (Node.js, Claude tools, Git)
@@ -81,15 +109,23 @@ This is a complete remote AI-assisted development environment setup running Clau
 - `system-status.sh` - Show system and development environment status
 
 ### Library Structure
-- `/workspace/scripts/lib/` - Shared utility libraries
+- `/workspace/scripts/lib/` - Shared utility libraries (runtime location)
   - `common.sh` - Core functions used by all scripts (colors, print functions, utilities)
   - `workspace.sh` - Workspace management utilities (delegates to script files)
   - `tools.sh` - Tool installation functions (Node.js, Claude Code, language tools)
   - `git.sh` - Git configuration helpers (setup, aliases, hooks)
+  - `gh.sh` - GitHub CLI utilities and integrations
   - `backup.sh` - Backup utilities for workspace data
   - `restore.sh` - Restore utilities for workspace backups
   - `new-project.sh` - Project creation with Git integration
   - `system-status.sh` - System monitoring and status display
+  - `agent-discovery.sh` - Agent discovery and search functions
+  - `context-loader.sh` - Context file loading and management
+  - `cf-with-context.sh` - Claude Flow with context integration
+  - `tmux-helpers.sh` - Tmux session management utilities
+  - `tmux-workspace.sh` - Main tmux workspace launcher
+  - `tmux-auto-start.sh` - Optional SSH auto-start functionality
+  - `validate-setup.sh` - Validation script for environment setup
 - `/workspace/scripts/extensions.d/` - Custom tool installations
   - Add numbered scripts here for automatic execution during configuration
   - Scripts run in alphabetical order: pre-*, *, post-*
@@ -100,7 +136,7 @@ This is a complete remote AI-assisted development environment setup running Clau
 ### Customizing Agent Sources
 
 Before deploying, you can customize which agent sources will be installed by editing:
-- `templates/agents-config.yaml` - Configure agent sources, update strategies, and mandatory agents
+- `docker/config/agents-config.yaml` - Configure agent sources, update strategies, and mandatory agents
 
 Key customization options:
 - **Enable/disable sources**: Set `enabled: true/false` for each source
@@ -108,8 +144,8 @@ Key customization options:
 - **Set mandatory agents**: Define which agents must always be installed
 - **Configure update strategies**: Control how agents are updated (merge/replace)
 - **Filter patterns**: Include/exclude specific files or patterns
-- **Customize aliases**: Modify `templates/agent-aliases` to add your own shortcuts
-- **Extend discovery**: Enhance `templates/agent-discovery.sh` with custom search functions
+- **Customize aliases**: Modify `docker/config/agent-aliases` to add your own shortcuts
+- **Extend discovery**: Enhance `docker/lib/agent-discovery.sh` with custom search functions
 - **Customize tmux**: Modify tmux templates for personalized development environment
 
 The configuration files are copied to `/workspace/config/` and `/workspace/.agent-aliases` on first run and preserved across reconfigurations.

@@ -46,49 +46,23 @@ install_playwright() {
     print_status "🔧 Installing TypeScript and development tools..."
     npm install -D typescript @types/node
 
-    # Create TypeScript configuration for ES modules
-    print_status "⚙️ Creating TypeScript configuration..."
-    cat > tsconfig.json << 'EOF'
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true
-  },
-  "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "dist"]
-}
-EOF
+    # Copy TypeScript configuration from docker/config
+    print_status "⚙️ Setting up TypeScript configuration..."
+    if [[ -f "/docker/config/tsconfig.json" ]]; then
+        cp /docker/config/tsconfig.json tsconfig.json
+        print_success "✅ TypeScript configuration copied"
+    else
+        print_warning "⚠️ TypeScript configuration not found in /docker/config/"
+    fi
 
-    # Create Playwright configuration
-    print_status "🧪 Creating Playwright configuration..."
-    cat > playwright.config.ts << 'EOF'
-import { defineConfig } from '@playwright/test';
-
-export default defineConfig({
-  testDir: './tests',
-  use: {
-    screenshot: 'only-on-failure',
-    trace: 'on-first-retry',
-  },
-  projects: [
-    {
-      name: 'chromium',
-      use: { channel: 'chromium' },
-    },
-  ],
-});
-EOF
+    # Copy Playwright configuration from docker/config
+    print_status "🧪 Setting up Playwright configuration..."
+    if [[ -f "/docker/config/playwright.config.ts" ]]; then
+        cp /docker/config/playwright.config.ts playwright.config.ts
+        print_success "✅ Playwright configuration copied"
+    else
+        print_warning "⚠️ Playwright configuration not found in /docker/config/"
+    fi
 
     # Create basic test example
     print_status "📝 Creating example test..."
@@ -169,41 +143,17 @@ create_project_structure() {
     print_success "✅ Project structure created"
 }
 
-# Create comprehensive aliases
+# Copy and setup aliases
 create_aliases() {
-    print_status "🔗 Creating Turbo Flow aliases..."
+    print_status "🔗 Setting up Turbo Flow aliases..."
 
-    # Create alias file that can be sourced
-    cat > "$WORKSPACE_DIR/.turbo-flow-aliases" << 'EOF'
-# Turbo Flow Claude Aliases
-
-# Claude Code shortcuts
-alias dsp="claude --dangerously-skip-permissions"
-alias cf-dsp="claude --dangerously-skip-permissions"
-
-# Claude Flow commands (will be enhanced with context wrapper later)
-alias cf-init="npx claude-flow@alpha init --verify --pair --github-enhanced"
-alias cf-verify="npx claude-flow@alpha verify"
-alias cf-truth="npx claude-flow@alpha truth"
-alias cf-pair="npx claude-flow@alpha pair --start"
-
-# Agent discovery helpers
-alias agent-count="find /workspace/agents -name '*.md' 2>/dev/null | wc -l"
-alias agent-sample="find /workspace/agents -name '*.md' 2>/dev/null | shuf | head -10"
-alias agent-search="find /workspace/agents -name"
-
-# Context management
-alias load-context="cat /workspace/context/global/CLAUDE.md /workspace/context/global/FEEDCLAUDE.md /workspace/context/global/CCFOREVER.md 2>/dev/null || echo 'Context files not found'"
-
-# Project helpers
-alias new-project="/workspace/scripts/lib/new-project.sh"
-alias project-status="/workspace/scripts/lib/system-status.sh"
-
-# Monitoring
-alias claude-usage="claude-usage-cli"
-alias monitor-claude="claude-monitor"
-
-EOF
+    # Copy alias file from docker/config
+    if [[ -f "/docker/config/turbo-flow-aliases" ]]; then
+        cp /docker/config/turbo-flow-aliases "$WORKSPACE_DIR/.turbo-flow-aliases"
+        print_success "✅ Turbo Flow aliases copied"
+    else
+        print_warning "⚠️ Turbo Flow aliases not found in /docker/config/"
+    fi
 
     # Add sourcing to bashrc if not already there
     if ! grep -q "turbo-flow-aliases" "$HOME/.bashrc" 2>/dev/null; then
@@ -217,60 +167,18 @@ EOF
     print_success "✅ Aliases created and configured"
 }
 
-# Create basic setup validation
+# Copy setup validation script
 create_setup_validation() {
-    print_status "🔍 Creating setup validation script..."
+    print_status "🔍 Installing setup validation script..."
 
-    # Create basic validation script
-    cat > "$WORKSPACE_DIR/scripts/validate-setup.sh" << 'EOF'
-#!/bin/bash
-# Basic validation script for Turbo Flow setup
-
-echo "🔍 Validating Turbo Flow Setup..."
-echo "================================="
-
-# Check Node.js and npm
-echo -n "Node.js: "
-node --version 2>/dev/null || echo "❌ Not installed"
-
-echo -n "npm: "
-npm --version 2>/dev/null || echo "❌ Not installed"
-
-# Check Playwright
-echo -n "Playwright: "
-npx playwright --version 2>/dev/null || echo "❌ Not installed"
-
-# Check Claude tools
-echo -n "Claude Code: "
-command -v claude >/dev/null && echo "✅ Installed" || echo "❌ Not installed"
-
-echo -n "Claude Flow: "
-npx claude-flow@alpha --version 2>/dev/null >/dev/null && echo "✅ Available" || echo "❌ Not available"
-
-# Check monitoring tools
-echo -n "Claude Monitor: "
-command -v claude-monitor >/dev/null && echo "✅ Installed" || echo "❌ Not installed"
-
-echo -n "Claude Usage CLI: "
-command -v claude-usage-cli >/dev/null && echo "✅ Installed" || echo "❌ Not installed"
-
-# Check directory structure
-echo ""
-echo "Directory Structure:"
-for dir in agents context bin scripts config; do
-    if [[ -d "/workspace/$dir" ]]; then
-        echo "✅ /workspace/$dir"
+    # Copy validation script from docker/lib
+    if [[ -f "/docker/lib/validate-setup.sh" ]]; then
+        cp /docker/lib/validate-setup.sh "$WORKSPACE_DIR/scripts/validate-setup.sh"
+        chmod +x "$WORKSPACE_DIR/scripts/validate-setup.sh"
+        print_success "✅ Setup validation script installed"
     else
-        echo "❌ /workspace/$dir (missing)"
+        print_warning "⚠️ Setup validation script not found in /docker/lib/"
     fi
-done
-
-echo ""
-echo "Validation complete!"
-EOF
-
-    chmod +x "$WORKSPACE_DIR/scripts/validate-setup.sh"
-    print_success "✅ Setup validation script created"
 }
 
 # Main execution

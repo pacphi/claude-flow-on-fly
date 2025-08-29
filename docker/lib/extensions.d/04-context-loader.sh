@@ -20,7 +20,7 @@ create_context_loader() {
     print_status "🔧 Creating context loading utilities..."
 
     local utilities_script="/workspace/scripts/lib/context-loader.sh"
-    local template_file="/docker/templates/context-loader.sh"
+    local template_file="/docker/lib/context-loader.sh"
 
     # Ensure scripts/lib directory exists
     mkdir -p "/workspace/scripts/lib"
@@ -43,7 +43,7 @@ create_cf_wrapper() {
     print_status "🔧 Creating Claude Flow context wrapper..."
 
     local wrapper_script="/workspace/scripts/cf-with-context.sh"
-    local template_file="/docker/templates/cf-with-context.sh"
+    local template_file="/docker/lib/cf-with-context.sh"
 
     # Ensure scripts directory exists
     mkdir -p /workspace/scripts
@@ -66,7 +66,7 @@ create_context_aliases() {
     print_status "🔗 Creating context management aliases..."
 
     local aliases_file="/workspace/.context-aliases"
-    local template_file="/docker/templates/context-aliases"
+    local template_file="/docker/config/context-aliases"
 
     # Copy from template - fail if not found
     if [[ -f "$template_file" ]]; then

@@ -88,15 +88,6 @@ run_interactive_setup() {
     if confirm "Create project templates?" "n"; then
         create_project_templates
     fi
-
-    echo
-    if confirm "Install language-specific tools? (Go, Rust, etc.)" "n"; then
-        echo "Available languages: go, rust, python, node"
-        read -p "Enter language (or 'skip'): " language
-        if [[ "$language" != "skip" ]] && [[ -n "$language" ]]; then
-            install_language_tools "$language"
-        fi
-    fi
 }
 
 # Main execution function
@@ -109,7 +100,6 @@ main() {
     local interactive=false
     local skip_claude_install=false
     local extensions_only=false
-    local language=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -125,10 +115,6 @@ main() {
                 extensions_only=true
                 shift
                 ;;
-            --language)
-                language="$2"
-                shift 2
-                ;;
             --help)
                 cat << EOF
 Usage: $0 [OPTIONS]
@@ -137,7 +123,6 @@ Options:
   --interactive       Run interactive configuration prompts
   --skip-claude       Skip Claude Code/Flow installation
   --extensions-only   Only run extension scripts
-  --language LANG     Install tools for specific language (go, rust, python, node)
   --help              Show this help message
 
 This script configures the development environment inside the Fly.io VM.
@@ -172,13 +157,6 @@ EOF
         run_extensions "install"
         run_extensions "post-install"
         print_success "Extensions completed"
-        return 0
-    fi
-
-    # Handle language-specific installation
-    if [[ -n "$language" ]]; then
-        print_status "Installing tools for $language..."
-        install_language_tools "$language"
         return 0
     fi
 
