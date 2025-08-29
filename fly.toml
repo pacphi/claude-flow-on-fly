@@ -2,10 +2,10 @@
 # This configuration optimizes for cost-effective remote development
 # with scale-to-zero capabilities and persistent storage
 
-app = "my-claude-dev"
+app = "{{APP_NAME}}"
 # Change to your preferred region
 # Consult https://fly.io/docs/reference/regions/ for available regions
-primary_region = "sea"
+primary_region = "{{REGION}}"
 
 # Build configuration
 [build]
@@ -23,7 +23,7 @@ primary_region = "sea"
 # Volume mounts for persistent storage
 [mounts]
   # Mount persistent volume for all development work
-  source = "claude_data"
+  source = "{{VOLUME_NAME}}"
   destination = "/workspace"
 
 # SSH service configuration (primary access method)
@@ -59,9 +59,9 @@ primary_region = "sea"
 # Start small and scale up if needed
 [vm]
   # CPU and memory settings (adjust based on needs)
-  cpu_kind = "performance"    # Options: "shared", "performance"
-  cpus = 2         # Number of CPUs
-  memory = "4096mb"
+  cpu_kind = "{{CPU_KIND}}"    # Options: "shared", "performance"
+  cpus = {{CPU_COUNT}}         # Number of CPUs
+  memory = "{{VM_MEMORY}}mb"
 
 # Deployment settings
 [deploy]
