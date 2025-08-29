@@ -8,6 +8,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Check if libraries exist, fall back to workspace location if needed
+if [[ ! -f "$LIB_DIR/common.sh" ]] && [[ -f "/workspace/scripts/lib/common.sh" ]]; then
+    LIB_DIR="/workspace/scripts/lib"
+fi
+
 source "$LIB_DIR/common.sh"
 
 print_status "📚 Setting up Context Management System..."

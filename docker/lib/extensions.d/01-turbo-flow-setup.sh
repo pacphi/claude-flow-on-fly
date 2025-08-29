@@ -109,8 +109,20 @@ install_monitoring_tools() {
 
     # Install Claude Monitor using uv
     if command_exists uv; then
-        uv tool install claude-monitor || pip3 install claude-monitor
+        uv tool install claude-monitor || {
+            # Install pip3 as fallback if not available
+            if ! command_exists pip3; then
+                print_status "Installing python3-pip..."
+                sudo apt-get update -qq && sudo apt-get install -y python3-pip
+            fi
+            pip3 install claude-monitor
+        }
     else
+        # Install pip3 if not available
+        if ! command_exists pip3; then
+            print_status "Installing python3-pip..."
+            sudo apt-get update -qq && sudo apt-get install -y python3-pip
+        fi
         pip3 install claude-monitor
     fi
 

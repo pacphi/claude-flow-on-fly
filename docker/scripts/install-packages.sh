@@ -13,9 +13,7 @@ apt-get install -y \
     git \
     vim \
     nano \
-    tmux \
     screen \
-    htop \
     tree \
     jq \
     unzip \
@@ -24,8 +22,6 @@ apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
-    nodejs \
-    npm \
     sqlite3 \
     postgresql-client \
     redis-tools \

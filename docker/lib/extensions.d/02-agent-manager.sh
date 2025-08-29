@@ -27,8 +27,6 @@ get_latest_release() {
     local include_prereleases=${1:-false}
     local api_url="https://api.github.com/repos/${GITHUB_REPO}/releases"
 
-    print_status "🔍 Fetching latest release information..."
-
     if [[ "$include_prereleases" == "true" ]]; then
         # Get all releases (including pre-releases) and pick the first one
         curl -s "$api_url" | jq -r '.[0].tag_name' 2>/dev/null || echo ""
@@ -49,37 +47,31 @@ install_agent_manager() {
 
     print_status "📥 Installing agent-manager version $tag_name..."
 
-    # Detect architecture
-    local arch
-    case "$(uname -m)" in
-        x86_64|amd64)
-            arch="x86_64"
+    # Detect platform and architecture
+    local platform_arch
+    case "$(uname -s)-$(uname -m)" in
+        Linux-x86_64|Linux-amd64)
+            platform_arch="linux-amd64"
             ;;
-        aarch64|arm64)
-            arch="aarch64"
+        Linux-aarch64|Linux-arm64)
+            platform_arch="linux-arm64"
+            ;;
+        Darwin-x86_64|Darwin-amd64)
+            platform_arch="darwin-amd64"
+            ;;
+        Darwin-arm64|Darwin-aarch64)
+            platform_arch="darwin-arm64"
+            ;;
+        MINGW*-x86_64|MSYS*-x86_64|CYGWIN*-x86_64)
+            platform_arch="windows-amd64"
             ;;
         *)
-            print_error "Unsupported architecture: $(uname -m)"
+            print_error "Unsupported platform: $(uname -s)-$(uname -m)"
             return 1
             ;;
     esac
 
-    # Detect OS
-    local os
-    case "$(uname -s)" in
-        Linux)
-            os="unknown-linux-gnu"
-            ;;
-        Darwin)
-            os="apple-darwin"
-            ;;
-        *)
-            print_error "Unsupported OS: $(uname -s)"
-            return 1
-            ;;
-    esac
-
-    local binary_name="${BINARY_NAME}-${arch}-${os}"
+    local binary_name="${BINARY_NAME}-${platform_arch}"
     local download_url="https://github.com/${GITHUB_REPO}/releases/download/${tag_name}/${binary_name}"
 
     print_status "🌐 Download URL: $download_url"
@@ -242,10 +234,11 @@ main() {
 
     if ! command_exists jq; then
         print_warning "jq not found, installing..."
-        apt-get update -qq && apt-get install -y jq
+        sudo apt-get update -qq && sudo apt-get install -y jq
     fi
 
     # Try to get latest release (including pre-releases first)
+    print_status "🔍 Fetching latest release information..."
     local tag_name
     tag_name=$(get_latest_release true)
 
