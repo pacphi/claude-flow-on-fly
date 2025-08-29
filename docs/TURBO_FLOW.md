@@ -2,7 +2,12 @@
 
 ## Overview
 
-This guide covers the complete setup and usage of the integrated turbo-flow-claude capabilities within the claude-flow-on-fly environment. The integration brings enterprise-grade AI development features including flexible agent management, multi-tier context systems, tmux workspaces, and verification-first development.
+This guide covers integrating [turbo-flow-claude](https://github.com/marcuspat/turbo-flow-claude)-like capabilities within the claude-flow-on-fly environment. The integration brings enterprise-grade AI development features including flexible agent management, multi-tier context systems, tmux workspaces, and verification-first development.
+
+Thanks for the inspiration [Marcus Patman](https://github.com/marcuspat)!
+
+> [!Note]
+> As of 2025-08-28 no [commercial](https://devpod.sh/docs/managing-providers/add-provider) or [community](https://devpod.sh/docs/managing-providers/add-provider#community-providers) DevPod provider exists targeting fly.io
 
 ## What's New
 
