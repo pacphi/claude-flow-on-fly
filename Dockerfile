@@ -9,7 +9,7 @@ ENV LC_ALL=C.UTF-8
 
 # Copy all Docker scripts and configurations
 COPY docker/ /docker/
-RUN chmod +x /docker/scripts/*.sh /docker/templates/*.sh /docker/lib/*.sh
+RUN chmod +x /docker/scripts/*.sh /docker/lib/*.sh
 
 # Install system packages
 RUN /docker/scripts/install-packages.sh
