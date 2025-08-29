@@ -14,9 +14,8 @@ This guide provides comprehensive instructions for setting up a secure, cost-opt
 4. [Cost Overview](#cost-overview)
 5. [Automated Setup (Recommended)](#automated-setup-recommended)
 6. [Manual Setup (Advanced)](#manual-setup-advanced)
-6. [Persistent Volume Management](#persistent-volume-management)
-7. [IDE Remote Connection](#ide-remote-connection)
-8. [Claude Tools Installation](#claude-tools-installation)
+7. [Persistent Volume Management](#persistent-volume-management)
+8. [IDE Remote Connection](#ide-remote-connection)
 9. [Memory Management](#memory-management)
 10. [Cost Optimization](#cost-optimization)
 11. [Team Collaboration](#team-collaboration)
@@ -35,7 +34,7 @@ This setup enables AI-assisted development using Claude Code and Claude Flow on 
 
 ## Architecture Overview
 
-```
+```text
 ┌─────────────────┐     SSH/Remote      ┌──────────────────┐
 │ Developer IDE   │ ◄─────────────────► │ Fly.io VM        │
 │(VSCode/IntelliJ)│                     │ - Claude Code    │
@@ -62,12 +61,14 @@ This setup enables AI-assisted development using Claude Code and Claude Flow on 
 ## Prerequisites
 
 ### On Your Local Machine
+
 - [Fly.io](https://fly.io/) [CLI](https://fly.io/docs/flyctl/install/) (`flyctl`) installed
 - VSCode with [Remote-SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) extension OR IntelliJ with [remote development support]((https://www.jetbrains.com/remote-development/gateway/))
 - SSH key pair for authentication
 - Active Fly.io account
 
 ### Subscriptions Required
+
 - Fly.io account (Hobby plan includes 3GB free storage)
 - [Claude Max](https://www.anthropic.com/max) subscription OR Anthropic [API key]((https://console.anthropic.com/settings/keys))
 - (Optional) Claude Flow license if using advanced features
@@ -77,17 +78,20 @@ This setup enables AI-assisted development using Claude Code and Claude Flow on 
 ### Estimated Monthly Costs
 
 **Minimal Setup (Hobby/Individual)**
+
 - VM (1GB RAM, 1 shared CPU): ~$5/month when running
 - Persistent Volume (10GB): $1.50/month
 - With auto-stop: ~$2-3/month total
 
 **Performance Setup (Intensive Development)**
+
 - VM (2GB RAM, 2 shared CPUs): ~$10/month when running
 - VM (2GB RAM, 1 performance CPU): ~$15/month when running
 - Persistent Volume (20GB): $3/month
 - With auto-stop: ~$5-8/month total
 
 **Team Setup (Small team)**
+
 - VM (4GB RAM, 2 performance CPUs): ~$30/month when running
 - Persistent Volume (50GB): $7.50/month
 - With auto-stop: ~$10-15/month total
@@ -365,13 +369,15 @@ flyctl volumes snapshots list vol_xxxx
 ### VSCode Setup
 
 1. **Install Remote-SSH Extension**
+
    - Open VSCode
    - Install "Remote - SSH" extension from Microsoft
 
 2. **Configure SSH**
 
    Add to `~/.ssh/config`:
-   ```
+
+   ```bash
    Host fly-claude-dev
        HostName my-claude-dev.fly.dev
        Port 10022
@@ -382,6 +388,7 @@ flyctl volumes snapshots list vol_xxxx
    ```
 
 3. **Connect to VM**
+
    - Open Command Palette (Cmd/Ctrl + Shift + P)
    - Select "Remote-SSH: Connect to Host"
    - Choose "fly-claude-dev"
@@ -389,10 +396,12 @@ flyctl volumes snapshots list vol_xxxx
 ### IntelliJ Setup
 
 1. **Open JetBrains Gateway**
+
    - Download and install JetBrains Gateway
    - Click "New Connection"
 
 2. **Configure SSH Connection**
+
    - Connection Type: SSH
    - Host: my-claude-dev.fly.dev
    - Port: 10022
@@ -401,6 +410,7 @@ flyctl volumes snapshots list vol_xxxx
    - Private key: Browse to ~/.ssh/id_rsa
 
 3. **Select IDE and Project**
+
    - Choose your IDE (IntelliJ IDEA, etc.)
    - Project directory: /workspace/your-project
 
@@ -416,6 +426,7 @@ After connecting to your VM for the first time, you need to run the configuratio
 ```
 
 This interactive script will:
+
 - ✅ Install Node.js (latest LTS version)
 - ✅ Install Claude Code and Claude Flow
 - ✅ Set up Git configuration (name and email)
@@ -430,15 +441,18 @@ This interactive script will:
 During the script execution, you'll be prompted for:
 
 1. **Git Configuration**
+
    - Your name for Git commits
    - Your email for Git commits
 
 2. **Additional Development Tools** (optional)
+
    - TypeScript, ESLint, Prettier for JavaScript development
    - Black, Flake8 for Python development
    - Other helpful development utilities
 
 3. **Project Templates** (optional)
+
    - Node.js project template
    - Python project template
 
@@ -463,9 +477,11 @@ If you need to reconfigure later or skip certain parts:
 ### Extending the Environment
 
 #### Custom Tool Installation
+
 You can extend the environment with custom tools by adding scripts to the extensions directory:
 
 1. **Create Extension Script**
+
    ```bash
    # Create extensions directory if it doesn't exist
    mkdir -p /workspace/scripts/extensions.d/
@@ -484,12 +500,14 @@ You can extend the environment with custom tools by adding scripts to the extens
    ```
 
 2. **Run Configuration**
+
    ```bash
    /workspace/scripts/vm-configure.sh
    # Your extension will run automatically
    ```
 
 3. **Available Examples**
+
    ```bash
    # Enable Rust toolchain
    cp /workspace/scripts/extensions.d/10-rust.sh.example \
@@ -505,6 +523,7 @@ You can extend the environment with custom tools by adding scripts to the extens
    ```
 
 #### Using Shared Libraries
+
 All management scripts now use shared libraries for consistency:
 
 ```bash
@@ -521,12 +540,14 @@ fi
 ```
 
 **Available Libraries:**
+
 - `common.sh` - Print functions, colors, command checking
 - `workspace.sh` - Project creation, templates, backup scripts
 - `tools.sh` - Tool installation (Node.js, Claude, language tools)
 - `git.sh` - Git setup, aliases, hooks
 
 #### Extension Execution Order
+
 Extensions run in three phases during configuration:
 
 1. **Pre-install** (`pre-*.sh`) - Before main tool installation
@@ -539,7 +560,7 @@ Use numbered prefixes (10-, 20-, 30-) to control execution order within each pha
 
 After running the configuration script, you'll have:
 
-```
+```bash
 /workspace/
 ├── projects/
 │   ├── active/           # Your active projects
@@ -613,26 +634,31 @@ Create `/workspace/your-project/CLAUDE.md`:
 This is a [project type] built with [technologies].
 
 ## Key Commands
+
 - Build: `npm run build`
 - Test: `npm test`
 - Lint: `npm run lint`
 
 ## Architecture Notes
+
 - Main entry point: src/index.js
 - Database: PostgreSQL on Fly.io
 - API: RESTful endpoints in src/api/
 
 ## Development Workflow
+
 1. Always run tests before committing
 2. Use feature branches
 3. Follow conventional commits
 
 ## Important Files
+
 - Configuration: config/
 - Database models: src/models/
 - API routes: src/routes/
 
 ## Custom Instructions
+
 - Use TypeScript for all new files
 - Prefer functional programming patterns
 - Add JSDoc comments to public APIs
@@ -677,6 +703,7 @@ SELECT * FROM agent_memory LIMIT 10;
 ### Auto-stop Configuration
 
 The `fly.toml` configuration includes:
+
 - `auto_stop_machines = "suspend"` - Suspends VM when idle
 - `min_machines_running = 0` - Allows complete scale-to-zero
 - `auto_start_machines = true` - Resumes on incoming connection
@@ -747,6 +774,7 @@ echo "VM resumed and ready!"
 ### Option 1: Shared VM
 
 Multiple developers share one VM:
+
 - Add all team SSH keys to `AUTHORIZED_KEYS`
 - Use separate user directories or workspaces
 - Coordinate via tmux sessions
@@ -759,6 +787,7 @@ flyctl secrets set AUTHORIZED_KEYS="$(cat key1.pub key2.pub key3.pub)"
 ### Option 2: Individual VMs with Shared Volume
 
 Each developer has their own VM but shares data:
+
 - Create separate apps for each developer
 - Use Fly.io volume snapshots to sync
 - Implement Git-based workflow
@@ -780,10 +809,12 @@ npx claude-flow@alpha hive-mind wizard
 ### SSH Security
 
 1. **Key-only Authentication**
+
    - Password authentication is disabled
    - Use strong SSH keys (Ed25519 recommended)
 
 2. **Regular Key Rotation**
+
    ```bash
    # Generate new key
    ssh-keygen -t ed25519 -f ~/.ssh/fly_claude_key
@@ -793,6 +824,7 @@ npx claude-flow@alpha hive-mind wizard
    ```
 
 3. **Network Security**
+
    - Fly.io provides network isolation
    - Use Fly.io private networking for database connections
    - Consider WireGuard for additional security
@@ -800,12 +832,14 @@ npx claude-flow@alpha hive-mind wizard
 ### API Key Management
 
 1. **Never commit API keys**
+
    ```bash
    # Set as secrets
    flyctl secrets set ANTHROPIC_API_KEY="sk-ant-..."
    ```
 
 2. **Use environment variables**
+
    ```bash
    # In VM startup script
    export ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
@@ -814,11 +848,13 @@ npx claude-flow@alpha hive-mind wizard
 ### Data Protection
 
 1. **Regular Backups**
+
    - Automated daily snapshots
    - Manual backups before major changes
    - Off-site backup to S3/GCS
 
 2. **Encryption**
+
    - Use encrypted volumes for sensitive data
    - Encrypt backups before external storage
 
@@ -829,6 +865,7 @@ For comprehensive troubleshooting information, see our dedicated [Troubleshootin
 ### Quick Reference - Common Issues
 
 #### VM Won't Start
+
 ```bash
 # Check logs
 flyctl logs
@@ -845,6 +882,7 @@ flyctl machine restart <machine-id>
 For detailed SSH troubleshooting including host key verification issues, permission problems, and connection debugging, see [SSH Connection Issues](TROUBLESHOOTING.md#ssh-connection-issues) in our Troubleshooting Guide.
 
 **Quick SSH Debugging:**
+
 ```bash
 # Test connection with verbose output
 ssh -vvv developer@your-app-name.fly.dev -p 10022
@@ -854,6 +892,7 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
 ```
 
 #### Claude Code Authentication Issues
+
 ```bash
 # Clear credentials
 rm -rf ~/.claude/credentials
@@ -866,6 +905,7 @@ echo $ANTHROPIC_API_KEY
 ```
 
 #### Volume Mount Issues
+
 ```bash
 # Verify volume is attached
 flyctl volumes list
@@ -880,11 +920,13 @@ sudo chown -R developer:developer /workspace
 ### Performance Optimization
 
 #### Slow IDE Connection
+
 1. Check region proximity
 2. Upgrade VM size if needed
 3. Use mosh for unstable connections
 
 #### Claude Code Response Time
+
 1. Ensure adequate VM memory
 2. Check network latency
 3. Consider upgrading to dedicated CPU
@@ -897,30 +939,36 @@ sudo chown -R developer:developer /workspace
 - **[Performance](TROUBLESHOOTING.md#performance-issues)** - Optimization and speed improvements
 
 1. **Fly.io Support**
+
    - Community: https://community.fly.io
    - Status: https://status.flyio.net
 
 2. **Claude Code**
+
    - Documentation: https://docs.anthropic.com/claude-code
    - Issues: https://github.com/anthropics/claude-code/issues
 
 3. **Claude Flow**
+
    - Repository: https://github.com/ruvnet/claude-flow
    - Documentation: See repository docs/
 
 ## Next Steps
 
 1. **Customize Your Environment**
+
    - Install additional tools via Dockerfile
    - Configure your preferred shell and dotfiles
    - Set up project-specific CLAUDE.md
 
 2. **Optimize Costs**
+
    - Monitor usage patterns
    - Adjust VM size based on needs
    - Implement aggressive auto-stop policies
 
 3. **Scale Your Team**
+
    - Document team-specific workflows
    - Create onboarding scripts
    - Establish coding standards

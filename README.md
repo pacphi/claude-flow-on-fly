@@ -81,9 +81,9 @@ Before starting, you'll need:
 │   ├── volume-backup.sh               # Data backup
 │   └── volume-restore.sh              # Data restoration
 ├── templates/                         # Configuration templates
-│   ├── CLAUDE.md.template             # Project context template
-│   ├── settings.json.template         # Claude Code hooks
-│   └── ssh_config.template            # SSH configuration
+│   ├── CLAUDE.md.example             # Project context template
+│   ├── settings.json.example         # Claude Code hooks
+│   └── ssh_config.example            # SSH configuration
 └── docs/                              # Documentation and guides
     ├── QUICKSTART.md                  # Quick start guide
     ├── SETUP.md                       # Complete setup guide

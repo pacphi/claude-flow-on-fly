@@ -194,5 +194,40 @@ EOF
     print_success "Project templates created"
 }
 
+# Function to copy turbo-flow extension modules
+copy_turbo_flow_extensions() {
+    print_status "Copying Turbo-Flow extension modules..."
+
+    # Get the directory containing this script (should be lib/)
+    local lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local extensions_source_dir="$lib_dir/extensions.d"
+
+    # Ensure extensions directory exists
+    create_directory "$EXTENSIONS_DIR"
+
+    # Copy turbo-flow extension modules
+    local turbo_extensions=(
+        "01-turbo-flow-setup.sh"
+        "02-agent-manager.sh"
+        "03-tmux-workspace.sh"
+        "04-context-loader.sh"
+    )
+
+    for extension in "${turbo_extensions[@]}"; do
+        if [[ -f "$extensions_source_dir/$extension" ]]; then
+            cp "$extensions_source_dir/$extension" "$EXTENSIONS_DIR/"
+            chmod +x "$EXTENSIONS_DIR/$extension"
+            print_debug "Copied $extension to workspace extensions"
+        else
+            print_warning "Turbo-flow extension $extension not found in $extensions_source_dir"
+        fi
+    done
+
+    # Copy additional library functions that extensions might need
+    # (No additional libs needed currently)
+
+    print_success "Turbo-Flow extensions copied to workspace"
+}
+
 # Export functions
-export -f setup_workspace_structure create_workspace_scripts create_project_templates
+export -f setup_workspace_structure create_workspace_scripts create_project_templates copy_turbo_flow_extensions

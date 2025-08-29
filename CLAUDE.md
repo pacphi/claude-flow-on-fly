@@ -61,9 +61,17 @@ This is a complete remote AI-assisted development environment setup running Clau
 - `scripts/vm-setup.sh` - Automated VM deployment with volume creation
 
 ### Templates
-- `templates/CLAUDE.md.template` - Project context template for Claude
-- `templates/settings.json.template` - Claude Code hooks configuration
-- `templates/ssh_config.template` - SSH client configuration
+- `templates/CLAUDE.md.example` - Project context template for Claude
+- `templates/settings.json.example` - Claude Code hooks configuration
+- `templates/ssh_config.example` - SSH client configuration
+- `templates/agents-config.yaml` - Agent manager configuration template
+- `templates/agent-aliases` - Agent management shell aliases
+- `templates/agent-discovery.sh` - Agent discovery utility functions
+- `templates/tmux.conf` - Tmux configuration with keybindings and styling
+- `templates/tmux-workspace.sh` - Main tmux workspace launcher script
+- `templates/tmux-helpers.sh` - Tmux session management utility functions
+- `templates/tmux-aliases` - Tmux operation shell aliases
+- `templates/tmux-auto-start.sh` - Optional SSH auto-start functionality
 
 ### VM Scripts (Created on first run)
 - `vm-configure.sh` - Complete environment setup (Node.js, Claude tools, Git)
@@ -86,6 +94,25 @@ This is a complete remote AI-assisted development environment setup running Clau
   - Add numbered scripts here for automatic execution during configuration
   - Scripts run in alphabetical order: pre-*, *, post-*
   - Examples: `10-rust.sh.example`, `20-golang.sh.example`, `30-docker.sh.example`
+
+## Agent Configuration
+
+### Customizing Agent Sources
+
+Before deploying, you can customize which agent sources will be installed by editing:
+- `templates/agents-config.yaml` - Configure agent sources, update strategies, and mandatory agents
+
+Key customization options:
+- **Enable/disable sources**: Set `enabled: true/false` for each source
+- **Add custom repositories**: Configure your own GitHub repositories or local paths
+- **Set mandatory agents**: Define which agents must always be installed
+- **Configure update strategies**: Control how agents are updated (merge/replace)
+- **Filter patterns**: Include/exclude specific files or patterns
+- **Customize aliases**: Modify `templates/agent-aliases` to add your own shortcuts
+- **Extend discovery**: Enhance `templates/agent-discovery.sh` with custom search functions
+- **Customize tmux**: Modify tmux templates for personalized development environment
+
+The configuration files are copied to `/workspace/config/` and `/workspace/.agent-aliases` on first run and preserved across reconfigurations.
 
 ## Development Workflow
 
@@ -141,7 +168,7 @@ This is a complete remote AI-assisted development environment setup running Clau
 
 ### Project Context
 - Each project should have its own `CLAUDE.md` file
-- Use templates from `templates/CLAUDE.md.template`
+- Use templates from `templates/CLAUDE.md.example`
 - Include project-specific commands, architecture, and conventions
 
 ### Claude Flow Memory

@@ -1,0 +1,133 @@
+version: "1.0"
+
+settings:
+  base_dir: /workspace/agents
+  docs_dir: /workspace/docs/agents
+  conflict_strategy: backup  # Options: backup, overwrite, skip, merge
+  backup_dir: /workspace/backups/agents
+  log_level: info  # Options: debug, info, warn, error
+  concurrent_downloads: 3
+  timeout: 300s
+  continue_on_error: false
+
+sources:
+  - name: turbo-flow-mandatory-agents
+    enabled: true
+    type: github
+    repository: marcuspat/turbo-flow-claude
+    branch: main
+    paths:
+      source: devpods/additional-agents
+      target: ${settings.base_dir}
+    filters:
+      include:
+        patterns: ["doc-planner.md", "microtask-breakdown.md"]
+
+  - name: turbo-flow-mandatory-context
+    enabled: true
+    type: github
+    repository: marcuspat/turbo-flow-claude
+    branch: main
+    paths:
+      source: devpods
+      target: /workspace/context/global
+    filters:
+      include:
+        patterns: ["CCFOREVER.md", "CLAUDE.md", "FEEDCLAUDE.md"]
+
+  - name: awesome-claude-code-subagents
+    enabled: true
+    type: github
+    repository: VoltAgent/awesome-claude-code-subagents
+    branch: main
+    paths:
+      source: categories
+      target: ${settings.base_dir}
+    filters:
+      include:
+        extensions: [".md"]
+      exclude:
+        patterns: ["README.md"]
+
+  - name: augmnt-agents
+    enabled: false
+    type: github
+    repository: augmnt/agents
+    branch: main
+    paths:
+      source: .
+      target: ${settings.base_dir}
+    filters:
+      include:
+        extensions: [".md"]
+      exclude:
+        patterns: ["README.md"]
+
+  - name: 610-claude-subagents
+    enabled: false
+    type: github
+    repository: ChrisRoyse/610ClaudeSubAgents
+    branch: main
+    paths:
+      source: agents
+      target: ${settings.base_dir}
+    filters:
+      include:
+        extensions: [".md"]
+      exclude:
+        patterns: ["CLAUDE.md","README.md","MIGRATION_SUMMARY.md"]
+
+  - name: wshobson-subagents-collection
+    enabled: false
+    type: github
+    repository: wshobson/agents
+    branch: main
+    paths:
+      source: .
+      target: ${settings.base_dir}
+    filters:
+      include:
+        extensions: [".md"]
+      exclude:
+        patterns: ["README.md"]
+
+  - name: davepoon-claude-code-subagents-collection
+    enabled: false
+    type: github
+    repository: davepoon/claude-code-subagents-collection
+    branch: main
+    paths:
+      source: subagents
+      target: ${settings.base_dir}
+    filters:
+      include:
+        extensions: [".md"]
+
+  - name: sio-tou-lai-subagents
+    enabled: false
+    type: github
+    repository: lst97/claude-code-subagents
+    branch: main
+    paths:
+      source: agents
+      target: ${settings.base_dir}
+    filters:
+      include:
+        extensions: [".md"]
+
+  - name: agent-orchestra
+    enabled: false
+    type: github
+    repository: 0ldh/claude-code-agents-orchestra
+    branch: main
+    paths:
+      source: agents
+      target: ${settings.base_dir}
+    filters:
+      include:
+        extensions: [".md"]
+
+metadata:
+  tracking_file: /workspace/.claude/.installed-agents.json
+  log_file: /workspace/.claude/installation.log
+  lock_file: /workspace/.claude/.lock

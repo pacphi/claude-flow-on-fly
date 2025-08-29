@@ -116,6 +116,7 @@ You should connect successfully and see your VM's welcome message.
 ### Step 2: Configure Connection
 
 **Connection Settings:**
+
 - **Host**: `my-claude-dev.fly.dev` (replace with your app name)
 - **Port**: `10022`
 - **Username**: `developer`
@@ -123,6 +124,7 @@ You should connect successfully and see your VM's welcome message.
 - **Private key**: Browse to your SSH private key (e.g., `~/.ssh/id_rsa`)
 
 **Advanced Settings:**
+
 - **Connection timeout**: 60 seconds
 - **Keep alive**: Enabled
 - **Compression**: Enabled
@@ -174,6 +176,7 @@ You should connect successfully and see your VM's welcome message.
    - Or use Alt+F12 (Windows/Linux) or Option+F12 (Mac)
 
 2. **Run Configuration Script**
+
    ```bash
    /workspace/scripts/vm-configure.sh
    ```
@@ -192,6 +195,7 @@ You should connect successfully and see your VM's welcome message.
 ### Step 3: Project Configuration
 
 **For Java/Kotlin Projects:**
+
 ```bash
 # On remote VM (via IDE terminal)
 cd /workspace/projects/active
@@ -207,6 +211,7 @@ mkdir -p src/main/resources
 ```
 
 **For Python Projects:**
+
 ```bash
 # On remote VM
 cd /workspace/projects/active
@@ -225,6 +230,7 @@ touch requirements.txt
 ```
 
 **For JavaScript/TypeScript Projects:**
+
 ```bash
 # On remote VM
 cd /workspace/projects/active
@@ -254,6 +260,7 @@ touch src/index.ts
 ### Essential Plugins for Claude Development
 
 **Core Development Plugins:**
+
 - **Docker**: Container support
 - **Database Tools**: Database management
 - **Git**: Version control (usually pre-installed)
@@ -262,17 +269,20 @@ touch src/index.ts
 **Language-Specific Plugins:**
 
 **For JavaScript/TypeScript:**
+
 - **Node.js**: Node.js development support
 - **TypeScript**: Enhanced TypeScript support
 - **Prettier**: Code formatting
 - **ESLint**: Code linting
 
 **For Python:**
+
 - **Python Community Edition**: Python support (if using Community)
 - **Jupyter**: Notebook support
 - **Python Security**: Security analysis
 
 **For Java:**
+
 - **Maven**: Maven project support
 - **Gradle**: Gradle project support
 - **Spring Boot**: Spring framework support
@@ -295,23 +305,28 @@ touch src/index.ts
 ### IDE Settings
 
 **Memory Settings:**
+
 1. Go to "Help" → "Edit Custom VM Options"
 2. Add or modify:
-   ```
+
+   ```bash
    -Xms2048m
    -Xmx4096m
    -XX:ReservedCodeCacheSize=1024m
    ```
 
 **Indexing Optimization:**
+
 1. Go to "File" → "Settings" → "Build, Execution, Deployment" → "Compiler"
 2. Increase "Build process heap size" to 2048 MB
 3. Enable "Compile independent modules in parallel"
 
 **File Watcher Exclusions:**
+
 1. Go to "File" → "Settings" → "Build, Execution, Deployment" → "Compiler"
 2. Add exclusions:
-   ```
+
+   ```bash
    node_modules
    .git/objects
    dist
@@ -324,12 +339,14 @@ touch src/index.ts
 ### Connection Optimization
 
 **SSH Settings in Gateway:**
+
 - **Connection timeout**: 60 seconds
 - **Keep alive**: Every 30 seconds
 - **Compression**: Enabled
 - **X11 forwarding**: Disabled (unless needed)
 
 **Network Optimization:**
+
 ```bash
 # Add to ~/.ssh/config
 Host claude-dev
@@ -351,6 +368,7 @@ For comprehensive troubleshooting including SSH issues, VM management, and perfo
 #### Issue 1: SSH Connection Problems
 
 For SSH-related issues including:
+
 - Permission denied errors
 - Host key verification failures
 - Connection timeouts
@@ -359,22 +377,30 @@ For SSH-related issues including:
 See [SSH Connection Issues](TROUBLESHOOTING.md#ssh-connection-issues) in our Troubleshooting Guide.
 
 **Quick Fix for Host Key Issues:**
+
 ```bash
 # If you get host key verification failed after VM recreation:
 ssh-keygen -R "[your-app-name.fly.dev]:10022"
 ```
 
 #### Issue 2: Connection Timeout During Setup
+
 **Symptoms**: Gateway hangs during IDE installation
+
 **Solutions**:
+
 1. Check VM status: `flyctl status -a your-app-name`
 2. Restart VM if needed: `flyctl machine restart <machine-id> -a your-app-name`
 3. Increase timeout in Gateway settings
 
 #### Issue 3: IDE Won't Start
+
 **Symptoms**: IDE installation completes but IDE doesn't launch
+
 **Solutions**:
+
 1. **Check VM Resources**:
+
    ```bash
    ssh claude-dev
    htop
@@ -382,53 +408,71 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
    ```
 
 2. **Upgrade VM Size** (if needed):
+
    ```bash
    flyctl machine update <machine-id> --vm-size shared-cpu-2x -a your-app-name
    ```
 
 3. **Clear IDE Cache**:
+
    ```bash
    ssh claude-dev
    rm -rf ~/.cache/JetBrains
    ```
 
 #### Issue 4: Slow Performance
+
 **Symptoms**: IDE is sluggish, high latency
+
 **Solutions**:
+
 1. **Check Network Latency**:
+
    ```bash
    ping your-app-name.fly.dev
    ```
 
 2. **Optimize SSH Connection**:
+
    - Enable compression in SSH config
    - Use SSH connection multiplexing
 
 3. **Increase VM Resources**:
+
    - Upgrade to performance CPU
    - Increase memory allocation
 
 #### Issue 5: Project Not Loading
+
 **Symptoms**: IDE opens but project files don't appear
+
 **Solutions**:
+
 1. **Check Project Path**:
+
    - Ensure path `/workspace/projects/your-project` exists
    - Verify permissions: `chown -R developer:developer /workspace`
 
 2. **Refresh Project**:
+
    - File → Reload Gradle/Maven Project
    - Or File → Synchronize
 
 3. **Check Project Structure**:
+
    - Ensure project has proper configuration files
    - For Maven: `pom.xml`
    - For Gradle: `build.gradle`
    - For Node.js: `package.json`
 
 #### Issue 5: Terminal Not Working
+
 **Symptoms**: Integrated terminal doesn't open or respond
+
 **Solutions**:
+
 1. **Check Shell Configuration**:
+
    ```bash
    ssh claude-dev
    echo $SHELL
@@ -436,16 +480,20 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
    ```
 
 2. **Reset Terminal Settings**:
+
    - File → Settings → Tools → Terminal
    - Set Shell path to `/bin/bash`
 
 3. **Use External Terminal**:
+
    - Open separate SSH session if IDE terminal fails
 
 ### Debug Connection Issues
 
 **Enable SSH Debug Mode:**
+
 1. Edit your SSH config:
+
    ```bash
    Host claude-dev
        LogLevel DEBUG3
@@ -453,16 +501,20 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
    ```
 
 2. Test connection:
+
    ```bash
    ssh -v claude-dev
    ```
 
 **Check Gateway Logs:**
+
 1. In Gateway, go to "Help" → "Show Log in Finder/Explorer"
 2. Review `idea.log` for connection errors
 
 **Check Remote IDE Logs:**
+
 1. SSH into VM:
+
    ```bash
    ssh claude-dev
    ls ~/.cache/JetBrains/*/log/
@@ -474,6 +526,7 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
 ### Development Workflow
 
 1. **Always Use Integrated Terminal**
+
    ```bash
    # All commands run on remote VM
    cd /workspace/projects/active/my-project
@@ -490,17 +543,19 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
    ```
 
 2. **Port Forwarding**
+
    - IDE automatically forwards common development ports
    - Manually forward additional ports: Tools → Deployment → Configuration
 
 3. **File Synchronization**
+
    - All files are on remote VM
    - No local synchronization needed
    - Changes are immediate
 
 ### Project Organization
 
-```
+```bash
 /workspace/
 ├── projects/
 │   ├── active/              # Current projects
@@ -516,18 +571,21 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
 ### Claude Code Integration
 
 1. **Run Claude Code from Terminal**:
+
    ```bash
    cd /workspace/projects/active/your-project
    claude
    ```
 
 2. **Create Project-Specific CLAUDE.md**:
+
    ```bash
-   cp /workspace/templates/CLAUDE.md.template ./CLAUDE.md
+   cp /workspace/templates/CLAUDE.md.example ./CLAUDE.md
    # Edit with project-specific context
    ```
 
 3. **Use Claude Flow for Complex Tasks**:
+
    ```bash
    npx claude-flow@alpha init --force
    npx claude-flow@alpha swarm "refactor authentication system"
@@ -536,12 +594,14 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
 ### Git Integration
 
 1. **Configure Git on Remote VM**:
+
    ```bash
    git config --global user.name "Your Name"
    git config --global user.email "your.email@example.com"
    ```
 
 2. **SSH Agent Forwarding** (optional):
+
    ```bash
    # Add to SSH config
    Host claude-dev
@@ -549,6 +609,7 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
    ```
 
 3. **Use IDE Git Tools**:
+
    - VCS → Git → Clone (for new repositories)
    - VCS menu for all Git operations
    - Built-in merge conflict resolution
@@ -556,6 +617,7 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
 ### Performance Optimization
 
 1. **Monitor Resource Usage**:
+
    ```bash
    # Check system resources
    htop
@@ -564,10 +626,12 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
    ```
 
 2. **IDE Memory Settings**:
+
    - Help → Edit Custom VM Options
    - Increase heap size for large projects
 
 3. **Exclude Large Directories**:
+
    - File → Settings → Build → Compiler
    - Add exclusions for `node_modules`, `target`, etc.
 
@@ -578,6 +642,7 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
    - Connect to databases running on Fly.io
 
 2. **Connection Configuration**:
+
    ```bash
    # If database is on same Fly.io app
    Host: localhost (via internal network)
@@ -590,15 +655,18 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
 ### Testing and Debugging
 
 1. **Run Configurations**:
+
    - Create run configurations for your applications
    - Use environment variables from VM
 
 2. **Debugging**:
+
    - Full debugging support
    - Breakpoints, step-through, variable inspection
    - All debugging happens on remote VM
 
 3. **Testing Frameworks**:
+
    - JUnit (Java)
    - pytest (Python)
    - Jest (JavaScript)
@@ -609,42 +677,52 @@ ssh-keygen -R "[your-app-name.fly.dev]:10022"
 ### Custom IDE Settings
 
 **Code Style Configuration:**
+
 1. File → Settings → Editor → Code Style
 2. Configure for your preferred style
 3. Export settings to share with team
 
 **Live Templates:**
+
 Create custom code templates:
+
 1. File → Settings → Editor → Live Templates
 2. Add templates for common patterns
 
 **External Tools:**
+
 Add custom tools:
+
 1. File → Settings → Tools → External Tools
 2. Add Claude Code, backup scripts, etc.
 
 ### Multi-Project Workspace
 
 **Working with Multiple Projects:**
+
 1. **File → Open** multiple projects
 2. Each opens in separate window
 3. Or use "Add as Module" for related projects
 
 **Project Switching:**
+
 - Window → Next Project Window
 - Or use project switcher (Cmd/Ctrl + Alt + brackets)
 
 ### Team Collaboration
 
 1. **Shared Code Styles**:
+
    - Export IDE settings
    - Commit `.idea/codeStyles/` to Git
 
 2. **Shared Run Configurations**:
+
    - Store in `.idea/runConfigurations/`
    - Commit to Git for team sharing
 
 3. **Plugin Standardization**:
+
    - Document required plugins
    - Use `.idea/externalDependencies.xml`
 
@@ -653,6 +731,7 @@ Add custom tools:
 ### IntelliJ IDEA Ultimate vs Community
 
 **Ultimate Features:**
+
 - Database tools
 - Web development
 - Spring framework support
@@ -660,6 +739,7 @@ Add custom tools:
 - Remote development (built-in)
 
 **Community Features:**
+
 - Java, Kotlin, Scala development
 - Maven, Gradle support
 - Git integration
@@ -668,18 +748,21 @@ Add custom tools:
 ### Other JetBrains IDEs
 
 **PyCharm Professional**:
+
 - Full Python development
 - Web frameworks (Django, Flask)
 - Database tools
 - Scientific tools (Jupyter, Anaconda)
 
 **WebStorm**:
+
 - JavaScript, TypeScript development
 - Node.js support
 - React, Vue, Angular frameworks
 - Testing frameworks
 
 **DataGrip**:
+
 - Database-focused IDE
 - SQL development
 - Multiple database support
@@ -706,6 +789,7 @@ print_status "Running deployment..."
 ### Available Utilities
 
 **Common Functions:**
+
 ```bash
 # Check if a command exists
 if command_exists docker; then
@@ -720,6 +804,7 @@ retry_with_backoff 3 2 "mvn clean install"
 ```
 
 **Workspace Functions:**
+
 ```bash
 # Source workspace utilities
 source /workspace/scripts/lib/workspace.sh
@@ -730,6 +815,7 @@ create_project_templates
 ```
 
 **Git Utilities:**
+
 ```bash
 # Source Git utilities
 source /workspace/scripts/lib/git.sh
@@ -740,6 +826,7 @@ setup_git_hooks
 ```
 
 **Quick Commands:**
+
 ```bash
 # System status
 /workspace/scripts/system-status.sh
