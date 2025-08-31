@@ -21,7 +21,6 @@ alias cf-pair="/workspace/scripts/cf-with-context.sh pair"
 
 # Context file editing
 alias edit-global-claude="nano /workspace/context/global/CLAUDE.md"
-alias edit-global-feed="nano /workspace/context/global/FEEDCLAUDE.md"
 alias edit-global-cc="nano /workspace/context/global/CCFOREVER.md"
 alias edit-project="nano ./CLAUDE.md"
 alias edit-user="mkdir -p ~/.claude && nano ~/.claude/CLAUDE.md"

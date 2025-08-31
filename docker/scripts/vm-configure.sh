@@ -165,6 +165,16 @@ EOF
     copy_turbo_flow_extensions  # Copy our turbo-flow extensions
     setup_nodejs
 
+    # Setup GitHub CLI early if token is available (needed for agent-manager)
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        print_status "Setting up GitHub CLI authentication (needed for agent installation)..."
+        configure_github_cli
+        setup_gh_aliases
+    else
+        print_warning "No GITHUB_TOKEN found - agent installation may fail"
+        print_status "To set: flyctl secrets set GITHUB_TOKEN=ghp_... -a <app-name>"
+    fi
+
     # Run pre-install extensions
     run_extensions "pre-install"
 
@@ -176,12 +186,6 @@ EOF
     run_extensions "install"
 
     setup_claude_config
-
-    # Setup GitHub CLI if token is available
-    if [[ -n "$GITHUB_TOKEN" ]]; then
-        configure_github_cli
-        setup_gh_aliases
-    fi
 
     # Run post-install extensions
     run_extensions "post-install"

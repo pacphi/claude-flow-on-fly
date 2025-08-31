@@ -105,6 +105,7 @@ install_monitoring_tools() {
         else
             export PATH="$HOME/.cargo/bin:$PATH"
         fi
+        source $HOME/.local/bin/env
     fi
 
     # Install Claude Monitor using uv

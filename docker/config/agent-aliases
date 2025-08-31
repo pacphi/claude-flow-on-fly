@@ -3,14 +3,14 @@
 # Requires agent-discovery.sh to be sourced for full functionality
 
 # Core agent management
-alias agent-install="agent-manager install"
-alias agent-list="agent-manager list"
-alias agent-update="agent-manager update"
-alias agent-validate="agent-manager validate"
+alias agent-install="agent-manager install --config /workspace/config/agents-config.yaml"
+alias agent-list="agent-manager list --config /workspace/config/agents-config.yaml"
+alias agent-update="agent-manager update --config /workspace/config/agents-config.yaml"
+alias agent-validate="agent-manager validate --config /workspace/config/agents-config.yaml"
 
 # Agent discovery and search (using agent-discovery.sh functions)
 alias agent-count='count_agents'
-alias agent-sources="agent-manager validate --show-sources 2>/dev/null || echo 'Run agent-validate to see sources'"
+alias agent-sources="agent-manager validate --config /workspace/config/agents-config.yaml --show-sources 2>/dev/null || echo 'Run agent-validate to see sources'"
 
 # Agent search functions (now using proper discovery functions)
 alias agent-find='search_agents_by_name'
@@ -39,12 +39,12 @@ alias agent-info='get_agent_metadata'
 alias agent-validate-file='validate_agent_file'
 
 # Batch operations
-alias agent-install-all="agent-manager install --all"
+alias agent-install-all="agent-manager install --config /workspace/config/agents-config.yaml --all"
 alias agent-backup="cp -r /workspace/agents /workspace/backups/agents-$(date +%Y%m%d-%H%M%S)"
 
 # Configuration management
 alias agent-config="nano /workspace/config/agents-config.yaml"
-alias agent-config-validate="agent-manager validate --config-only"
+alias agent-config-validate="agent-manager validate --config /workspace/config/agents-config.yaml --config-only"
 alias agent-config-show="cat /workspace/config/agents-config.yaml"
 
 # Maintenance aliases

@@ -11,12 +11,16 @@ install_github_cli() {
     print_status "Checking GitHub CLI installation..."
 
     if command_exists gh; then
-        local current_version=$(gh --version | head -n1)
+        # Try to get version, but handle auth errors gracefully
+        local current_version=$(gh version 2>/dev/null | head -n1 || echo "installed but not configured")
         print_success "GitHub CLI already installed: $current_version"
         return 0
     fi
 
     print_status "Installing GitHub CLI..."
+
+    # Note: GitHub CLI may already be installed via Docker build (install-packages.sh)
+    # This function provides fallback installation for runtime configuration
 
     # Install GitHub CLI based on the system
     if [[ -f /etc/debian_version ]]; then
@@ -41,7 +45,7 @@ install_github_cli() {
     fi
 
     if command_exists gh; then
-        local version=$(gh --version | head -n1)
+        local version=$(gh version 2>/dev/null | head -n1 || echo "installed")
         print_success "GitHub CLI installed: $version"
     else
         print_error "GitHub CLI installation failed"
@@ -49,9 +53,56 @@ install_github_cli() {
     fi
 }
 
+# Function to cleanup invalid GitHub CLI configs
+cleanup_gh_config() {
+    # If GITHUB_TOKEN is set, skip cleanup entirely
+    # GitHub CLI will use the token directly
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        return 0
+    fi
+
+    local config_dir="$HOME/.config/gh"
+
+    # Check if config directory exists
+    if [[ ! -d "$config_dir" ]]; then
+        return 0
+    fi
+
+    # Get auth status output
+    local error_output=$(gh auth status 2>&1)
+    
+    # Check if authentication is working with stored credentials
+    if gh auth status >/dev/null 2>&1; then
+        # Authentication working with stored credentials
+        return 0
+    fi
+
+    # Check for specific configuration errors that require cleanup
+    if echo "$error_output" | grep -q "failed to migrate config" ||
+       echo "$error_output" | grep -q "multi account migration" ||
+       echo "$error_output" | grep -q "401 Unauthorized"; then
+        print_warning "Detected invalid GitHub CLI configuration"
+        print_status "Cleaning up old configuration files..."
+
+        # Backup old config if needed
+        if [[ -f "$config_dir/hosts.yml" ]] || [[ -f "$config_dir/config.yml" ]]; then
+            local backup_dir="$config_dir/backup_$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$backup_dir"
+            [[ -f "$config_dir/hosts.yml" ]] && mv "$config_dir/hosts.yml" "$backup_dir/"
+            [[ -f "$config_dir/config.yml" ]] && mv "$config_dir/config.yml" "$backup_dir/"
+            print_status "Old configs backed up to: $backup_dir"
+        fi
+
+        print_success "GitHub CLI configuration cleaned"
+    fi
+}
+
 # Function to configure GitHub CLI with token
 configure_github_cli() {
     print_status "Configuring GitHub CLI..."
+
+    # Clean up any invalid configs first
+    cleanup_gh_config
 
     if [[ -z "$GITHUB_TOKEN" ]]; then
         print_warning "No GITHUB_TOKEN found in environment"
@@ -61,9 +112,20 @@ configure_github_cli() {
     fi
 
     # Check if already authenticated
+    local auth_output=$(gh auth status 2>&1)
     if gh auth status >/dev/null 2>&1; then
-        print_success "GitHub CLI already authenticated"
-        gh auth status
+        # Check if using GITHUB_TOKEN environment variable
+        if echo "$auth_output" | grep -q "GITHUB_TOKEN environment variable"; then
+            print_success "GitHub CLI using GITHUB_TOKEN environment variable for authentication"
+            # Show brief status without the full output to avoid confusion
+            local username=$(echo "$auth_output" | grep -o "Logged in to github.com account [^ ]*" | awk '{print $NF}')
+            if [[ -n "$username" ]]; then
+                print_status "Authenticated as: $username"
+            fi
+        else
+            print_success "GitHub CLI already authenticated with stored credentials"
+            gh auth status
+        fi
         return 0
     fi
 
@@ -77,7 +139,12 @@ configure_github_cli() {
 
     if gh auth status >/dev/null 2>&1; then
         print_success "GitHub CLI authenticated successfully"
-        gh auth status
+        # Show brief status
+        local auth_check=$(gh auth status 2>&1)
+        local username=$(echo "$auth_check" | grep -o "Logged in to github.com account [^ ]*" | awk '{print $NF}')
+        if [[ -n "$username" ]]; then
+            print_status "Authenticated as: $username"
+        fi
     else
         print_error "GitHub CLI authentication failed"
         return 1
@@ -109,7 +176,7 @@ check_gh_status() {
         return 1
     fi
 
-    local version=$(gh --version | head -n1)
+    local version=$(gh version 2>/dev/null | head -n1 || echo "installed but not configured")
     print_success "GitHub CLI version: $version"
 
     if gh auth status >/dev/null 2>&1; then
@@ -225,5 +292,5 @@ setup_github_cli() {
 }
 
 # Export functions
-export -f install_github_cli configure_github_cli setup_gh_aliases
+export -f install_github_cli cleanup_gh_config configure_github_cli setup_gh_aliases
 export -f check_gh_status setup_gh_workflows setup_github_cli

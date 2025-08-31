@@ -18,7 +18,7 @@ source "$LIB_DIR/common.sh"
 # GitHub repository details
 GITHUB_REPO="pacphi/claude-code-agent-manager"
 BINARY_NAME="agent-manager"
-INSTALL_PATH="/workspace/bin"
+INSTALL_PATH="$HOME/.local/bin"
 
 print_status "🤖 Installing Claude Code Agent Manager..."
 
@@ -92,9 +92,9 @@ install_agent_manager() {
     chmod +x "${INSTALL_PATH}/${BINARY_NAME}"
 
     # Verify installation
-    if "${INSTALL_PATH}/${BINARY_NAME}" --version >/dev/null 2>&1; then
+    if "${INSTALL_PATH}/${BINARY_NAME}" version >/dev/null 2>&1; then
         local version
-        version=$("${INSTALL_PATH}/${BINARY_NAME}" --version 2>/dev/null | head -n1 || echo "unknown")
+        version=$("${INSTALL_PATH}/${BINARY_NAME}" version 2>/dev/null | head -n1 || echo "unknown")
         print_success "✅ Agent Manager installed successfully: $version"
     else
         print_error "❌ Agent Manager installation failed - binary not working"
@@ -267,12 +267,21 @@ main() {
         print_status "  2. Run 'agent-list' to see installed agents"
         print_status "  3. Use 'agent-find <term>' to search for specific agents"
 
-        # Try to install agents immediately
-        print_status "🤖 Installing agents from configured sources..."
-        if "${INSTALL_PATH}/${BINARY_NAME}" install; then
-            print_success "✅ Agents installed successfully!"
+        # Check if gh CLI is authenticated before trying to install agents
+        if command_exists gh && gh auth status >/dev/null 2>&1; then
+            # Try to install agents immediately
+            print_status "🤖 Installing agents from configured sources..."
+            if "${INSTALL_PATH}/${BINARY_NAME}" install --config /workspace/config/agents-config.yaml; then
+                print_success "✅ Agents installed successfully!"
+            else
+                print_warning "⚠️ Agent installation failed - you can retry later with 'agent-install'"
+            fi
         else
-            print_warning "⚠️ Agent installation failed - you can retry later with 'agent-install'"
+            print_warning "⚠️ GitHub CLI not authenticated - skipping automatic agent installation"
+            print_status "To authenticate GitHub CLI and install agents:"
+            print_status "  1. Set GitHub token: flyctl secrets set GITHUB_TOKEN=ghp_... -a <app-name>"
+            print_status "  2. Re-run configuration: /workspace/scripts/vm-configure.sh"
+            print_status "  3. Or manually: gh auth login && agent-install"
         fi
 
     else

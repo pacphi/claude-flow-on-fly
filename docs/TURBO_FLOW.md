@@ -20,7 +20,7 @@ Thanks for the inspiration [Marcus Patman](https://github.com/marcuspat)!
 
 ### 📚 Multi-Tier Context System
 
-- **Global Context**: CLAUDE.md, FEEDCLAUDE.md, CCFOREVER.md
+- **Global Context**: CLAUDE.md, CCFOREVER.md
 - **User Preferences**: Personal coding style and preferences
 - **Project Context**: Project-specific instructions and overrides
 - **Hierarchical Loading**: Automatic context composition
@@ -215,7 +215,6 @@ validate-context
 
 1. **Global Context** (`/workspace/context/global/`)
    - `CLAUDE.md`: Core configuration and rules
-   - `FEEDCLAUDE.md`: Prompting instructions
    - `CCFOREVER.md`: Quality assurance protocols
 
 2. **User Preferences** (`~/.claude/CLAUDE.md`)
@@ -418,7 +417,6 @@ npx playwright test --ui
 | `agents-config.yaml` | Agent sources | `/workspace/config/` |
 | `tmux.conf` | Tmux configuration | `/workspace/config/` |
 | `CLAUDE.md` | Global context | `/workspace/context/global/` |
-| `FEEDCLAUDE.md` | Prompting instructions | `/workspace/context/global/` |
 | `CCFOREVER.md` | Quality assurance | `/workspace/context/global/` |
 
 ### Environment Variables

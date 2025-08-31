@@ -133,6 +133,14 @@ This project has two distinct file structures:
 
 ## Agent Configuration
 
+### Prerequisites
+
+**IMPORTANT**: Agent installation requires GitHub authentication. Set your GitHub token before deployment:
+```bash
+flyctl secrets set GITHUB_TOKEN=ghp_... -a <app-name>
+```
+Without this, agent-manager cannot clone repositories from GitHub.
+
 ### Customizing Agent Sources
 
 Before deploying, you can customize which agent sources will be installed by editing:
@@ -153,11 +161,12 @@ The configuration files are copied to `/workspace/config/` and `/workspace/.agen
 ## Development Workflow
 
 ### Initial Setup
-1. Run `./scripts/vm-setup.sh --app-name <name> --region <region>`
-2. Connect via SSH or IDE remote development
-3. Run `/workspace/scripts/vm-configure.sh` for first-time setup
-4. Authenticate Claude Code with `claude`
-5. Initialize Claude Flow in projects with `npx claude-flow@alpha init --force`
+1. Set GitHub token for agent installation: `flyctl secrets set GITHUB_TOKEN=ghp_... -a <app-name>`
+2. Run `./scripts/vm-setup.sh --app-name <name> --region <region>`
+3. Connect via SSH or IDE remote development
+4. Run `/workspace/scripts/vm-configure.sh` for first-time setup
+5. Authenticate Claude Code with `claude`
+6. Initialize Claude Flow in projects with `npx claude-flow@alpha init --force`
 
 ### Daily Development
 1. Connect via IDE (VSCode Remote-SSH or IntelliJ Gateway)

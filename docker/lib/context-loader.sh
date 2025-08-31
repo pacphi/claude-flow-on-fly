@@ -19,11 +19,6 @@ load_global_context() {
         context+="\n=== CC FOREVER INSTRUCTIONS ===\n$(cat "$GLOBAL_CONTEXT_DIR/CCFOREVER.md")\n"
     fi
 
-    # Load FEEDCLAUDE.md
-    if [[ -f "$GLOBAL_CONTEXT_DIR/FEEDCLAUDE.md" ]]; then
-        context+="\n=== FEED CLAUDE INSTRUCTIONS ===\n$(cat "$GLOBAL_CONTEXT_DIR/FEEDCLAUDE.md")\n"
-    fi
-
     echo -e "$context"
 }
 
@@ -91,7 +86,7 @@ validate_context() {
     echo "🔍 Validating context files..."
 
     # Check global context files
-    for file in CLAUDE.md FEEDCLAUDE.md CCFOREVER.md; do
+    for file in CLAUDE.md CCFOREVER.md; do
         if [[ -f "$GLOBAL_CONTEXT_DIR/$file" ]]; then
             echo "✅ Global: $file"
         else
@@ -138,7 +133,6 @@ show_context_hierarchy() {
     echo "============================"
     echo "1. Global Context (/workspace/context/global/)"
     echo "   - CLAUDE.md (Core Configuration)"
-    echo "   - FEEDCLAUDE.md (Prompting Instructions)"
     echo "   - CCFOREVER.md (Quality Assurance)"
     echo ""
     echo "2. User Preferences (~/.claude/CLAUDE.md)"

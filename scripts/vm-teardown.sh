@@ -240,7 +240,7 @@ delete_machines() {
     if [[ -n "$machines" ]]; then
         local failed_machines=()
         local success_count=0
-        
+
         for machine_id in $machines; do
             print_status "Deleting machine: $machine_id"
             if flyctl machine destroy "$machine_id" -a "$APP_NAME" --force 2>/dev/null; then
@@ -249,11 +249,11 @@ delete_machines() {
                 failed_machines+=("$machine_id")
             fi
         done
-        
+
         if [[ ${#failed_machines[@]} -gt 0 ]]; then
             print_warning "Failed to delete ${#failed_machines[@]} machine(s): ${failed_machines[*]}"
         fi
-        
+
         if [[ $success_count -gt 0 ]]; then
             print_success "$success_count machine(s) deleted successfully"
         fi
@@ -284,7 +284,7 @@ delete_volumes() {
     if [[ -n "$volumes" ]]; then
         local failed_volumes=()
         local success_count=0
-        
+
         for volume_id in $volumes; do
             print_status "Deleting volume: $volume_id"
             if [[ "$FORCE_DELETE" == true ]]; then
@@ -301,12 +301,12 @@ delete_volumes() {
                 fi
             fi
         done
-        
+
         if [[ ${#failed_volumes[@]} -gt 0 ]]; then
             print_warning "Failed to delete ${#failed_volumes[@]} volume(s): ${failed_volumes[*]}"
             print_status "Volumes may still be attached to machines. They will be deleted with the app."
         fi
-        
+
         if [[ $success_count -gt 0 ]]; then
             print_success "$success_count volume(s) deleted successfully"
         fi

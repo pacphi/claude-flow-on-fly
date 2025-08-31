@@ -26,14 +26,14 @@ sources:
   - name: turbo-flow-mandatory-context
     enabled: true
     type: github
-    repository: marcuspat/turbo-flow-claude
+    repository: pacphi/claude-flow-on-fly
     branch: main
     paths:
-      source: devpods
+      source: docker/context
       target: /workspace/context/global
     filters:
       include:
-        patterns: ["CCFOREVER.md", "CLAUDE.md", "FEEDCLAUDE.md"]
+        patterns: ["CCFOREVER.md", "CLAUDE.md"]
 
   - name: awesome-claude-code-subagents
     enabled: true

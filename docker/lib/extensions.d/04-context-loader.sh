@@ -1,6 +1,6 @@
 #!/bin/bash
 # 04-context-loader.sh - Context Management System Extension
-# Deploys three-tier context system (CLAUDE.md, FEEDCLAUDE.md, CCFOREVER.md)
+# Deploys two-tier context system (CLAUDE.md, CCFOREVER.md)
 
 set -e
 
