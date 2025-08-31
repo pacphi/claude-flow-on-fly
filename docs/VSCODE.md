@@ -373,7 +373,7 @@ ssh claude-dev 'ls /workspace'
    ```
 
 2. **Create CLAUDE.md in Project Root**:
-   - Use the template from `/workspace/templates/CLAUDE.md.template`
+   - Use the template from `/workspace/templates/CLAUDE.md.example`
    - Customize for your specific project
 
 3. **Use Claude Flow for Multi-Agent Development**:

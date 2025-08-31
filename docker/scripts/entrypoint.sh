@@ -47,6 +47,66 @@ if [ ! -z "$ANTHROPIC_API_KEY" ]; then
     echo "export ANTHROPIC_API_KEY='$ANTHROPIC_API_KEY'" >> /home/developer/.bashrc
 fi
 
+# Configure GitHub token if provided
+if [ ! -z "$GITHUB_TOKEN" ]; then
+    echo "🔐 Configuring GitHub authentication..."
+    echo "export GITHUB_TOKEN='$GITHUB_TOKEN'" >> /home/developer/.bashrc
+
+    # Create GitHub CLI config for gh commands
+    sudo -u developer mkdir -p /home/developer/.config/gh
+    echo "github.com:" > /home/developer/.config/gh/hosts.yml
+    echo "    oauth_token: $GITHUB_TOKEN" >> /home/developer/.config/gh/hosts.yml
+    echo "    user: $GITHUB_USER" >> /home/developer/.config/gh/hosts.yml
+    echo "    git_protocol: https" >> /home/developer/.config/gh/hosts.yml
+    chown -R developer:developer /home/developer/.config/gh
+    chmod 600 /home/developer/.config/gh/hosts.yml
+fi
+
+# Configure Git credentials if provided
+if [ ! -z "$GIT_USER_NAME" ]; then
+    sudo -u developer git config --global user.name "$GIT_USER_NAME"
+    echo "✅ Git user name configured: $GIT_USER_NAME"
+fi
+
+if [ ! -z "$GIT_USER_EMAIL" ]; then
+    sudo -u developer git config --global user.email "$GIT_USER_EMAIL"
+    echo "✅ Git user email configured: $GIT_USER_EMAIL"
+fi
+
+# Setup Git credential helper for GitHub token
+if [ ! -z "$GITHUB_TOKEN" ]; then
+    # Create credential helper script
+    cat > /home/developer/.git-credential-helper.sh << 'EOF'
+#!/bin/bash
+# Git credential helper for GitHub token authentication
+
+if [ "$1" = "get" ]; then
+    while IFS= read -r line; do
+        case "$line" in
+            host=github.com)
+                echo "protocol=https"
+                echo "host=github.com"
+                echo "username=token"
+                echo "password=$GITHUB_TOKEN"
+                break
+                ;;
+            host=*)
+                # For non-GitHub hosts, exit without providing credentials
+                exit 0
+                ;;
+        esac
+    done
+fi
+EOF
+
+    chmod +x /home/developer/.git-credential-helper.sh
+    chown developer:developer /home/developer/.git-credential-helper.sh
+
+    # Configure Git to use the credential helper
+    sudo -u developer git config --global credential.helper "/home/developer/.git-credential-helper.sh"
+    echo "✅ GitHub token authentication configured"
+fi
+
 # Start SSH daemon
 echo "🔌 Starting SSH daemon..."
 mkdir -p /var/run/sshd

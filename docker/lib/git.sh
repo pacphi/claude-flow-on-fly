@@ -20,6 +20,7 @@ setup_git() {
 
         if ! confirm "Do you want to reconfigure Git?" "n"; then
             print_status "Keeping existing Git configuration"
+            setup_github_auth  # Still setup GitHub auth if available
             return 0
         fi
     fi
@@ -44,6 +45,39 @@ setup_git() {
     git config --global rebase.autoStash true
 
     print_success "Git configured for $git_name <$git_email>"
+
+    # Setup GitHub authentication if token is available
+    setup_github_auth
+}
+
+# Function to setup GitHub authentication
+setup_github_auth() {
+    # Check if GITHUB_TOKEN is available
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        print_status "GitHub token detected in environment"
+
+        # Check if credential helper is already configured
+        if git config --global credential.helper | grep -q ".git-credential-helper.sh"; then
+            print_success "GitHub authentication already configured"
+        else
+            print_warning "GitHub credential helper not configured"
+            print_status "Run entrypoint setup or configure manually"
+        fi
+
+        # Test GitHub authentication
+        if command_exists gh; then
+            if gh auth status >/dev/null 2>&1; then
+                print_success "GitHub CLI authenticated successfully"
+            else
+                print_warning "GitHub CLI not authenticated. Token may be invalid."
+            fi
+        fi
+    else
+        print_status "No GitHub token found in environment"
+        print_status "To enable GitHub authentication:"
+        print_status "  1. Set GITHUB_TOKEN secret in Fly.io: flyctl secrets set GITHUB_TOKEN=<your-token>"
+        print_status "  2. Or export GITHUB_TOKEN in your shell"
+    fi
 }
 
 # Function to setup Git aliases
@@ -435,5 +469,5 @@ clone_and_setup() {
 }
 
 # Export functions
-export -f setup_git setup_git_aliases setup_git_hooks create_gitignore
+export -f setup_git setup_github_auth setup_git_aliases setup_git_hooks create_gitignore
 export -f init_git_repo clone_and_setup

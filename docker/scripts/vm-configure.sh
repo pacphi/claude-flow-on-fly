@@ -18,37 +18,55 @@ source "$LIB_DIR/common.sh"
 source "$LIB_DIR/workspace.sh"
 source "$LIB_DIR/tools.sh"
 source "$LIB_DIR/git.sh"
+source "$LIB_DIR/gh.sh"
 
 # Function to show environment status
 show_environment_status() {
     echo
-    print_success "🎉 Environment Configuration Complete!"
+    print_success "🎉 Environment Ready!"
     echo
-    print_status "📋 Environment Summary:"
+    print_status "📋 Summary:"
     echo "  • Workspace: $WORKSPACE_DIR"
     echo "  • Node.js: $(node --version 2>/dev/null || echo 'Not installed')"
     echo "  • npm: $(npm --version 2>/dev/null || echo 'Not installed')"
     echo "  • Claude Code: $(command_exists claude && echo "Installed" || echo "Installation failed")"
     echo "  • Claude Flow: Available via npx"
     echo "  • Git: $(git config --global user.name 2>/dev/null || echo 'Not configured') <$(git config --global user.email 2>/dev/null || echo 'Not configured')>"
+    echo "  • GitHub CLI: $(command_exists gh && gh --version 2>/dev/null | head -n1 || echo 'Not installed')"
+    echo "  • GitHub Auth: $(gh auth status >/dev/null 2>&1 && echo "Authenticated" || echo "Not authenticated")"
     echo
-    print_status "🔧 Available Scripts:"
-    echo "  • $SCRIPTS_DIR/lib/backup.sh - Backup workspace data"
-    echo "  • $SCRIPTS_DIR/lib/restore.sh - Restore from backup"
-    echo "  • $SCRIPTS_DIR/lib/new-project.sh - Create new project"
-    echo "  • $SCRIPTS_DIR/lib/system-status.sh - Show system status"
+    print_status "🤖 Features:"
+    echo "  • Agent Manager: $(test -x /workspace/bin/agent-manager && echo "Ready" || echo "Not installed")"
+    echo "  • Agents Available: $(find /workspace/agents -name '*.md' 2>/dev/null | wc -l | tr -d ' ') agents"
+    echo "  • Context System: $(test -f /workspace/context/global/CLAUDE.md && echo "Ready" || echo "Not configured")"
+    echo "  • Tmux Workspace: $(command_exists tmux && echo "Ready" || echo "Not installed")"
+    echo "  • Setup Validation: $(test -f /workspace/scripts/validate-setup.sh && echo "Ready" || echo "Not configured")"
+    echo "  • Playwright Testing: $(npx playwright --version 2>/dev/null && echo "Ready" || echo "Not installed")"
+    echo
+    print_status "🔧 Quick Commands:"
+    echo "  • agent-install              # Install all agents"
+    echo "  • agent-list                 # List available agents"
+    echo "  • tmux-workspace             # Start development environment"
+    echo "  • cf swarm '<task>'          # Claude Flow with context"
+    echo "  • load-context               # View all context files"
+    echo "  • validate-context           # Validate context system"
+    echo
+    print_status "🔍 Validation:"
+    echo "  • /workspace/scripts/validate-setup.sh - Basic setup validation"
     echo
     print_status "📁 Project Structure:"
     echo "  • $PROJECTS_DIR/active/ - Active projects"
     echo "  • $PROJECTS_DIR/archive/ - Archived projects"
     echo "  • $PROJECTS_DIR/templates/ - Project templates"
-    echo "  • $EXTENSIONS_DIR/ - Custom extensions"
+    echo "  • /workspace/agents/ - Claude Code agents"
+    echo "  • /workspace/context/ - Context management files"
     echo
-    print_status "🚀 Next Steps:"
+    print_status "🚀 Getting Started:"
     echo "  1. Authenticate Claude: claude"
-    echo "  2. Create a project: $SCRIPTS_DIR/new-project.sh my-app node"
-    echo "  3. Add custom tools via: $EXTENSIONS_DIR/"
-    echo "  4. Start coding with AI assistance!"
+    echo "  2. Start tmux workspace: tmux-workspace"
+    echo "  3. Validate setup: /workspace/scripts/validate-setup.sh"
+    echo "  4. Create a project: new-project my-app node"
+    echo "  5. Begin development with AI assistance!"
 }
 
 # Function to run configuration prompts
@@ -70,15 +88,6 @@ run_interactive_setup() {
     if confirm "Create project templates?" "n"; then
         create_project_templates
     fi
-
-    echo
-    if confirm "Install language-specific tools? (Go, Rust, etc.)" "n"; then
-        echo "Available languages: go, rust, python, node"
-        read -p "Enter language (or 'skip'): " language
-        if [[ "$language" != "skip" ]] && [[ -n "$language" ]]; then
-            install_language_tools "$language"
-        fi
-    fi
 }
 
 # Main execution function
@@ -91,7 +100,6 @@ main() {
     local interactive=false
     local skip_claude_install=false
     local extensions_only=false
-    local language=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -107,10 +115,6 @@ main() {
                 extensions_only=true
                 shift
                 ;;
-            --language)
-                language="$2"
-                shift 2
-                ;;
             --help)
                 cat << EOF
 Usage: $0 [OPTIONS]
@@ -119,7 +123,6 @@ Options:
   --interactive       Run interactive configuration prompts
   --skip-claude       Skip Claude Code/Flow installation
   --extensions-only   Only run extension scripts
-  --language LANG     Install tools for specific language (go, rust, python, node)
   --help              Show this help message
 
 This script configures the development environment inside the Fly.io VM.
@@ -157,16 +160,20 @@ EOF
         return 0
     fi
 
-    # Handle language-specific installation
-    if [[ -n "$language" ]]; then
-        print_status "Installing tools for $language..."
-        install_language_tools "$language"
-        return 0
-    fi
-
     # Run configuration steps
     setup_workspace_structure
+    copy_turbo_flow_extensions  # Copy our turbo-flow extensions
     setup_nodejs
+
+    # Setup GitHub CLI early if token is available (needed for agent-manager)
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        print_status "Setting up GitHub CLI authentication (needed for agent installation)..."
+        configure_github_cli
+        setup_gh_aliases
+    else
+        print_warning "No GITHUB_TOKEN found - agent installation may fail"
+        print_status "To set: flyctl secrets set GITHUB_TOKEN=ghp_... -a <app-name>"
+    fi
 
     # Run pre-install extensions
     run_extensions "pre-install"

@@ -223,28 +223,42 @@ backup_data() {
     fi
 }
 
-# Function to suspend machines before deletion
-suspend_machines() {
-    print_status "Suspending running machines..."
+# Function to delete machines before deletion
+delete_machines() {
+    print_status "Deleting machines..."
 
     # Use temp dir to avoid fly.toml parsing issues
     local original_dir=$(pwd)
     local temp_dir=$(mktemp -d)
     cd "$temp_dir"
 
-    local machines=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null | jq -r '.[] | select(.state == "started") | .id' || true)
+    local machines=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null | jq -r '.[].id' || true)
 
     cd "$original_dir"
     rm -rf "$temp_dir"
 
     if [[ -n "$machines" ]]; then
+        local failed_machines=()
+        local success_count=0
+
         for machine_id in $machines; do
-            print_status "Stopping machine: $machine_id"
-            flyctl machine stop "$machine_id" -a "$APP_NAME" || true
+            print_status "Deleting machine: $machine_id"
+            if flyctl machine destroy "$machine_id" -a "$APP_NAME" --force 2>/dev/null; then
+                ((success_count++))
+            else
+                failed_machines+=("$machine_id")
+            fi
         done
-        print_success "All machines stopped"
+
+        if [[ ${#failed_machines[@]} -gt 0 ]]; then
+            print_warning "Failed to delete ${#failed_machines[@]} machine(s): ${failed_machines[*]}"
+        fi
+
+        if [[ $success_count -gt 0 ]]; then
+            print_success "$success_count machine(s) deleted successfully"
+        fi
     else
-        print_status "No running machines to stop"
+        print_status "No machines to delete"
     fi
 }
 
@@ -268,15 +282,34 @@ delete_volumes() {
     rm -rf "$temp_dir"
 
     if [[ -n "$volumes" ]]; then
+        local failed_volumes=()
+        local success_count=0
+
         for volume_id in $volumes; do
             print_status "Deleting volume: $volume_id"
             if [[ "$FORCE_DELETE" == true ]]; then
-                flyctl volumes delete "$volume_id" -a "$APP_NAME" --yes || true
+                if flyctl volumes delete "$volume_id" -a "$APP_NAME" --yes 2>/dev/null; then
+                    ((success_count++))
+                else
+                    failed_volumes+=("$volume_id")
+                fi
             else
-                flyctl volumes delete "$volume_id" -a "$APP_NAME" || true
+                if flyctl volumes delete "$volume_id" -a "$APP_NAME" 2>/dev/null; then
+                    ((success_count++))
+                else
+                    failed_volumes+=("$volume_id")
+                fi
             fi
         done
-        print_success "All volumes deleted"
+
+        if [[ ${#failed_volumes[@]} -gt 0 ]]; then
+            print_warning "Failed to delete ${#failed_volumes[@]} volume(s): ${failed_volumes[*]}"
+            print_status "Volumes may still be attached to machines. They will be deleted with the app."
+        fi
+
+        if [[ $success_count -gt 0 ]]; then
+            print_success "$success_count volume(s) deleted successfully"
+        fi
     else
         print_status "No volumes to delete"
     fi
@@ -478,14 +511,15 @@ EOF
     fi
 
     # Perform teardown
-    suspend_machines
+    # First delete machines to detach volumes
+    delete_machines
 
-    # Delete volumes before app (volumes can only be deleted when app exists)
+    # Delete volumes after machines are gone
     if [[ "$DELETE_VOLUMES" == true ]]; then
         delete_volumes
     fi
 
-    # Delete the app (this also deletes machines and secrets)
+    # Delete the app (this also deletes any remaining resources)
     if [[ "$DELETE_APP" == true ]]; then
         delete_app
     fi

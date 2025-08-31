@@ -28,6 +28,7 @@ chmod +x scripts/*.sh
 ```
 
 That's it! The script will:
+
 ✅ Create your Fly.io application
 ✅ Set up a persistent volume for your code
 ✅ Configure SSH access
@@ -53,24 +54,31 @@ ANTHROPIC_API_KEY=sk-ant-... ./scripts/vm-setup.sh --app-name my-claude
 After setup completes, you have multiple ways to connect:
 
 ### Option 1: Direct SSH
+
 ```bash
 ssh developer@my-claude-dev.fly.dev -p 10022
 ```
 
 ### Option 2: VSCode Remote Development
+
 1. Install [Remote-SSH extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh)
+
 2. Add to `~/.ssh/config`:
-   ```
+
+   ```bash
    Host my-claude-dev
        HostName my-claude-dev.fly.dev
        Port 10022
        User developer
        IdentityFile ~/.ssh/id_rsa
    ```
+
 3. Connect via Command Palette: `Remote-SSH: Connect to Host`
+
 4. See [detailed VSCode guide](docs/VSCODE.md)
 
 ### Option 3: IntelliJ/JetBrains IDEs
+
 1. Install [JetBrains Gateway](https://www.jetbrains.com/remote-development/gateway/)
 2. Create SSH connection with your app details
 3. See [detailed IntelliJ guide](docs/INTELLIJ.md)
@@ -85,6 +93,7 @@ On your **first connection** to the VM, run the configuration script:
 ```
 
 This will:
+
 - Install Node.js (latest LTS)
 - Install Claude Code and Claude Flow
 - Set up Git configuration
@@ -92,6 +101,7 @@ This will:
 - Configure development tools
 
 ### Optional: Add Custom Tools
+
 You can extend your environment with additional tools:
 
 ```bash
@@ -110,6 +120,7 @@ chmod +x /workspace/scripts/extensions.d/50-rust.sh
 ```
 
 **Available Examples:**
+
 ```bash
 # Enable pre-built examples
 cp /workspace/scripts/extensions.d/10-rust.sh.example \
@@ -122,6 +133,7 @@ cp /workspace/scripts/extensions.d/20-golang.sh.example \
 ## 🤖 Start Using Claude
 
 ### Authenticate Claude Code
+
 ```bash
 # Start Claude Code and authenticate
 claude
@@ -132,6 +144,7 @@ claude
 ```
 
 ### Initialize Claude Flow (per project)
+
 ```bash
 cd /workspace/projects/active/your-project
 npx claude-flow@alpha init --force
@@ -146,6 +159,7 @@ Your environment automatically suspends when idle to save costs:
 - **Always-on**: ~$30-50/month
 
 Manage costs with:
+
 ```bash
 ./scripts/vm-suspend.sh     # Manually suspend VM
 ./scripts/vm-resume.sh      # Resume VM
@@ -155,7 +169,8 @@ Manage costs with:
 ## 📁 Project Structure
 
 Your persistent workspace is organized as:
-```
+
+```bash
 /workspace/
 ├── projects/
 │   ├── active/      # Current projects
@@ -168,6 +183,7 @@ Your persistent workspace is organized as:
 ## 🆘 Troubleshooting
 
 ### VM won't start?
+
 ```bash
 flyctl status -a my-claude-dev
 flyctl machine list -a my-claude-dev
@@ -179,6 +195,7 @@ flyctl machine restart <machine-id> -a my-claude-dev
 See our [Troubleshooting Guide](TROUBLESHOOTING.md#ssh-connection-issues) for comprehensive SSH debugging steps.
 
 Quick checks:
+
 ```bash
 # Test connection with verbose output
 ssh -vvv developer@my-claude-dev.fly.dev -p 10022
@@ -188,6 +205,7 @@ flyctl logs -a my-claude-dev
 ```
 
 ### Need more help?
+
 - See [Troubleshooting Guide](TROUBLESHOOTING.md) for comprehensive solutions
 - See [detailed setup guide](SETUP.md) for manual configuration
 - Check [VSCode setup](VSCODE.md) for IDE-specific help
@@ -197,6 +215,7 @@ flyctl logs -a my-claude-dev
 ## 🎯 Next Steps
 
 1. **Create your first project**:
+
    ```bash
    cd /workspace/projects/active
    mkdir my-project && cd my-project
@@ -204,12 +223,14 @@ flyctl logs -a my-claude-dev
    ```
 
 2. **Set up project context**:
+
    ```bash
-   cp /workspace/templates/CLAUDE.md.template ./CLAUDE.md
+   cp /workspace/templates/CLAUDE.md.example ./CLAUDE.md
    # Edit CLAUDE.md with your project details
    ```
 
 3. **Start coding with AI assistance**:
+
    ```bash
    claude
    # or
@@ -229,6 +250,7 @@ flyctl logs -a my-claude-dev
 ## SSH Key Setup
 
 Need to create SSH keys? See our [SSH Key Management Guide](TROUBLESHOOTING.md#creating-and-managing-ssh-keys) for detailed instructions on:
+
 - Creating new SSH keys (Ed25519 or RSA)
 - Setting correct file permissions
 - Common SSH key mistakes and how to avoid them

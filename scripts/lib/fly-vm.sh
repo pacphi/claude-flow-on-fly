@@ -237,35 +237,116 @@ graceful_shutdown() {
     fi
 
     execute_remote_script "$remote_host" "$remote_port" "$remote_user" '
-echo "🔄 Preparing for shutdown..."
+echo "🔄 Preparing for graceful shutdown..."
 
-# Save any tmux sessions
+# Enhanced tmux session management using helper functions
 if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
-    echo "💾 Saving tmux sessions..."
-    for session in $(tmux list-sessions -F "#{session_name}"); do
-        tmux send-keys -t "$session" C-s 2>/dev/null || true
-    done
+    echo "📺 Managing tmux sessions..."
+
+    # Source tmux helper functions if available
+    if [[ -f /workspace/scripts/lib/tmux-helpers.sh ]]; then
+        source /workspace/scripts/lib/tmux-helpers.sh 2>/dev/null || true
+    fi
+
+    # Get list of active sessions
+    active_sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null || true)
+    session_count=$(echo "$active_sessions" | wc -l)
+
+    if [[ -n "$active_sessions" && "$session_count" -gt 0 ]]; then
+        echo "  Found $session_count active tmux session(s)"
+
+        # Create shutdown backup directory
+        backup_dir="/workspace/backups/shutdown-$(date +%Y%m%d-%H%M%S)"
+        mkdir -p "$backup_dir"
+        echo "  📁 Creating session backups in $backup_dir"
+
+        # Process each session
+        echo "$active_sessions" | while read -r session_name; do
+            if [[ -n "$session_name" ]]; then
+                echo "  🔄 Processing session: $session_name"
+
+                # Notify users in session about shutdown
+                tmux display-message -t "$session_name" "⚠️ VM suspension in 10 seconds - saving session..." 2>/dev/null || true
+
+                # Save session layout using helper function if available
+                if command -v tmux_save_session >/dev/null 2>&1; then
+                    tmux_save_session "$session_name" 2>/dev/null || true
+                else
+                    # Fallback: manual session save
+                    tmux list-windows -t "$session_name" -F "#{session_name}:#{window_index}:#{window_name}:#{pane_current_path}" > "$backup_dir/${session_name}.save" 2>/dev/null || true
+                fi
+
+                # Send Ctrl+S to each pane for editor saves
+                tmux list-panes -s -t "$session_name" -F "#{session_name}:#{window_index}.#{pane_index}" 2>/dev/null | while read -r pane; do
+                    tmux send-keys -t "$pane" C-s 2>/dev/null || true
+                done
+
+                # Give a moment for saves to complete
+                sleep 1
+
+                # Send graceful shutdown message
+                tmux send-keys -t "$session_name" "" 2>/dev/null || true
+                tmux display-message -t "$session_name" "💾 Session saved for restore after VM resume" 2>/dev/null || true
+            fi
+        done
+
+        # Brief pause to let users see messages
+        sleep 2
+
+        echo "  ✅ All tmux sessions prepared for suspension"
+    else
+        echo "  ℹ️ No active tmux sessions found"
+    fi
+else
+    echo "  ℹ️ tmux not installed or no sessions active"
 fi
 
-# Save any vim sessions
-if pgrep vim >/dev/null 2>&1; then
-    echo "💾 Saving vim sessions..."
+# Save any vim/nvim sessions with enhanced detection
+if pgrep -x vim >/dev/null 2>&1 || pgrep -x nvim >/dev/null 2>&1; then
+    echo "📝 Saving vim/nvim sessions..."
+    # Send save signal to vim processes
     pkill -USR1 vim 2>/dev/null || true
+    pkill -USR1 nvim 2>/dev/null || true
     sleep 1
+    echo "  ✅ Editor sessions saved"
 fi
 
-# Sync filesystem
-echo "💾 Syncing filesystem..."
-sync
+# Stop long-running processes gracefully
+echo "🛑 Stopping long-running processes..."
 
-# Stop any running development servers gracefully
-if pgrep -f "npm.*start\|npm.*dev\|node.*server" >/dev/null 2>&1; then
-    echo "🛑 Stopping development servers..."
-    pkill -TERM -f "npm.*start\|npm.*dev\|node.*server" 2>/dev/null || true
+# Stop development servers with better detection
+dev_processes=$(pgrep -f "npm.*(start|dev|serve)|node.*(server|app|index|main)|python.*manage.py.*runserver|rails.*server|hugo.*server" 2>/dev/null || true)
+if [[ -n "$dev_processes" ]]; then
+    echo "  🔄 Stopping development servers..."
+    pkill -TERM -f "npm.*(start|dev|serve)|node.*(server|app|index|main)|python.*manage.py.*runserver|rails.*server|hugo.*server" 2>/dev/null || true
+    sleep 3
+    # Force kill if still running
+    pkill -KILL -f "npm.*(start|dev|serve)|node.*(server|app|index|main)" 2>/dev/null || true
+    echo "  ✅ Development servers stopped"
+else
+    echo "  ℹ️ No development servers running"
+fi
+
+# Stop database processes if running locally
+db_processes=$(pgrep -f "postgres|mysql|mongodb|redis-server" 2>/dev/null || true)
+if [[ -n "$db_processes" ]]; then
+    echo "  🔄 Stopping database processes..."
+    pkill -TERM -f "postgres|mysql|mongodb|redis-server" 2>/dev/null || true
     sleep 2
+    echo "  ✅ Database processes stopped"
 fi
 
-echo "✅ Graceful shutdown preparation complete"
+# Sync filesystem and clear caches
+echo "💾 Finalizing filesystem operations..."
+sync
+echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+
+# Create shutdown marker for resume detection
+echo "$(date): VM gracefully shutdown" > /workspace/.last-shutdown
+chmod 644 /workspace/.last-shutdown
+
+echo "✅ Enhanced graceful shutdown preparation complete"
+echo "🔄 Session data backed up and ready for restore"
 '
 
     print_success "Graceful shutdown completed"
@@ -280,24 +361,117 @@ restore_sessions() {
     print_status "Checking for suspended sessions to restore..."
 
     execute_remote_script "$remote_host" "$remote_port" "$remote_user" '
-# Check for tmux sessions
-if command -v tmux >/dev/null 2>&1; then
-    session_count=$(tmux list-sessions 2>/dev/null | wc -l || echo 0)
-    if [[ $session_count -gt 0 ]]; then
-        echo "🔄 Found $session_count tmux session(s):"
-        tmux list-sessions 2>/dev/null | sed "s/^/   /"
-        echo "   💡 Reconnect with: tmux attach"
-    else
-        echo "📱 No tmux sessions found"
-    fi
-else
-    echo "📱 tmux not available"
+echo "🔄 Checking session restoration status..."
+
+# Check shutdown marker
+if [[ -f /workspace/.last-shutdown ]]; then
+    echo "📋 Previous shutdown info:"
+    cat /workspace/.last-shutdown | sed "s/^/   /"
+    echo ""
 fi
 
-# Check for any restore scripts or suspend backups
+# Enhanced tmux session restoration
+if command -v tmux >/dev/null 2>&1; then
+    # Source tmux helper functions if available
+    if [[ -f /workspace/scripts/lib/tmux-helpers.sh ]]; then
+        source /workspace/scripts/lib/tmux-helpers.sh 2>/dev/null || true
+    fi
+
+    # Check for active sessions
+    session_count=$(tmux list-sessions 2>/dev/null | wc -l || echo 0)
+    if [[ $session_count -gt 0 ]]; then
+        echo "✅ Found $session_count active tmux session(s):"
+        tmux list-sessions 2>/dev/null | while read -r line; do
+            echo "   🖥️  $line"
+        done
+        echo ""
+        echo "   💡 Reconnect options:"
+        echo "      • tmux attach                    # Attach to last session"
+        echo "      • tmux attach -t claude-workspace # Attach to main workspace"
+        echo "      • tmux-workspace                 # Use workspace launcher"
+        echo "      • tmux list-sessions             # List all sessions"
+    else
+        echo "📱 No active tmux sessions found"
+
+        # Check for session backups to restore
+        echo "🔍 Checking for session backups to restore..."
+
+        # Look for shutdown backups (most recent)
+        shutdown_backups=$(find /workspace/backups -name "shutdown-*" -type d 2>/dev/null | sort -r | head -3)
+        if [[ -n "$shutdown_backups" ]]; then
+            echo "   💾 Recent shutdown backups found:"
+            echo "$shutdown_backups" | while read -r backup_dir; do
+                backup_date=$(basename "$backup_dir" | sed "s/shutdown-//")
+                save_files=$(find "$backup_dir" -name "*.save" 2>/dev/null | wc -l)
+                echo "      📁 $backup_date ($save_files sessions)"
+            done
+            echo ""
+            echo "   🔄 Restore options:"
+            echo "      • Source tmux helpers: source /workspace/scripts/lib/tmux-helpers.sh"
+            echo "      • Restore session: tmux_restore_session [session-name]"
+            echo "      • Or start fresh: tmux-workspace"
+        else
+            echo "   ℹ️ No session backups found"
+            echo "   🚀 Start new workspace: tmux-workspace"
+        fi
+
+        # Check for tmux session save files (from helper functions)
+        tmux_saves=$(find /workspace -name ".tmux-session-*.save" 2>/dev/null | sort -r | head -3)
+        if [[ -n "$tmux_saves" ]]; then
+            echo ""
+            echo "   💾 Session save files found:"
+            echo "$tmux_saves" | while read -r save_file; do
+                save_name=$(basename "$save_file" .save | sed "s/.tmux-session-//")
+                echo "      📄 $save_name"
+            done
+        fi
+    fi
+else
+    echo "❌ tmux not available - install with: apt-get install tmux"
+fi
+
+# Check for suspend backups
+echo ""
 if ls /workspace/backups/suspend_backup_*.tar.gz >/dev/null 2>&1; then
     echo "💾 Suspend backups available:"
-    ls -1t /workspace/backups/suspend_backup_*.tar.gz | head -3 | sed "s/^/   /"
+    ls -1t /workspace/backups/suspend_backup_*.tar.gz | head -3 | while read -r backup; do
+        backup_size=$(du -h "$backup" 2>/dev/null | cut -f1)
+        backup_name=$(basename "$backup")
+        echo "   📦 $backup_name ($backup_size)"
+    done
+fi
+
+# Show workspace status
+echo ""
+echo "📁 Workspace status:"
+echo "   • Disk usage: $(df -h /workspace 2>/dev/null | awk '\''NR==2 {print $3 "/" $2 " (" $5 " used)"}'\'' || echo "Unknown")"
+echo "   • Last activity: $(find /workspace -type f -newermt "24 hours ago" 2>/dev/null | wc -l) files modified in last 24h"
+
+# Check for any development servers that should be restarted
+echo ""
+echo "🔍 Development environment status:"
+if [[ -f /workspace/package.json ]]; then
+    echo "   📦 Node.js project detected"
+    if command -v npm >/dev/null 2>&1; then
+        echo "      • npm available: $(npm --version)"
+        if [[ -f /workspace/package-lock.json ]]; then
+            echo "      • Dependencies installed: ✅"
+        else
+            echo "      • Dependencies: ⚠️ Run npm install"
+        fi
+    fi
+fi
+
+# Check for agents and context
+if [[ -d /workspace/agents ]]; then
+    agent_count=$(find /workspace/agents -name "*.md" 2>/dev/null | wc -l)
+    echo "   🤖 Agents available: $agent_count"
+fi
+
+if [[ -f /workspace/context/global/CLAUDE.md ]]; then
+    echo "   📚 Context system: ✅ Ready"
+else
+    echo "   📚 Context system: ⚠️ Not configured"
 fi
 '
 

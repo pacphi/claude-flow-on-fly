@@ -60,9 +60,9 @@ install_claude_code() {
     fi
 }
 
-# Function to install additional development tools
+# Function to install additional Node.js development tools
 install_dev_tools() {
-    print_status "Installing additional development tools..."
+    print_status "Installing additional Node.js development tools..."
 
     local npm_packages=(
         "typescript"
@@ -74,16 +74,6 @@ install_dev_tools() {
         "@typescript-eslint/eslint-plugin"
     )
 
-    local python_packages=(
-        "black"
-        "flake8"
-        "autopep8"
-        "requests"
-        "ipython"
-        "pytest"
-        "mypy"
-    )
-
     # Install npm packages if Node.js is available
     if command_exists npm; then
         print_status "Installing Node.js development packages..."
@@ -91,22 +81,11 @@ install_dev_tools() {
             print_debug "Installing $package..."
             npm install -g "$package" 2>/dev/null || print_warning "Failed to install $package"
         done
+        print_success "Node.js development tools installed"
     else
-        print_warning "Skipping Node.js packages (npm not found)"
+        print_warning "npm not found - Node.js setup required first"
+        return 1
     fi
-
-    # Install Python packages if pip3 is available
-    if command_exists pip3; then
-        print_status "Installing Python development packages..."
-        for package in "${python_packages[@]}"; do
-            print_debug "Installing $package..."
-            pip3 install --user "$package" 2>/dev/null || print_warning "Failed to install $package"
-        done
-    else
-        print_warning "Skipping Python packages (pip3 not found)"
-    fi
-
-    print_success "Additional development tools installed"
 }
 
 # Function to configure Claude Code defaults
@@ -172,14 +151,8 @@ check_tool_versions() {
     local tools=(
         "node:Node.js"
         "npm:npm"
-        "python3:Python"
-        "pip3:pip"
         "git:Git"
         "claude:Claude Code"
-        "docker:Docker"
-        "go:Go"
-        "rustc:Rust"
-        "cargo:Cargo"
     )
 
     for tool_spec in "${tools[@]}"; do
@@ -191,103 +164,25 @@ check_tool_versions() {
             echo "✗ $name: Not installed"
         fi
     done
-}
 
-# Function to install language-specific tools
-install_language_tools() {
-    local language="$1"
+    # Check for optional tools installed via extensions
+    print_status "Checking optional tools (from extensions)..."
+    local optional_tools=(
+        "python3:Python"
+        "pip3:pip"
+        "docker:Docker"
+        "go:Go"
+        "rustc:Rust"
+        "cargo:Cargo"
+    )
 
-    case "$language" in
-        go|golang)
-            install_go_tools
-            ;;
-        rust)
-            install_rust_tools
-            ;;
-        python)
-            install_python_tools
-            ;;
-        node|nodejs|javascript)
-            install_nodejs_tools
-            ;;
-        *)
-            print_error "Unknown language: $language"
-            print_status "Supported languages: go, rust, python, node"
-            return 1
-            ;;
-    esac
-}
-
-# Function to install Go tools
-install_go_tools() {
-    print_status "Installing Go development tools..."
-
-    if ! command_exists go; then
-        print_warning "Go is not installed. Installing Go..."
-
-        # Download and install Go
-        GO_VERSION="1.21.5"
-        wget -q "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
-        sudo tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz"
-        rm "go${GO_VERSION}.linux-amd64.tar.gz"
-
-        # Add to PATH
-        echo 'export PATH=$PATH:/usr/local/go/bin' >> "$HOME/.bashrc"
-        export PATH=$PATH:/usr/local/go/bin
-    fi
-
-    # Install Go tools
-    go install golang.org/x/tools/gopls@latest 2>/dev/null
-    go install github.com/go-delve/delve/cmd/dlv@latest 2>/dev/null
-    go install golang.org/x/lint/golint@latest 2>/dev/null
-
-    print_success "Go development tools installed"
-}
-
-# Function to install Rust tools
-install_rust_tools() {
-    print_status "Installing Rust development tools..."
-
-    if ! command_exists rustc; then
-        print_warning "Rust is not installed. Installing Rust..."
-
-        # Install Rust via rustup
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        source "$HOME/.cargo/env"
-    fi
-
-    # Install additional Rust tools
-    cargo install cargo-watch 2>/dev/null || true
-    cargo install cargo-edit 2>/dev/null || true
-    cargo install cargo-audit 2>/dev/null || true
-
-    print_success "Rust development tools installed"
-}
-
-# Function to install Python tools
-install_python_tools() {
-    print_status "Installing Python development tools..."
-
-    if command_exists pip3; then
-        pip3 install --user virtualenv pipenv poetry 2>/dev/null
-        print_success "Python development tools installed"
-    else
-        print_error "pip3 not found"
-        return 1
-    fi
-}
-
-# Function to install Node.js tools
-install_nodejs_tools() {
-    print_status "Installing Node.js development tools..."
-
-    if command_exists npm; then
-        npm install -g yarn pnpm nx @angular/cli @vue/cli create-react-app 2>/dev/null
-        print_success "Node.js development tools installed"
-    else
-        print_error "npm not found"
-        return 1
-    fi
+    for tool_spec in "${optional_tools[@]}"; do
+        IFS=':' read -r cmd name <<< "$tool_spec"
+        if command_exists "$cmd"; then
+            version=$($cmd --version 2>/dev/null | head -n1)
+            echo "✓ $name: $version (via extension)"
+        fi
+    done
 }
 
 # Function to run custom extensions
@@ -331,5 +226,4 @@ run_extensions() {
 
 # Export functions
 export -f setup_nodejs install_claude_code install_dev_tools setup_claude_config
-export -f check_tool_versions install_language_tools install_go_tools
-export -f install_rust_tools install_python_tools install_nodejs_tools run_extensions
+export -f check_tool_versions run_extensions

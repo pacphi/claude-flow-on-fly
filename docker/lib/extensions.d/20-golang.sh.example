@@ -43,10 +43,12 @@ print_status "Installing Go development tools..."
 go_tools=(
     "golang.org/x/tools/gopls@latest"                             # Language server
     "github.com/go-delve/delve/cmd/dlv@latest"                    # Debugger
-    "golang.org/x/lint/golint@latest"                             # Linter
+    "golang.org/x/lint/golint@latest"                             # Linter (deprecated but still useful)
     "golang.org/x/tools/cmd/goimports@latest"                     # Import formatter
     "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"  # Advanced linter
     "github.com/air-verse/air@latest"                             # Live reload
+    "github.com/goreleaser/goreleaser@latest"                     # Release automation
+    "github.com/cosmtrek/air@latest"                              # Hot reload for development
 )
 
 for tool in "${go_tools[@]}"; do
@@ -58,4 +60,136 @@ for tool in "${go_tools[@]}"; do
     fi
 done
 
+# Create Go project template script
+print_status "Setting up Go project template..."
+
+cat > /workspace/scripts/create-go-project.sh << 'EOF'
+#!/bin/bash
+# Create a new Go project with module initialization
+
+project_name="$1"
+if [[ -z "$project_name" ]]; then
+    echo "Usage: $0 <project-name>"
+    exit 1
+fi
+
+# Create project directory
+mkdir -p "/workspace/projects/active/$project_name"
+cd "/workspace/projects/active/$project_name"
+
+# Initialize Go module
+go mod init "github.com/user/$project_name"
+
+# Create project structure
+mkdir -p cmd pkg internal
+
+# Create main.go
+cat > cmd/main.go << 'MAIN'
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello, World!")
+}
+MAIN
+
+# Create Makefile
+cat > Makefile << 'MAKEFILE'
+.PHONY: build run test clean
+
+build:
+	go build -o bin/$(shell basename $(CURDIR)) ./cmd
+
+run:
+	go run ./cmd
+
+test:
+	go test -v ./...
+
+clean:
+	rm -rf bin/
+
+lint:
+	golangci-lint run
+
+fmt:
+	go fmt ./...
+	goimports -w .
+MAKEFILE
+
+# Create README
+cat > README.md << 'README'
+# $project_name
+
+## Build
+
+```bash
+make build
+```
+
+## Run
+
+```bash
+make run
+```
+
+## Test
+
+```bash
+make test
+```
+
+## Development
+
+```bash
+# Hot reload with air
+air
+```
+README
+
+# Create .air.toml for hot reload
+cat > .air.toml << 'AIR'
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  bin = "./tmp/main"
+  cmd = "go build -o ./tmp/main ./cmd"
+  delay = 1000
+  exclude_dir = ["assets", "tmp", "vendor", "testdata"]
+  exclude_file = []
+  exclude_regex = ["_test.go"]
+  exclude_unchanged = false
+  follow_symlink = false
+  full_bin = ""
+  include_dir = []
+  include_ext = ["go", "tpl", "tmpl", "html"]
+  kill_delay = "0s"
+  log = "build-errors.log"
+  send_interrupt = false
+  stop_on_error = true
+
+[color]
+  app = ""
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+AIR
+
+echo "Go project '$project_name' created successfully!"
+echo "To run: cd /workspace/projects/active/$project_name && make run"
+EOF
+
+chmod +x /workspace/scripts/create-go-project.sh
+
+# Add Go-specific Git aliases
+if command_exists git; then
+    git config --global alias.gotest '!go test ./...'
+    git config --global alias.gofmt '!go fmt ./... && goimports -w .'
+fi
+
 print_success "Go development environment configured"
+print_status "Create new Go projects with: /workspace/scripts/create-go-project.sh <name>"

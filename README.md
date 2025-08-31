@@ -59,6 +59,7 @@ Before starting, you'll need:
 │   ├── scripts/                       # Docker setup scripts
 │   │   ├── create-welcome.sh          # Welcome message creator
 │   │   ├── entrypoint.sh              # Container entrypoint
+│   │   ├── health-check.sh            # Health check script
 │   │   ├── install-nvm.sh             # Node Version Manager installer
 │   │   ├── install-packages.sh        # System packages installer
 │   │   ├── setup-bashrc.sh            # Bash configuration
@@ -70,8 +71,6 @@ Before starting, you'll need:
 │   │   ├── tools.sh                   # Tool installation functions
 │   │   ├── git.sh                     # Git configuration utilities
 │   │   └── extensions.d/              # Extension examples
-│   └── templates/                     # Docker templates
-│       └── health-check.sh            # Health check script
 ├── scripts/                           # VM management scripts
 │   ├── vm-setup.sh                    # Initial VM deployment
 │   ├── vm-teardown.sh                 # Clean VM and resource removal
@@ -81,9 +80,9 @@ Before starting, you'll need:
 │   ├── volume-backup.sh               # Data backup
 │   └── volume-restore.sh              # Data restoration
 ├── templates/                         # Configuration templates
-│   ├── CLAUDE.md.template             # Project context template
-│   ├── settings.json.template         # Claude Code hooks
-│   └── ssh_config.template            # SSH configuration
+│   ├── CLAUDE.md.example             # Project context template
+│   ├── settings.json.example         # Claude Code hooks
+│   └── ssh_config.example            # SSH configuration
 └── docs/                              # Documentation and guides
     ├── QUICKSTART.md                  # Quick start guide
     ├── SETUP.md                       # Complete setup guide
@@ -99,6 +98,7 @@ Before starting, you'll need:
 The environment supports custom tool installations via the extension system:
 
 1. **Create Extension Script**
+
    ```bash
    # Create a script in the extensions directory
    cat > /workspace/scripts/extensions.d/50-mycustomtool.sh << 'EOF'
@@ -115,6 +115,7 @@ The environment supports custom tool installations via the extension system:
    ```
 
 2. **Run Configuration**
+
    ```bash
    # Extensions run automatically during configuration
    /workspace/scripts/vm-configure.sh
@@ -126,6 +127,7 @@ The environment supports custom tool installations via the extension system:
 ### Extension Examples
 
 **Install Rust toolchain:**
+
 ```bash
 # Copy example and enable
 cp /workspace/scripts/extensions.d/10-rust.sh.example \
@@ -133,6 +135,7 @@ cp /workspace/scripts/extensions.d/10-rust.sh.example \
 ```
 
 **Install Go development tools:**
+
 ```bash
 # Copy example and enable
 cp /workspace/scripts/extensions.d/20-golang.sh.example \
@@ -140,6 +143,7 @@ cp /workspace/scripts/extensions.d/20-golang.sh.example \
 ```
 
 **Install Docker utilities:**
+
 ```bash
 # Copy example and enable
 cp /workspace/scripts/extensions.d/30-docker.sh.example \
@@ -164,6 +168,7 @@ fi
 ```
 
 **Available Libraries:**
+
 - `common.sh` - Print functions, colors, and utilities
 - `workspace.sh` - Workspace management functions
 - `tools.sh` - Tool installation helpers
@@ -176,6 +181,7 @@ After running the automated setup above, connect to your environment:
 ### Step 1: Connect Your IDE
 
 **For VSCode:**
+
 ```bash
 # Follow the detailed guide
 open docs/VSCODE.md
@@ -185,6 +191,7 @@ ssh developer@my-claude-dev.fly.dev -p 10022
 ```
 
 **For IntelliJ:**
+
 ```bash
 # Follow the detailed guide
 open docs/INTELLIJ.md
@@ -227,11 +234,13 @@ npx claude-flow@alpha swarm "build a REST API"
 ## 💰 Cost Management
 
 ### Automatic Cost Optimization
+
 - **Auto-suspend**: VMs automatically suspend when idle
 - **Scale-to-zero**: No compute charges when not in use
 - **Persistent volumes**: Keep your data while saving on compute
 
 ### Manual Cost Control
+
 ```bash
 # Suspend VM manually
 ./scripts/vm-suspend.sh
@@ -244,6 +253,7 @@ npx claude-flow@alpha swarm "build a REST API"
 ```
 
 ### Estimated Costs
+
 - **Minimal usage**: ~$2-3/month (mostly storage)
 - **Regular usage**: ~$5-8/month
 - **Heavy usage**: ~$10-15/month
@@ -260,6 +270,7 @@ npx claude-flow@alpha swarm "build a REST API"
 ## 📊 Monitoring and Maintenance
 
 ### Usage Tracking
+
 ```bash
 # Check current status
 ./scripts/cost-monitor.sh --action status
@@ -272,6 +283,7 @@ npx claude-flow@alpha swarm "build a REST API"
 ```
 
 ### Backup and Restore
+
 ```bash
 # Create backup
 ./scripts/volume-backup.sh
@@ -286,17 +298,20 @@ npx claude-flow@alpha swarm "build a REST API"
 ## 🛠 Advanced Features
 
 ### Team Collaboration
+
 - **Shared VMs**: Multiple developers on one VM
 - **Individual VMs**: Separate VMs with shared data volumes
 - **Claude Flow Swarm**: Multi-agent AI development coordination
 
 ### Custom Configuration
+
 - **Project templates**: Pre-configured project structures
 - **Claude hooks**: Automated code formatting and linting
 - **Environment variables**: Secure secret management
 - **Resource scaling**: Dynamic VM sizing based on workload
 
 ### Integration Examples
+
 ```bash
 # Database integration
 flyctl postgres create --name my-db
@@ -322,6 +337,7 @@ flyctl certs create example.com -a my-claude-dev
 ### Common Issues
 
 **VM won't start:**
+
 ```bash
 flyctl status -a my-claude-dev
 flyctl machine list -a my-claude-dev
@@ -329,6 +345,7 @@ flyctl machine restart <machine-id> -a my-claude-dev
 ```
 
 **SSH connection fails:**
+
 ```bash
 # Test SSH configuration
 ssh -vvv developer@my-claude-dev.fly.dev -p 10022
@@ -338,6 +355,7 @@ flyctl logs -a my-claude-dev
 ```
 
 **Claude Code authentication issues:**
+
 ```bash
 # Re-authenticate
 ssh developer@my-claude-dev.fly.dev -p 10022
@@ -354,18 +372,21 @@ claude auth
 ## 🎯 Use Cases
 
 ### Individual Developers
+
 - **Remote coding**: Code from anywhere with just a browser
 - **Powerful VMs**: Access to better hardware than local machine
 - **Cost control**: Pay only for what you use
 - **AI assistance**: Claude Code and Flow for productivity
 
 ### Teams
+
 - **Standardized environments**: Everyone works in identical setups
 - **Collaboration**: Shared projects and configurations
 - **Onboarding**: New team members productive immediately
 - **Resource sharing**: Efficient use of development resources
 
 ### Education
+
 - **Classroom environments**: Consistent setup for all students
 - **No local installation**: Students focus on learning, not setup
 - **Cost-effective**: Schools pay only for actual usage
@@ -378,7 +399,7 @@ claude auth
 - [ ] **CI/CD pipeline** templates
 - [ ] **Docker Compose** support for complex applications
 - [ ] **GPU support** for AI/ML workloads
-- [ ] **Pre-built templates** for popular frameworks
+- [ ] **More pre-built templates** for popular frameworks
 
 ## 🤝 Contributing
 

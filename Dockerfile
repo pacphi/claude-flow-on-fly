@@ -9,7 +9,7 @@ ENV LC_ALL=C.UTF-8
 
 # Copy all Docker scripts and configurations
 COPY docker/ /docker/
-RUN chmod +x /docker/scripts/*.sh /docker/templates/*.sh /docker/lib/*.sh
+RUN chmod +x /docker/scripts/*.sh /docker/lib/*.sh
 
 # Install system packages
 RUN /docker/scripts/install-packages.sh
@@ -31,16 +31,12 @@ RUN /docker/scripts/install-nvm.sh
 # Create welcome script for developer user
 RUN /docker/scripts/create-welcome.sh
 
-# Copy health check script
-RUN cp /docker/templates/health-check.sh /health.sh && \
-    chmod +x /health.sh
-
 # Expose SSH port
 EXPOSE 22
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD /health.sh
+    CMD /docker/scripts/health-check.sh
 
 # Use startup script as entry point
 CMD ["/docker/scripts/entrypoint.sh"]

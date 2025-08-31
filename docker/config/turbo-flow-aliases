@@ -1,0 +1,21 @@
+# Turbo Flow Claude Aliases
+
+# Claude Code shortcuts
+alias cf-dsp="claude --dangerously-skip-permissions"
+
+# Claude Flow commands (will be enhanced with context wrapper later)
+alias cf-init="npx claude-flow@alpha init --verify --pair --github-enhanced"
+alias cf-verify="npx claude-flow@alpha verify"
+alias cf-truth="npx claude-flow@alpha truth"
+alias cf-pair="npx claude-flow@alpha pair --start"
+
+# Context management
+alias load-context="cat /workspace/context/global/CLAUDE.md /workspace/context/global/CCFOREVER.md 2>/dev/null || echo 'Context files not found'"
+
+# Project helpers
+alias new-project="/workspace/scripts/lib/new-project.sh"
+alias project-status="/workspace/scripts/lib/system-status.sh"
+
+# Monitoring
+alias claude-usage="claude-usage-cli"
+alias monitor-claude="claude-monitor"
