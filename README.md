@@ -17,22 +17,35 @@ This repository contains everything you need to set up a secure, cost-optimized 
 
 ### Option 1: Automated Setup (Recommended) 🚀
 
-Get up and running with a single command:
+Get up and running quickly:
 
 ```bash
+# Setup public/private key-pair
+
 # Clone and run the automated setup
 git clone https://github.com/pacphi/claude-flow-on-fly.git
 cd claude-flow-on-fly
-chmod +x scripts/*.sh
 
 # Run the setup script
 ./scripts/vm-setup.sh --app-name my-claude-dev --region iad
-
-# For performance workloads, use dedicated CPU
+# or for performance workloads, use dedicated CPU
 ./scripts/vm-setup.sh --app-name my-claude-dev --cpu-kind performance --cpu-count 2 --memory 2048
+
+# Configure hosts file (per emitted instructions)
+
+# Inject environment varirables (optional)
+fly secrets set GIT_USER_NAME="Clark Kent" -a my-claude-dev
+fly secrets set GIT_USER_EMAIL="superman@dc.com" -a my-claude-dev
+fly secrets set GITHUB_TOKEN=ghp_...
+
+# Shell into VM
+ssh developer@my-claude-dev.fly.dev -p 10022
+
+# One-tme setup
+./scripts/vm-configure.sh
 ```
 
-That's it! The script handles everything. For detailed options, see our **[Quick Start Guide](docs/QUICKSTART.md)**.
+That's it! The scripts handle everything. For detailed options, see our **[Quick Start Guide](docs/QUICKSTART.md)**.
 
 ### Option 2: Manual Setup
 
@@ -41,6 +54,7 @@ For advanced users who prefer manual configuration, see our **[Complete Setup Gu
 ### Prerequisites
 
 Before starting, you'll need:
+
 - [Fly.io CLI](https://fly.io/docs/flyctl/install/) installed and authenticated
 - [SSH keys](https://www.ssh.com/academy/ssh-keys) (the script will check for these)
 - [Claude Max](https://www.anthropic.com/max) subscription or [Anthropic API key](https://console.anthropic.com/settings/keys)
