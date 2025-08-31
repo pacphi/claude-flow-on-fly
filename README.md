@@ -63,46 +63,90 @@ Before starting, you'll need:
 
 ```
 ├── CLAUDE.md                          # Project instructions for Claude
+├── LICENSE                            # MIT license file
 ├── README.md                          # This file
 ├── Dockerfile                         # Development environment container
 ├── fly.toml                           # Fly.io configuration with auto-scaling
 ├── docker/                            # Docker-related configurations
 │   ├── config/                        # Configuration files
+│   │   ├── agent-aliases              # Agent management aliases
+│   │   ├── agents-config.yaml         # Agent manager configuration
+│   │   ├── context-aliases            # Context management aliases
 │   │   ├── developer-sudoers          # Sudo permissions for developer
-│   │   └── sshd_config                # SSH daemon configuration
-│   ├── scripts/                       # Docker setup scripts
-│   │   ├── create-welcome.sh          # Welcome message creator
-│   │   ├── entrypoint.sh              # Container entrypoint
-│   │   ├── health-check.sh            # Health check script
-│   │   ├── install-nvm.sh             # Node Version Manager installer
-│   │   ├── install-packages.sh        # System packages installer
-│   │   ├── setup-bashrc.sh            # Bash configuration
-│   │   ├── setup-user.sh              # User account setup
-│   │   └── vm-configure.sh            # VM configuration script
+│   │   ├── playwright.config.ts       # Playwright testing configuration
+│   │   ├── sshd_config                # SSH daemon configuration
+│   │   ├── tmux-aliases               # Tmux operation aliases
+│   │   ├── tmux.conf                  # Tmux configuration
+│   │   ├── tsconfig.json              # TypeScript configuration
+│   │   └── turbo-flow-aliases         # Turbo Flow command aliases
+│   ├── context/                       # Context files for AI assistants
+│   │   ├── CCFOREVER.md               # Persistent Claude Code context
+│   │   └── CLAUDE.md                  # Project context for Claude
 │   ├── lib/                           # Shared utility libraries
+│   │   ├── extensions.d/              # Extension scripts
+│   │   │   ├── 01-turbo-flow-setup.sh # Turbo Flow installation
+│   │   │   ├── 02-agent-manager.sh    # Agent manager setup
+│   │   │   ├── 03-tmux-workspace.sh   # Tmux workspace setup
+│   │   │   ├── 04-context-loader.sh   # Context loader setup
+│   │   │   ├── 05-python.sh.example   # Python tools example
+│   │   │   ├── 10-rust.sh.example     # Rust toolchain example
+│   │   │   ├── 20-golang.sh.example   # Go development example
+│   │   │   ├── 30-docker.sh.example   # Docker utilities example
+│   │   │   ├── 40-jvm.sh.example      # JVM languages example
+│   │   │   ├── 50-php.sh.example      # PHP development example
+│   │   │   ├── 60-ruby.sh.example     # Ruby development example
+│   │   │   ├── 70-dotnet.sh.example   # .NET development example
+│   │   │   ├── 80-infra-tools.sh.example # Infrastructure tools example
+│   │   │   ├── post-cleanup.sh.example # Post-setup cleanup example
+│   │   │   └── README.md              # Extension system documentation
+│   │   ├── agent-discovery.sh         # Agent discovery utilities
+│   │   ├── backup.sh                  # Backup utilities
+│   │   ├── cf-with-context.sh         # Claude Flow with context
 │   │   ├── common.sh                  # Core functions and utilities
-│   │   ├── workspace.sh               # Workspace management
-│   │   ├── tools.sh                   # Tool installation functions
+│   │   ├── context-loader.sh          # Context file management
+│   │   ├── gh.sh                      # GitHub CLI utilities
 │   │   ├── git.sh                     # Git configuration utilities
-│   │   └── extensions.d/              # Extension examples
+│   │   ├── new-project.sh             # Project creation utilities
+│   │   ├── restore.sh                 # Restore utilities
+│   │   ├── system-status.sh           # System monitoring utilities
+│   │   ├── tmux-auto-start.sh         # Tmux SSH auto-start
+│   │   ├── tmux-helpers.sh            # Tmux session utilities
+│   │   ├── tmux-workspace.sh          # Tmux workspace launcher
+│   │   ├── tools.sh                   # Tool installation functions
+│   │   ├── validate-setup.sh          # Environment validation
+│   │   └── workspace.sh               # Workspace management
+│   └── scripts/                       # Docker setup scripts
+│       ├── create-welcome.sh          # Welcome message creator
+│       ├── entrypoint.sh              # Container entrypoint
+│       ├── health-check.sh            # Health check script
+│       ├── install-nvm.sh             # Node Version Manager installer
+│       ├── install-packages.sh        # System packages installer
+│       ├── setup-bashrc.sh            # Bash configuration
+│       ├── setup-user.sh              # User account setup
+│       └── vm-configure.sh            # VM configuration script
 ├── scripts/                           # VM management scripts
-│   ├── vm-setup.sh                    # Initial VM deployment
-│   ├── vm-teardown.sh                 # Clean VM and resource removal
-│   ├── vm-suspend.sh                  # Cost-saving VM suspension
-│   ├── vm-resume.sh                   # VM resumption
-│   ├── cost-monitor.sh                # Usage and cost tracking
-│   ├── volume-backup.sh               # Data backup
-│   └── volume-restore.sh              # Data restoration
+│   ├── lib/                          # Script libraries
+│   │   ├── fly-backup.sh             # Fly.io backup utilities
+│   │   ├── fly-common.sh             # Fly.io common functions
+│   │   └── fly-vm.sh                 # Fly.io VM management
+│   ├── cost-monitor.sh               # Usage and cost tracking
+│   ├── vm-resume.sh                  # VM resumption
+│   ├── vm-setup.sh                   # Initial VM deployment
+│   ├── vm-suspend.sh                 # Cost-saving VM suspension
+│   ├── vm-teardown.sh                # Clean VM and resource removal
+│   ├── volume-backup.sh              # Data backup
+│   └── volume-restore.sh             # Data restoration
 ├── templates/                         # Configuration templates
 │   ├── CLAUDE.md.example             # Project context template
 │   ├── settings.json.example         # Claude Code hooks
 │   └── ssh_config.example            # SSH configuration
 └── docs/                              # Documentation and guides
-    ├── QUICKSTART.md                  # Quick start guide
-    ├── SETUP.md                       # Complete setup guide
-    ├── TROUBLESHOOTING.md             # Comprehensive troubleshooting guide
-    ├── VSCODE.md                      # VSCode remote development
-    └── INTELLIJ.md                    # IntelliJ remote development
+    ├── INTELLIJ.md                   # IntelliJ remote development
+    ├── QUICKSTART.md                 # Quick start guide
+    ├── SETUP.md                      # Complete setup guide
+    ├── TROUBLESHOOTING.md            # Comprehensive troubleshooting guide
+    ├── TURBO_FLOW.md                 # Turbo Flow documentation
+    └── VSCODE.md                     # VSCode remote development
 ```
 
 ## 🔧 Customization and Extensions
