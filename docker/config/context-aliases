@@ -6,6 +6,9 @@ alias load-global="source /workspace/scripts/lib/context-loader.sh && load_globa
 alias load-user="source /workspace/scripts/lib/context-loader.sh && load_user_context"
 alias load-project="source /workspace/scripts/lib/context-loader.sh && load_project_context"
 
+# Claude Code shortcuts
+alias dsp="claude --dangerously-skip-permissions"
+
 # Context validation and information
 alias validate-context="source /workspace/scripts/lib/context-loader.sh && validate_context"
 alias context-hierarchy="source /workspace/scripts/lib/context-loader.sh && show_context_hierarchy"
@@ -15,13 +18,23 @@ alias context-status="validate-context"
 alias cf-l="/workspace/scripts/cf-with-context.sh"
 alias cf-swarm="/workspace/scripts/cf-with-context.sh swarm"
 alias cf-hive="/workspace/scripts/cf-with-context.sh hive-mind spawn"
-alias cf-verify="/workspace/scripts/cf-with-context.sh verify"
-alias cf-truth="/workspace/scripts/cf-with-context.sh truth"
-alias cf-pair="/workspace/scripts/cf-with-context.sh pair"
+
+# Claude Flow native
+alias cf-init="npx claude-flow@alpha init --verify --pair --github-enhanced"
+alias cf-github-hive="npx claude-flow@alpha hive-mind spawn --github-enhanced --agents 13 --claude"
+alias cf-verify="npx claude-flow@alpha verify"
+alias cf-truth="npx claude-flow@alpha truth"
+alias cf-pair="npx claude-flow@alpha pair --start"
+
+# Existing swarm management
+alias cf-resume="npx claude-flow@alpha hive-mind resume"
+alias cf-status="npx claude-flow@alpha hive-mind status"
+alias cf-sessions="npx claude-flow@alpha hive-mind sessions"
+alias cf-continue="npx claude-flow@alpha swarm --continue-session"
+alias cf-upgrade="npx claude-flow@alpha hive-mind upgrade"
 
 # Context file editing
 alias edit-global-claude="nano /workspace/context/global/CLAUDE.md"
 alias edit-global-cc="nano /workspace/context/global/CCFOREVER.md"
 alias edit-project="nano ./CLAUDE.md"
 alias edit-user="mkdir -p ~/.claude && nano ~/.claude/CLAUDE.md"
-
