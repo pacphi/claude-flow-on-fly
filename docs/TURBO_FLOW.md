@@ -88,7 +88,7 @@ tmux-workspace
 agent-install
 
 # Begin AI-assisted development
-cf swarm "Build a modern web application with authentication"
+cf-swarm "Build a modern web application with authentication"
 ```
 
 ## Feature Guide
@@ -234,8 +234,8 @@ validate-context
 
 ```bash
 # Claude Flow with automatic context loading
-cf swarm "Implement user authentication"
-cf hive "Optimize database performance"
+cf-swarm "Implement user authentication"
+cf-hive "Optimize database performance"
 
 # Verify context loading
 context-hierarchy
@@ -449,7 +449,7 @@ agent-sample               # Sample random agents
 load-context               # View all context
 validate-context           # Validate context system
 context-hierarchy          # Show loading hierarchy
-cf <command>               # Claude Flow with context
+cf-l <command>             # Claude Flow with context
 new-project-context        # Create project context
 ```
 
@@ -589,15 +589,6 @@ nano /workspace/context/global/CLAUDE.md
 # Include security requirements
 ```
 
-### Quality Standards Customization
-
-Adjust quality settings by modifying environment variables in your shell profile:
-
-```bash
-# Add to ~/.bashrc or ~/.profile
-export QUALITY_THRESHOLD=medium
-export CODE_STANDARDS=strict
-```
 
 ## Performance Optimization
 

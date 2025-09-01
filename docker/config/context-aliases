@@ -12,7 +12,7 @@ alias context-hierarchy="source /workspace/scripts/lib/context-loader.sh && show
 alias context-status="validate-context"
 
 # Claude Flow with context
-alias cf="/workspace/scripts/cf-with-context.sh"
+alias cf-l="/workspace/scripts/cf-with-context.sh"
 alias cf-swarm="/workspace/scripts/cf-with-context.sh swarm"
 alias cf-hive="/workspace/scripts/cf-with-context.sh hive-mind spawn"
 alias cf-verify="/workspace/scripts/cf-with-context.sh verify"

@@ -1,7 +1,7 @@
 # Turbo Flow Claude Aliases
 
 # Claude Code shortcuts
-alias cf-dsp="claude --dangerously-skip-permissions"
+alias dsp="claude --dangerously-skip-permissions"
 
 # Claude Flow commands (will be enhanced with context wrapper later)
 alias cf-init="npx claude-flow@alpha init --verify --pair --github-enhanced"
