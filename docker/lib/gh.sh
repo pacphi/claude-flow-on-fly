@@ -70,7 +70,7 @@ cleanup_gh_config() {
 
     # Get auth status output
     local error_output=$(gh auth status 2>&1)
-    
+
     # Check if authentication is working with stored credentials
     if gh auth status >/dev/null 2>&1; then
         # Authentication working with stored credentials
