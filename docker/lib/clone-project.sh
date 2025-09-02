@@ -129,24 +129,24 @@ if [[ "$FORK_MODE" == true ]]; then
         print_error "GitHub CLI (gh) is required for forking. Please install it first."
         exit 1
     fi
-    
+
     # Check gh authentication
     if ! gh auth status >/dev/null 2>&1; then
         print_error "GitHub CLI is not authenticated. Please run: gh auth login"
         exit 1
     fi
-    
+
     print_status "Forking repository: $REPO_URL"
-    
+
     # Fork and clone in one command
     cd "$PROJECTS_DIR/active" || exit 1
     if ! gh repo fork "$REPO_URL" --clone; then
         print_error "Failed to fork repository"
         exit 1
     fi
-    
+
     cd "$PROJECT_NAME" || exit 1
-    
+
     # Setup fork-specific configurations
     if [[ "$SKIP_ENHANCE" != true ]]; then
         print_status "Setting up fork remotes and aliases..."
@@ -156,7 +156,7 @@ if [[ "$FORK_MODE" == true ]]; then
 else
     # Regular clone mode
     print_status "Cloning repository: $REPO_URL"
-    
+
     # Build clone command
     CLONE_CMD="git clone"
     if [[ -n "$CLONE_DEPTH" ]]; then
@@ -166,14 +166,14 @@ else
         CLONE_CMD="$CLONE_CMD --branch $BRANCH_NAME"
     fi
     CLONE_CMD="$CLONE_CMD \"$REPO_URL\" \"$PROJECT_DIR\""
-    
+
     # Execute clone
     eval $CLONE_CMD
     if [ $? -ne 0 ]; then
         print_error "Failed to clone repository"
         exit 1
     fi
-    
+
     cd "$PROJECT_DIR" || exit 1
 fi
 
@@ -204,36 +204,36 @@ fi
 # Apply enhancements unless skipped
 if [[ "$SKIP_ENHANCE" != true ]]; then
     print_status "Applying Claude enhancements..."
-    
+
     # Setup Git hooks
     setup_git_hooks "$PROJECT_DIR"
-    
+
     # Install dependencies unless skipped
     if [[ "$SKIP_DEPS" != true ]]; then
         print_status "Installing project dependencies..."
-        
+
         # Use existing dependency installation logic from git.sh
         if [[ -f "package.json" ]] && command_exists npm; then
             print_status "Installing Node.js dependencies..."
             npm install
         fi
-        
+
         if [[ -f "requirements.txt" ]] && command_exists pip3; then
             print_status "Installing Python dependencies..."
             pip3 install -r requirements.txt
         fi
-        
+
         if [[ -f "go.mod" ]] && command_exists go; then
             print_status "Installing Go dependencies..."
             go mod download
         fi
-        
+
         if [[ -f "Cargo.toml" ]] && command_exists cargo; then
             print_status "Installing Rust dependencies..."
             cargo build
         fi
     fi
-    
+
     # Check for CLAUDE.md and create if missing
     if [[ ! -f "CLAUDE.md" ]]; then
         print_status "No CLAUDE.md found. Running claude /init to create one..."
@@ -264,7 +264,7 @@ CLAUDE_EOF
     else
         print_success "CLAUDE.md already exists"
     fi
-    
+
     # Initialize Claude Flow if available
     if command_exists claude-flow || command_exists npx; then
         print_status "Initializing Claude Flow..."

@@ -471,7 +471,7 @@ clone_and_setup() {
 # Function to setup fork remotes
 setup_fork_remotes() {
     local upstream_url=""
-    
+
     # The upstream remote should already be set by gh repo fork
     # But we'll verify and configure if needed
     if ! git remote get-url upstream >/dev/null 2>&1; then
@@ -485,25 +485,25 @@ setup_fork_remotes() {
 # Function to setup fork-specific Git aliases
 setup_fork_aliases() {
     print_status "Setting up fork management aliases..."
-    
+
     # Sync with upstream
     git config alias.sync-upstream '!git fetch upstream && git checkout main && git merge upstream/main'
-    
+
     # Push to fork's origin
     git config alias.push-fork 'push origin HEAD'
-    
+
     # Update all branches from upstream
     git config alias.update-from-upstream '!git fetch upstream && git rebase upstream/main'
-    
+
     # Create PR-ready branch
     git config alias.pr-branch '!f() { git checkout -b "$1" upstream/main; }; f'
-    
+
     # Show fork status
     git config alias.fork-status '!echo "=== Remotes ===" && git remote -v && echo && echo "=== Branch Tracking ===" && git branch -vv'
-    
+
     print_success "Fork aliases configured:"
     echo "   • git sync-upstream    - Fetch and merge upstream changes"
-    echo "   • git push-fork        - Push current branch to your fork"  
+    echo "   • git push-fork        - Push current branch to your fork"
     echo "   • git update-from-upstream - Rebase current branch on upstream/main"
     echo "   • git pr-branch <name> - Create new branch from upstream/main"
     echo "   • git fork-status      - Show fork remotes and branch tracking"

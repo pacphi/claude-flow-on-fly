@@ -273,10 +273,10 @@ get_agent_stats() {
 # Function to find duplicate agents (by name)
 find_duplicate_agents() {
     echo "🔍 Checking for duplicate agents..."
-    
+
     local temp_file="/tmp/agent_names_$$"
     local dup_file="/tmp/agent_dups_$$"
-    
+
     # Collect all agent names and files
     find /workspace/agents -name "*.md" 2>/dev/null | while read -r file; do
         local name
@@ -285,12 +285,12 @@ find_duplicate_agents() {
             echo "$name|$file"
         fi
     done > "$temp_file"
-    
+
     # Find and display duplicates
     if [[ -f "$temp_file" && -s "$temp_file" ]]; then
         # Get unique names that appear more than once
         cut -d'|' -f1 "$temp_file" | sort | uniq -d > "$dup_file"
-        
+
         if [[ -s "$dup_file" ]]; then
             while read -r dup_name; do
                 echo "⚠️ Duplicate name '$dup_name' found in:"
@@ -301,7 +301,7 @@ find_duplicate_agents() {
         else
             echo "✅ No duplicate agent names found"
         fi
-        
+
         rm -f "$temp_file" "$dup_file"
     else
         echo "❌ No agents found to check"

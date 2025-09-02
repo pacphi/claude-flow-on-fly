@@ -50,7 +50,7 @@ is_protected_extension() {
     local filename="$1"
     local base=$(basename "$filename" .sh.example)
     base=$(basename "$base" .sh)
-    
+
     # Check if filename starts with 01, 02, 03, or 04
     if [[ "$base" =~ ^0[1-4]- ]]; then
         return 0  # Protected
@@ -62,10 +62,10 @@ is_protected_extension() {
 file_has_been_modified() {
     local activated_file="$1"
     local example_file="${activated_file}.example"
-    
+
     # If example doesn't exist, can't compare
     [[ ! -f "$example_file" ]] && return 0
-    
+
     # Use checksum to compare files
     if command -v md5sum >/dev/null 2>&1; then
         local sum1=$(md5sum "$activated_file" 2>/dev/null | cut -d' ' -f1)
@@ -80,7 +80,7 @@ file_has_been_modified() {
         fi
         return 1  # Not modified
     fi
-    
+
     [[ "$sum1" != "$sum2" ]]
 }
 
@@ -88,7 +88,7 @@ file_has_been_modified() {
 create_backup() {
     local file="$1"
     local backup_file="${file}.backup"
-    
+
     if cp "$file" "$backup_file"; then
         print_success "Backup created: $(basename "$backup_file")"
         return 0
@@ -120,7 +120,7 @@ list_extensions() {
         local filename=$(basename "$example_file")
         local name=$(get_extension_name "$filename")
         local base_filename="${filename%.example}"
-        
+
         # Check protection status
         local protected_marker=""
         if is_protected_extension "$base_filename"; then
@@ -246,38 +246,38 @@ deactivate_extension() {
     local backup_flag="${2:-}"
     local yes_flag="${3:-}"
     local found=false
-    
+
     # Search for matching activated extension
     for example_file in "$EXTENSIONS_BASE"/*.sh.example; do
         [[ ! -f "$example_file" ]] && continue
-        
+
         local name=$(get_extension_name "$(basename "$example_file")")
-        
+
         if [[ "$name" == "$extension_name" ]]; then
             found=true
             local activated_file="${example_file%.example}"
             local filename=$(basename "$activated_file")
-            
+
             # Check if extension is protected
             if is_protected_extension "$filename"; then
                 print_error "Cannot deactivate protected extension '$extension_name' ($filename)"
                 print_warning "Extensions 01-04 are core system components and cannot be deactivated"
                 return 1
             fi
-            
+
             # Check if extension is activated
             if [[ ! -f "$activated_file" ]]; then
                 print_warning "Extension '$extension_name' ($filename) is not activated"
                 return 1
             fi
-            
+
             # Check if file has been modified
             local modified=false
             if file_has_been_modified "$activated_file"; then
                 modified=true
                 print_warning "Extension '$extension_name' has been modified from the original"
             fi
-            
+
             # Confirm deactivation if not using --yes flag
             if [[ "$yes_flag" != "--yes" ]]; then
                 echo -n "Are you sure you want to deactivate '$extension_name'? (y/N): "
@@ -287,12 +287,12 @@ deactivate_extension() {
                     return 1
                 fi
             fi
-            
+
             # Create backup if requested or if file was modified
             if [[ "$backup_flag" == "--backup" ]] || [[ "$modified" == "true" ]]; then
                 create_backup "$activated_file"
             fi
-            
+
             # Remove the activated file
             if rm "$activated_file"; then
                 print_success "Extension '$extension_name' deactivated"
@@ -300,11 +300,11 @@ deactivate_extension() {
                 print_error "Failed to deactivate extension '$extension_name'"
                 return 1
             fi
-            
+
             break
         fi
     done
-    
+
     if [[ "$found" == "false" ]]; then
         print_error "Extension '$extension_name' not found"
         echo "Available extensions:"
@@ -313,7 +313,7 @@ deactivate_extension() {
         done
         return 1
     fi
-    
+
     return 0
 }
 
@@ -321,10 +321,10 @@ deactivate_extension() {
 deactivate_all_extensions() {
     local backup_flag="${1:-}"
     local yes_flag="${2:-}"
-    
+
     print_status "Deactivating all non-protected extensions..."
     echo ""
-    
+
     # Confirm deactivation if not using --yes flag
     if [[ "$yes_flag" != "--yes" ]]; then
         echo -n "Are you sure you want to deactivate all non-protected extensions? (y/N): "
@@ -334,25 +334,25 @@ deactivate_all_extensions() {
             return 1
         fi
     fi
-    
+
     local deactivated_count=0
     local skipped_count=0
     local protected_count=0
     local failed_count=0
-    
+
     for activated_file in "$EXTENSIONS_BASE"/*.sh; do
         [[ ! -f "$activated_file" ]] && continue
-        
+
         local filename=$(basename "$activated_file")
         local name=$(get_extension_name "$filename")
-        
+
         # Check if extension is protected
         if is_protected_extension "$filename"; then
             print_warning "Skipping protected extension '$name' ($filename)"
             ((protected_count++))
             continue
         fi
-        
+
         # Check if corresponding .example exists
         local example_file="${activated_file}.example"
         if [[ ! -f "$example_file" ]]; then
@@ -360,7 +360,7 @@ deactivate_all_extensions() {
             ((skipped_count++))
             continue
         fi
-        
+
         # Check if file has been modified
         if file_has_been_modified "$activated_file"; then
             print_warning "Extension '$name' has been modified from the original"
@@ -368,7 +368,7 @@ deactivate_all_extensions() {
                 create_backup "$activated_file"
             fi
         fi
-        
+
         # Remove the activated file
         if rm "$activated_file"; then
             print_success "Deactivated '$name' ($filename)"
@@ -378,14 +378,14 @@ deactivate_all_extensions() {
             ((failed_count++))
         fi
     done
-    
+
     echo ""
     print_status "Summary:"
     [[ $deactivated_count -gt 0 ]] && print_success "  Deactivated: $deactivated_count"
     [[ $protected_count -gt 0 ]] && print_warning "  Protected (skipped): $protected_count"
     [[ $skipped_count -gt 0 ]] && print_warning "  Skipped (no example): $skipped_count"
     [[ $failed_count -gt 0 ]] && print_error "  Failed: $failed_count"
-    
+
     [[ $failed_count -eq 0 ]] && return 0 || return 1
 }
 
@@ -430,7 +430,7 @@ EOF
 main() {
     local command="${1:-list}"
     shift || true
-    
+
     case "$command" in
         list)
             list_extensions
