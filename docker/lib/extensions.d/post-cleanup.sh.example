@@ -8,25 +8,103 @@ source /workspace/scripts/lib/common.sh
 print_status "Running post-installation cleanup..."
 
 # Clean package manager caches
+print_header "Cleaning Package Manager Caches"
+
+# System package managers
 if command_exists apt-get; then
     print_debug "Cleaning apt cache..."
     sudo apt-get autoremove -y 2>/dev/null
     sudo apt-get autoclean 2>/dev/null
 fi
 
+# JavaScript/Node.js
 if command_exists npm; then
     print_debug "Cleaning npm cache..."
     npm cache clean --force 2>/dev/null
 fi
 
+if command_exists yarn; then
+    print_debug "Cleaning yarn cache..."
+    yarn cache clean 2>/dev/null || true
+fi
+
+if command_exists pnpm; then
+    print_debug "Cleaning pnpm cache..."
+    pnpm store prune 2>/dev/null || true
+fi
+
+# Python
 if command_exists pip3; then
     print_debug "Cleaning pip cache..."
     pip3 cache purge 2>/dev/null || true
 fi
 
+if command_exists poetry; then
+    print_debug "Cleaning poetry cache..."
+    poetry cache clear pypi --all -n 2>/dev/null || true
+fi
+
+if command_exists pipenv; then
+    print_debug "Cleaning pipenv cache..."
+    pipenv --clear 2>/dev/null || true
+fi
+
+# Rust
 if command_exists cargo; then
     print_debug "Cleaning cargo cache..."
-    cargo cache --autoclean 2>/dev/null || true
+    # Clean old registry cache
+    rm -rf ~/.cargo/registry/cache 2>/dev/null || true
+    rm -rf ~/.cargo/git/checkouts 2>/dev/null || true
+    # If cargo-cache is installed, use it
+    if cargo --list | grep -q "cache"; then
+        cargo cache --autoclean 2>/dev/null || true
+    fi
+fi
+
+# Go
+if command_exists go; then
+    print_debug "Cleaning go module cache..."
+    go clean -modcache 2>/dev/null || true
+fi
+
+# JVM (Maven, Gradle)
+if command_exists mvn; then
+    print_debug "Cleaning Maven cache..."
+    rm -rf ~/.m2/repository/*-SNAPSHOT 2>/dev/null || true
+fi
+
+if command_exists gradle; then
+    print_debug "Cleaning Gradle cache..."
+    rm -rf ~/.gradle/caches/build-cache-* 2>/dev/null || true
+fi
+
+# PHP
+if command_exists composer; then
+    print_debug "Cleaning Composer cache..."
+    composer clear-cache 2>/dev/null || true
+fi
+
+# Ruby
+if command_exists gem; then
+    print_debug "Cleaning Ruby gem cache..."
+    gem cleanup 2>/dev/null || true
+fi
+
+if command_exists bundle; then
+    print_debug "Cleaning Bundler cache..."
+    bundle clean --force 2>/dev/null || true
+fi
+
+# .NET
+if command_exists dotnet; then
+    print_debug "Cleaning .NET NuGet cache..."
+    dotnet nuget locals all --clear 2>/dev/null || true
+fi
+
+# Docker
+if command_exists docker; then
+    print_debug "Cleaning Docker system..."
+    docker system prune -f 2>/dev/null || true
 fi
 
 # Remove temporary files
@@ -39,45 +117,174 @@ print_debug "Setting workspace permissions..."
 sudo chown -R developer:developer /workspace 2>/dev/null || true
 chmod -R 755 /workspace/scripts 2>/dev/null || true
 
-# Create a summary of installed tools
-print_status "Creating tools summary..."
+# Create a comprehensive summary of installed tools
+print_status "Creating comprehensive tools summary..."
 
 summary_file="/workspace/.installed-tools.txt"
 {
     echo "# Installed Development Tools"
     echo "# Generated on $(date)"
+    echo "# =========================================="
     echo
 
-    echo "## Core Tools"
+    echo "## Core Development Environment"
+    echo "### System & Version Control"
+    command_exists git && echo "- Git: $(git --version | head -n1)"
+    command_exists gh && echo "- GitHub CLI: $(gh --version | head -n1)"
+    command_exists claude && echo "- Claude Code: $(claude --version 2>/dev/null || echo 'Installed')"
+    [ -f "/workspace/swarm" ] && echo "- Claude Flow: Installed"
+    echo
+
+    echo "### Node.js & JavaScript"
     command_exists node && echo "- Node.js: $(node --version)"
     command_exists npm && echo "- npm: $(npm --version)"
-    command_exists python3 && echo "- Python: $(python3 --version)"
-    command_exists pip3 && echo "- pip: $(pip3 --version)"
-    command_exists git && echo "- Git: $(git --version)"
-    command_exists claude && echo "- Claude Code: $(claude --version 2>/dev/null || echo 'Installed')"
-
+    command_exists yarn && echo "- Yarn: $(yarn --version 2>/dev/null)"
+    command_exists pnpm && echo "- pnpm: $(pnpm --version 2>/dev/null)"
+    command_exists prettier && echo "- Prettier: $(prettier --version 2>/dev/null)"
+    command_exists eslint && echo "- ESLint: $(eslint --version 2>/dev/null | head -n1)"
+    command_exists typescript && echo "- TypeScript: $(tsc --version 2>/dev/null)"
     echo
-    echo "## Language-Specific Tools"
+
+    echo "## Programming Languages"
+    echo "### Python"
+    command_exists python3 && echo "- Python: $(python3 --version)"
+    command_exists pip3 && echo "- pip: $(pip3 --version | head -n1)"
+    command_exists poetry && echo "- Poetry: $(poetry --version 2>/dev/null)"
+    command_exists pipenv && echo "- Pipenv: $(pipenv --version 2>/dev/null)"
+    command_exists virtualenv && echo "- virtualenv: $(virtualenv --version 2>/dev/null)"
+    command_exists black && echo "- Black: $(black --version 2>/dev/null | head -n1)"
+    command_exists flake8 && echo "- Flake8: $(flake8 --version 2>/dev/null | head -n1)"
+    command_exists mypy && echo "- mypy: $(mypy --version 2>/dev/null)"
+    command_exists pytest && echo "- pytest: $(pytest --version 2>/dev/null | head -n1)"
+    command_exists jupyter && echo "- Jupyter: $(jupyter --version 2>/dev/null | grep ^jupyter | head -n1)"
+    command_exists ipython && echo "- IPython: $(ipython --version 2>/dev/null)"
+    echo
+
+    echo "### Rust"
     command_exists rustc && echo "- Rust: $(rustc --version)"
     command_exists cargo && echo "- Cargo: $(cargo --version)"
+    command_exists rustup && echo "- rustup: $(rustup --version 2>/dev/null | head -n1)"
+    command_exists rust-analyzer && echo "- rust-analyzer: Installed"
+    command_exists rg && echo "- ripgrep: $(rg --version | head -n1)"
+    command_exists fd && echo "- fd-find: $(fd --version 2>/dev/null)"
+    command_exists bat && echo "- bat: $(bat --version 2>/dev/null)"
+    command_exists exa && echo "- exa: $(exa --version 2>/dev/null | head -n1)"
+    command_exists tokei && echo "- tokei: $(tokei --version 2>/dev/null)"
+    echo
+
+    echo "### Go"
     command_exists go && echo "- Go: $(go version)"
-    command_exists java && echo "- Java: $(java --version | head -n1)"
-
+    command_exists gopls && echo "- gopls: $(gopls version 2>/dev/null | head -n1 | cut -d' ' -f2)"
+    command_exists dlv && echo "- Delve debugger: $(dlv version 2>/dev/null | head -n1)"
+    command_exists golangci-lint && echo "- golangci-lint: $(golangci-lint --version 2>/dev/null | head -n1)"
+    command_exists air && echo "- Air (live reload): $(air -v 2>/dev/null | head -n1)"
     echo
-    echo "## Development Utilities"
+
+    echo "### JVM Languages"
+    [ -d "$HOME/.sdkman" ] && echo "- SDKMAN: Installed"
+    command_exists java && echo "- Java: $(java -version 2>&1 | head -n1)"
+    command_exists javac && echo "- javac: $(javac -version 2>&1)"
+    command_exists mvn && echo "- Maven: $(mvn --version 2>/dev/null | head -n1)"
+    command_exists gradle && echo "- Gradle: $(gradle --version 2>/dev/null | grep ^Gradle)"
+    command_exists kotlin && echo "- Kotlin: $(kotlin -version 2>/dev/null | head -n1)"
+    command_exists kotlinc && echo "- kotlinc: $(kotlinc -version 2>/dev/null | head -n1)"
+    command_exists scala && echo "- Scala: $(scala -version 2>&1 | head -n1)"
+    command_exists sbt && echo "- sbt: $(sbt --version 2>/dev/null | head -n1)"
+    command_exists clojure && echo "- Clojure: $(clojure --version 2>/dev/null)"
+    command_exists lein && echo "- Leiningen: $(lein --version 2>/dev/null | head -n1)"
+    command_exists jbang && echo "- JBang: $(jbang --version 2>/dev/null)"
+    command_exists spring && echo "- Spring Boot CLI: $(spring --version 2>/dev/null)"
+    command_exists mn && echo "- Micronaut CLI: $(mn --version 2>/dev/null | head -n1)"
+    echo
+
+    echo "### PHP"
+    command_exists php && echo "- PHP: $(php --version | head -n1)"
+    command_exists composer && echo "- Composer: $(composer --version 2>/dev/null | head -n1)"
+    command_exists symfony && echo "- Symfony CLI: $(symfony version 2>/dev/null | head -n1)"
+    command_exists phpstan && echo "- PHPStan: $(phpstan --version 2>/dev/null)"
+    command_exists psalm && echo "- Psalm: $(psalm --version 2>/dev/null)"
+    command_exists phpunit && echo "- PHPUnit: $(phpunit --version 2>/dev/null | head -n1)"
+    command_exists php-cs-fixer && echo "- PHP CS Fixer: $(php-cs-fixer --version 2>/dev/null | head -n1)"
+    echo
+
+    echo "### Ruby"
+    [ -d "$HOME/.rbenv" ] && echo "- rbenv: Installed"
+    command_exists ruby && echo "- Ruby: $(ruby --version)"
+    command_exists gem && echo "- gem: $(gem --version)"
+    command_exists bundler && echo "- Bundler: $(bundler --version 2>/dev/null)"
+    command_exists rails && echo "- Rails: $(rails --version 2>/dev/null)"
+    command_exists rake && echo "- Rake: $(rake --version 2>/dev/null)"
+    command_exists rubocop && echo "- RuboCop: $(rubocop --version 2>/dev/null)"
+    command_exists rspec && echo "- RSpec: $(rspec --version 2>/dev/null | head -n1)"
+    command_exists pry && echo "- Pry: Installed"
+    command_exists foreman && echo "- Foreman: Installed"
+    command_exists puma && echo "- Puma: $(puma --version 2>/dev/null | head -n1)"
+    echo
+
+    echo "### .NET"
+    command_exists dotnet && echo "- .NET SDK: $(dotnet --version)"
+    echo "  Installed SDKs:"
+    if command_exists dotnet; then
+        dotnet --list-sdks 2>/dev/null | head -3 | sed 's/^/    - /'
+    fi
+    command_exists nuget && echo "- NuGet CLI: Installed"
+    dotnet tool list -g 2>/dev/null | grep -q dotnet-ef && echo "- Entity Framework Core: Installed"
+    dotnet tool list -g 2>/dev/null | grep -q dotnet-format && echo "- dotnet-format: Installed"
+    echo
+
+    echo "## DevOps & Infrastructure"
+    echo "### Containers & Orchestration"
     command_exists docker && echo "- Docker: $(docker --version)"
-    command_exists docker-compose && echo "- Docker Compose: $(docker-compose --version)"
-    command_exists prettier && echo "- Prettier: $(prettier --version)"
-    command_exists eslint && echo "- ESLint: $(eslint --version)"
-    command_exists black && echo "- Black: $(black --version)"
-
+    command_exists docker-compose && echo "- Docker Compose: $(docker-compose --version 2>/dev/null | head -n1)"
+    command_exists dive && echo "- Dive: $(dive --version 2>/dev/null | head -n1)"
+    command_exists ctop && echo "- ctop: Installed"
+    command_exists kubectl && echo "- kubectl: $(kubectl version --client --short 2>/dev/null)"
+    command_exists helm && echo "- Helm: $(helm version --short 2>/dev/null)"
+    command_exists k9s && echo "- k9s: $(k9s version --short 2>/dev/null | head -n1)"
+    command_exists kubectx && echo "- kubectx/kubens: Installed"
     echo
-    echo "## Custom Extensions"
+
+    echo "### Infrastructure as Code"
+    command_exists terraform && echo "- Terraform: $(terraform version | head -n1)"
+    command_exists pulumi && echo "- Pulumi: $(pulumi version 2>/dev/null)"
+    command_exists crossplane && echo "- Crossplane CLI: $(crossplane --version 2>/dev/null | head -n1)"
+    echo
+
+    echo "### Carvel Tools"
+    command_exists kapp && echo "- kapp: $(kapp version 2>/dev/null | head -n1)"
+    command_exists ytt && echo "- ytt: $(ytt version 2>/dev/null)"
+    command_exists kbld && echo "- kbld: $(kbld version 2>/dev/null)"
+    command_exists vendir && echo "- vendir: $(vendir version 2>/dev/null)"
+    command_exists imgpkg && echo "- imgpkg: $(imgpkg version 2>/dev/null)"
+    echo
+
+    echo "## Database Tools"
+    command_exists psql && echo "- PostgreSQL client: $(psql --version)"
+    command_exists mysql && echo "- MySQL client: $(mysql --version 2>/dev/null | head -n1)"
+    command_exists sqlite3 && echo "- SQLite: $(sqlite3 --version)"
+    command_exists redis-cli && echo "- Redis client: $(redis-cli --version)"
+    command_exists mongosh && echo "- MongoDB Shell: $(mongosh --version 2>/dev/null)"
+    echo
+
+    echo "## Installed Extensions"
     if [ -d "/workspace/scripts/extensions.d" ]; then
+        echo "### Active Extensions:"
         for ext in /workspace/scripts/extensions.d/*.sh; do
-            [ -f "$ext" ] && echo "- $(basename "$ext")"
+            if [ -f "$ext" ]; then
+                basename="$(basename "$ext")"
+                [[ ! "$basename" =~ \.example$ ]] && echo "  - $basename"
+            fi
+        done
+        echo
+        echo "### Available Extensions (not active):"
+        for ext in /workspace/scripts/extensions.d/*.sh.example; do
+            if [ -f "$ext" ]; then
+                basename="$(basename "$ext" .example)"
+                echo "  - $basename (rename to activate)"
+            fi
         done
     fi
+    echo
 
 } > "$summary_file"
 
@@ -100,9 +307,31 @@ sync
 print_success "Post-installation cleanup completed"
 print_status "System ready for development!"
 
-# Show disk usage after cleanup
+# Show system statistics after cleanup
+print_header "System Statistics After Cleanup"
+
 if command_exists df; then
-    echo
-    print_status "Disk usage after cleanup:"
+    print_status "Disk usage:"
     df -h /workspace | awk 'NR==2 {print "  Workspace: " $3 " used / " $2 " total (" $5 " full)"}'
+    df -h / | awk 'NR==2 {print "  System: " $3 " used / " $2 " total (" $5 " full)"}'
 fi
+
+if command_exists free; then
+    echo
+    print_status "Memory usage:"
+    free -h | awk 'NR==2 {print "  Total: " $2 ", Used: " $3 ", Free: " $4 ", Available: " $7}'
+fi
+
+# Count installed tools
+echo
+print_status "Tool installation summary:"
+tool_count=0
+[ -f "$summary_file" ] && tool_count=$(grep -c "^-" "$summary_file" 2>/dev/null || echo 0)
+echo "  Total tools installed: $tool_count"
+
+# Show cache sizes cleaned
+echo
+print_status "Cache cleanup summary:"
+echo "  Package manager caches cleared"
+echo "  Temporary files removed"
+echo "  Docker system pruned (if available)"
