@@ -31,6 +31,15 @@ This is a complete remote AI-assisted development environment setup running Clau
 - `claude` - Authenticate Claude Code
 - `npx claude-flow@alpha init --force` - Initialize Claude Flow in project
 
+### Project Management
+- `new-project <name> [--type <type>]` - Create new project with Claude enhancements
+- `clone-project <url> [options]` - Clone or fork existing repository with enhancements
+  - `--fork` - Fork the repository using GitHub CLI before cloning
+  - `--branch <name>` - Clone specific branch
+  - `--feature <name>` - Create feature branch after clone/fork
+  - `--git-name/--git-email` - Configure Git for this project
+  - `--no-enhance` - Skip Claude enhancements (just clone/fork)
+
 ## Architecture Overview
 
 ### Infrastructure Components
@@ -233,9 +242,16 @@ The configuration files are copied to `/workspace/config/` and `/workspace/.agen
   new-project.sh my-app --type node
   new-project.sh my-app --git-name "John Doe" --git-email "john@example.com"
   ```
-- Supports project types: node, python, go, rust, web
-- Automatically initializes Git with appropriate .gitignore
-- Creates CLAUDE.md template for project context
+- Use `clone-project.sh` to clone and enhance existing repositories:
+  ```bash
+  clone-project https://github.com/user/repo
+  clone-project https://github.com/original/repo --fork --feature my-feature
+  clone-project https://github.com/company/app --git-name "John" --git-email "john@company.com"
+  ```
+- New projects support types: node, python, go, rust, web
+- Clone projects automatically detect dependencies and install them
+- Both create CLAUDE.md context and initialize Claude Flow
+- Fork mode sets up upstream remotes and helpful Git aliases
 
 ### Testing and Validation
 - No specific test framework - varies by project
