@@ -47,7 +47,7 @@ show_environment_status() {
     echo "  • agent-install              # Install all agents"
     echo "  • agent-list                 # List available agents"
     echo "  • tmux-workspace             # Start development environment"
-    echo "  • cf swarm '<task>'          # Claude Flow with context"
+    echo "  • cf-swarm '<task>'          # Claude Flow with context"
     echo "  • load-context               # View all context files"
     echo "  • validate-context           # Validate context system"
     echo

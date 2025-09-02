@@ -1,6 +1,9 @@
 # Claude Code Agent Manager Aliases
 # This file contains shell aliases for agent management operations
 # Requires agent-discovery.sh to be sourced for full functionality
+#
+# IMPORTANT: This file must be sourced AFTER agent-discovery.sh
+# Both files should be automatically sourced in .bashrc during VM configuration
 
 # Core agent management
 alias agent-install="agent-manager install --config /workspace/config/agents-config.yaml"
@@ -75,7 +78,8 @@ alias microtask-breakdown="cat /workspace/agents/microtask-breakdown.md"
 alias cf-with-agents='function _cf_agents() { echo "Available agents: $(count_agents)"; echo "Mandatory agents loaded:"; doc-planner | head -5; echo "---"; microtask-breakdown | head -5; }; _cf_agents'
 
 # Help command - shows all available agent commands
-alias agent-help='cat << EOF
+agent-help() {
+    cat << 'EOF'
 🤖 Agent Management Commands
 ============================
 
@@ -126,4 +130,5 @@ INTEGRATION:
   cf-with-agents        Show agent status for Claude Flow
 
 Use "agent-<command> -h" or "agent-<command> --help" for detailed help on specific commands.
-EOF'
+EOF
+}

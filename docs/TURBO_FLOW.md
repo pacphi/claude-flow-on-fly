@@ -121,7 +121,7 @@ agent-help
 
 # Basic search
 agent-find "testing"         # Search by name
-agent-search "react"          # Search by content
+agent-search "react"         # Search by content
 agent-by-category            # Browse by category
 agent-by-tag "security"      # Find by tag
 agent-with-keyword "api"     # Find by filename keyword
@@ -375,7 +375,7 @@ nano CLAUDE.md  # Customize for your project
 tmux-workspace
 
 # Load mandatory agents and begin development
-cf swarm "
+cf-swarm "
 Create a REST API for user management with:
 - Authentication and authorization
 - User CRUD operations

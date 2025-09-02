@@ -117,7 +117,7 @@ main() {
     print_status "  load-context           # View all context"
     print_status "  validate-context       # Validate context files"
     print_status "  context-hierarchy      # Show loading hierarchy"
-    print_status "  cf swarm '<task>'      # Claude Flow with context"
+    print_status "  cf-swarm '<task>'      # Claude Flow with context"
 }
 
 # Execute main function

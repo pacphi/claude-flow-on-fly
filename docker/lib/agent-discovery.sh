@@ -15,7 +15,14 @@ search_agents_by_name() {
         return 1
     fi
 
-    grep -r "name:" /workspace/agents/ 2>/dev/null | grep -i "$search_term" | cut -d: -f1 | sort | uniq
+    # Search through agent files and check if name contains search term
+    find /workspace/agents -name "*.md" 2>/dev/null | while read -r file; do
+        local name
+        name=$(get_agent_name "$file")
+        if [[ -n "$name" ]] && echo "$name" | grep -q -i "$search_term"; then
+            echo "$file"
+        fi
+    done | sort | uniq
 }
 
 # Function to validate agent file format
@@ -170,21 +177,33 @@ find_agents_by_tag() {
 validate_all_agents() {
     local errors=0
     local total=0
+    local temp_errors="/tmp/agent_errors_$$"
 
     echo "🔍 Validating all agents..."
 
-    find /workspace/agents -name "*.md" 2>/dev/null | while read -r file; do
+    # Process files and track counts properly
+    while IFS= read -r file; do
         total=$((total + 1))
-        if ! validate_agent_file "$file" >/dev/null; then
+        if ! validate_agent_file "$file" >/dev/null 2>&1; then
             errors=$((errors + 1))
-            echo "❌ $(basename "$file"): Missing required fields"
+            echo "❌ $(basename "$file"): Missing required fields" | tee -a "$temp_errors"
         fi
-    done
+    done < <(find /workspace/agents -name "*.md" 2>/dev/null)
 
-    if [[ $errors -eq 0 ]]; then
+    # Display summary
+    if [[ $total -eq 0 ]]; then
+        echo "❌ No agents found to validate"
+    elif [[ $errors -eq 0 ]]; then
         echo "✅ All $total agents validated successfully"
     else
+        echo ""
         echo "⚠️ Found $errors issues in $total agents"
+        echo ""
+        echo "Summary of validation errors:"
+        if [[ -f "$temp_errors" ]]; then
+            cat "$temp_errors"
+            rm -f "$temp_errors"
+        fi
     fi
 }
 
@@ -254,16 +273,39 @@ get_agent_stats() {
 # Function to find duplicate agents (by name)
 find_duplicate_agents() {
     echo "🔍 Checking for duplicate agents..."
-
+    
+    local temp_file="/tmp/agent_names_$$"
+    local dup_file="/tmp/agent_dups_$$"
+    
+    # Collect all agent names and files
     find /workspace/agents -name "*.md" 2>/dev/null | while read -r file; do
         local name
         name=$(get_agent_name "$file")
         if [[ -n "$name" ]]; then
             echo "$name|$file"
         fi
-    done | sort | uniq -f1 -d | while IFS='|' read -r name file; do
-        echo "⚠️ Duplicate name '$name': $file"
-    done
+    done > "$temp_file"
+    
+    # Find and display duplicates
+    if [[ -f "$temp_file" && -s "$temp_file" ]]; then
+        # Get unique names that appear more than once
+        cut -d'|' -f1 "$temp_file" | sort | uniq -d > "$dup_file"
+        
+        if [[ -s "$dup_file" ]]; then
+            while read -r dup_name; do
+                echo "⚠️ Duplicate name '$dup_name' found in:"
+                grep "^${dup_name}|" "$temp_file" | cut -d'|' -f2 | while read -r file; do
+                    echo "   - $file"
+                done
+            done < "$dup_file"
+        else
+            echo "✅ No duplicate agent names found"
+        fi
+        
+        rm -f "$temp_file" "$dup_file"
+    else
+        echo "❌ No agents found to check"
+    fi
 }
 
 # Export functions for use in other scripts
