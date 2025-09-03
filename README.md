@@ -42,7 +42,7 @@ claude
 ## 🌟 Key Features
 
 - **Zero Local Setup** - All AI tools run on remote VMs
-- **Cost Optimized** - Auto-suspend VMs (~$1.70-8.70/month)
+- **Cost Optimized** - Auto-suspend VMs (from ~$1.70-8.70/month depending on configuration and usage)
 - **IDE Integration** - VSCode and IntelliJ remote development
 - **Team Ready** - Shared or individual VMs with persistent volumes
 - **Secure** - SSH access with Fly.io network isolation
@@ -69,7 +69,8 @@ Manual controls:
 ./scripts/cost-monitor.sh  # Track usage
 ```
 
-Estimated costs from $1.70-8.70/month depending on configuration and usage. See [Cost Management](docs/COST_MANAGEMENT.md) for optimization strategies.
+> [!TIP]
+> See the cost management [guide]((docs/COST_MANAGEMENT.md)) for optimization strategies.
 
 ## 🔧 Essential Commands
 
@@ -83,7 +84,7 @@ ssh developer@my-claude-dev.fly.dev -p 10022
 claude
 ```
 
-Full [command reference](docs/REFERENCE.md)
+Full [command reference](docs/REFERENCE.md).
 
 ## 📄 License
 
