@@ -83,7 +83,7 @@ ssh developer@my-claude-dev.fly.dev -p 10022
 claude
 ```
 
-Full command reference: [docs/REFERENCE.md](docs/REFERENCE.md)
+Full [command reference](docs/REFERENCE.md)
 
 ## 📄 License
 
