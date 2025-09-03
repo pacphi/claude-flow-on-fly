@@ -13,7 +13,7 @@ Thanks for the inspiration [Marcus Patman](https://github.com/marcuspat)!
 
 ### 🤖 Flexible Agent Management
 
-- **600+ Agents**: Access to VoltAgent's awesome-claude-code-subagents
+- **100+ Agents**: Access to VoltAgent's awesome-claude-code-subagents
 - **YAML Configuration**: Easily add/remove agent sources
 - **Smart Discovery**: Search agents by name and functionality
 - **Automatic Updates**: Keep agents current with upstream sources
