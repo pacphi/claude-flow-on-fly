@@ -90,8 +90,8 @@ fi
 print_status "Installing Ruby versions..."
 
 ruby_versions=(
-    "3.3.0"    # Latest stable
-    "3.2.3"    # Previous stable
+    "3.4.5"    # Latest stable
+    "3.3.9"    # Previous stable
 )
 
 for version in "${ruby_versions[@]}"; do

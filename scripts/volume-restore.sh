@@ -123,7 +123,7 @@ create_pre_restore_backup() {
 
     ssh -p "$REMOTE_PORT" "$REMOTE_USER@$REMOTE_HOST" bash << EOF
 set -e
-BACKUP_DIRS="/workspace/projects /workspace/.config /home/developer/.claude"
+BACKUP_DIRS="/workspace/projects /workspace/.config /workspace/developer/.claude"
 BACKUP_FILE="/workspace/backups/$backup_name"
 
 # Create backups directory
@@ -185,7 +185,7 @@ tar -xzf "/tmp/$backup_file"
 
 # Set correct permissions
 chown -R developer:developer /workspace 2>/dev/null || true
-chown -R developer:developer /home/developer/.claude 2>/dev/null || true
+chown -R developer:developer /workspace/developer/.claude 2>/dev/null || true
 
 # Clean up uploaded file
 rm "/tmp/$backup_file"
@@ -194,7 +194,7 @@ echo "✅ Backup extracted successfully"
 echo "📁 Restored directories:"
 echo "   /workspace/projects"
 echo "   /workspace/.config"
-echo "   /home/developer/.claude"
+echo "   /workspace/developer/.claude"
 EOF
 
     print_success "Backup restored successfully"
@@ -212,13 +212,13 @@ echo "📁 Workspace structure:"
 find /workspace -maxdepth 2 -type d 2>/dev/null | head -10
 
 echo -e "\n🔧 Claude configuration:"
-if [[ -f /home/developer/.claude/CLAUDE.md ]]; then
+if [[ -f /workspace/developer/.claude/CLAUDE.md ]]; then
     echo "   ✅ Global CLAUDE.md found"
 else
     echo "   ❌ Global CLAUDE.md missing"
 fi
 
-if [[ -f /home/developer/.claude/settings.json ]]; then
+if [[ -f /workspace/developer/.claude/settings.json ]]; then
     echo "   ✅ Claude settings found"
 else
     echo "   ❌ Claude settings missing"

@@ -3,30 +3,50 @@ set -e
 
 echo "🚀 Starting Claude Development Environment..."
 
-# Configure SSH keys from environment variable
-if [ ! -z "$AUTHORIZED_KEYS" ]; then
-    echo "🔑 Configuring SSH keys..."
-    echo "$AUTHORIZED_KEYS" > /home/developer/.ssh/authorized_keys
-    chown developer:developer /home/developer/.ssh/authorized_keys
-    chmod 600 /home/developer/.ssh/authorized_keys
-    echo "✅ SSH keys configured"
-else
-    echo "⚠️  No SSH keys found in AUTHORIZED_KEYS environment variable"
-fi
-
 # Ensure workspace exists and has correct permissions
-echo "📁 Setting up workspace..."
+echo "📁 Setting up workspace and developer home..."
 if [ ! -d "/workspace" ]; then
     mkdir -p /workspace
 fi
-chown -R developer:developer /workspace
+
+# Create developer home directory on persistent volume if it doesn't exist
+if [ ! -d "/workspace/developer" ]; then
+    echo "🏠 Creating developer home directory on persistent volume..."
+    mkdir -p /workspace/developer
+    # Copy skeleton files from /etc/skel
+    if [ -d "/etc/skel" ]; then
+        cp -r /etc/skel/. /workspace/developer/
+    fi
+    chown -R developer:developer /workspace/developer
+    chmod 755 /workspace/developer
+    echo "✅ Developer home directory created at /workspace/developer"
+fi
+
+# Update the user's home directory to point to persistent volume
+echo "🔧 Updating user home directory..."
+usermod -d /workspace/developer developer
+
+# Ensure correct ownership of workspace
+chown developer:developer /workspace
 chmod 755 /workspace
 
 # Create essential directories in workspace if they don't exist
 sudo -u developer mkdir -p /workspace/projects
 sudo -u developer mkdir -p /workspace/scripts
 sudo -u developer mkdir -p /workspace/backups
-sudo -u developer mkdir -p /workspace/.cache
+
+# Configure SSH keys from environment variable
+if [ ! -z "$AUTHORIZED_KEYS" ]; then
+    echo "🔑 Configuring SSH keys..."
+    mkdir -p /workspace/developer/.ssh
+    echo "$AUTHORIZED_KEYS" > /workspace/developer/.ssh/authorized_keys
+    chown -R developer:developer /workspace/developer/.ssh
+    chmod 700 /workspace/developer/.ssh
+    chmod 600 /workspace/developer/.ssh/authorized_keys
+    echo "✅ SSH keys configured"
+else
+    echo "⚠️  No SSH keys found in AUTHORIZED_KEYS environment variable"
+fi
 
 # Copy lib directory if it doesn't exist
 if [ ! -d "/workspace/scripts/lib" ]; then
@@ -44,22 +64,22 @@ fi
 
 # Set up environment variables for developer user
 if [ ! -z "$ANTHROPIC_API_KEY" ]; then
-    echo "export ANTHROPIC_API_KEY='$ANTHROPIC_API_KEY'" >> /home/developer/.bashrc
+    echo "export ANTHROPIC_API_KEY='$ANTHROPIC_API_KEY'" >> /workspace/developer/.bashrc
 fi
 
 # Configure GitHub token if provided
 if [ ! -z "$GITHUB_TOKEN" ]; then
     echo "🔐 Configuring GitHub authentication..."
-    echo "export GITHUB_TOKEN='$GITHUB_TOKEN'" >> /home/developer/.bashrc
+    echo "export GITHUB_TOKEN='$GITHUB_TOKEN'" >> /workspace/developer/.bashrc
 
     # Create GitHub CLI config for gh commands
-    sudo -u developer mkdir -p /home/developer/.config/gh
-    echo "github.com:" > /home/developer/.config/gh/hosts.yml
-    echo "    oauth_token: $GITHUB_TOKEN" >> /home/developer/.config/gh/hosts.yml
-    echo "    user: $GITHUB_USER" >> /home/developer/.config/gh/hosts.yml
-    echo "    git_protocol: https" >> /home/developer/.config/gh/hosts.yml
-    chown -R developer:developer /home/developer/.config/gh
-    chmod 600 /home/developer/.config/gh/hosts.yml
+    sudo -u developer mkdir -p /workspace/developer/.config/gh
+    echo "github.com:" > /workspace/developer/.config/gh/hosts.yml
+    echo "    oauth_token: $GITHUB_TOKEN" >> /workspace/developer/.config/gh/hosts.yml
+    echo "    user: $GITHUB_USER" >> /workspace/developer/.config/gh/hosts.yml
+    echo "    git_protocol: https" >> /workspace/developer/.config/gh/hosts.yml
+    chown -R developer:developer /workspace/developer/.config/gh
+    chmod 600 /workspace/developer/.config/gh/hosts.yml
 fi
 
 # Configure Git credentials if provided
@@ -76,7 +96,7 @@ fi
 # Setup Git credential helper for GitHub token
 if [ ! -z "$GITHUB_TOKEN" ]; then
     # Create credential helper script
-    cat > /home/developer/.git-credential-helper.sh << 'EOF'
+    cat > /workspace/developer/.git-credential-helper.sh << 'EOF'
 #!/bin/bash
 # Git credential helper for GitHub token authentication
 
@@ -99,11 +119,11 @@ if [ "$1" = "get" ]; then
 fi
 EOF
 
-    chmod +x /home/developer/.git-credential-helper.sh
-    chown developer:developer /home/developer/.git-credential-helper.sh
+    chmod +x /workspace/developer/.git-credential-helper.sh
+    chown developer:developer /workspace/developer/.git-credential-helper.sh
 
     # Configure Git to use the credential helper
-    sudo -u developer git config --global credential.helper "/home/developer/.git-credential-helper.sh"
+    sudo -u developer git config --global credential.helper "/workspace/developer/.git-credential-helper.sh"
     echo "✅ GitHub token authentication configured"
 fi
 

@@ -50,17 +50,27 @@ This is a complete remote AI-assisted development environment setup running Clau
 
 ### Key Directories
 - `/workspace/` - Persistent volume root (survives VM restarts)
+- `/workspace/developer/` - Developer home directory (persistent, 30GB+)
 - `/workspace/projects/active/` - Active development projects
 - `/workspace/projects/archive/` - Archived projects
 - `/workspace/scripts/` - Utility and management scripts
 - `/workspace/backups/` - Local backup storage
-- `/home/developer/` - User home (ephemeral, reset on VM restart)
+
+### Storage Architecture
+- **Persistent Volume**: 30GB mounted at `/workspace` with auto-extension up to 100GB
+- **Developer Home**: Located at `/workspace/developer` (fully persistent)
+- **Ephemeral Storage**: System files only (~8GB, automatically managed)
+- **Swap Space**: 2GB for memory pressure relief during builds
+- **Auto-extension**: Volume grows by 5GB when 80% full
+- **Snapshots**: Daily backups retained for 7 days
+
+All user data (npm cache, pip cache, installed tools, SSH keys, configs) persists between VM restarts.
 
 ### Cost Optimization Features
-- Auto-suspend VMs when idle (~$2-5/month with minimal usage)
+- Auto-suspend VMs when idle (~$6.78/month with default configuration at 10% uptime)
 - Scale-to-zero configuration (no compute charges when suspended)
 - Persistent volumes maintain data during suspension
-- Estimated costs: $2-15/month depending on usage
+- Estimated costs: $6.78-27.25/month depending on usage and configuration
 
 ## File Organization
 
@@ -78,7 +88,7 @@ This project has two distinct file structures:
    - `/workspace/` - Persistent volume mount point
    - `/workspace/scripts/` - Management scripts available on the VM
    - `/workspace/scripts/lib/` - Shared libraries used by scripts
-   - `/home/developer/` - User home directory (ephemeral)
+   - `/workspace/developer/` - User home directory (persistent)
 
 ### File Mapping
 
@@ -231,7 +241,7 @@ The configuration files are copied to `/workspace/config/` and `/workspace/.agen
 - Memory survives VM restarts via persistent volume
 
 ### Global Preferences
-- Store user preferences in `/home/developer/.claude/CLAUDE.md`
+- Store user preferences in `/workspace/developer/.claude/CLAUDE.md`
 - Include coding style, Git workflow, and testing preferences
 
 ## Common Operations
@@ -268,6 +278,13 @@ The configuration files are copied to `/workspace/config/` and `/workspace/.agen
 - `flyctl logs` - View system logs
 - `flyctl machine restart <id>` - Restart VM if unresponsive
 - SSH with `-vvv` for connection debugging
+
+#### Storage Issues
+- `df -h` - Check disk usage (both ephemeral and persistent)
+- Home directory is at `/workspace/developer` (persistent)
+- All caches and tools automatically use persistent storage
+- Volume auto-extends when 80% full (check with `flyctl volumes list`)
+- 2GB swap available for memory-intensive builds
 
 ## Cost Management
 

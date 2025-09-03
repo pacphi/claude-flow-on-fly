@@ -15,7 +15,7 @@ fi
 FLY_BACKUP_SH_LOADED="true"
 
 # Default backup directories and exclusions
-DEFAULT_BACKUP_DIRS="/workspace/projects /workspace/.config /home/developer/.claude /workspace/scripts"
+DEFAULT_BACKUP_DIRS="/workspace/projects /workspace/.config /workspace/developer/.claude /workspace/scripts"
 DEFAULT_EXCLUDE_PATTERNS=(
     "--exclude=/workspace/backups"
     "--exclude=/workspace/.cache"
@@ -93,7 +93,7 @@ create_suspend_backup() {
 
     print_status "Creating pre-suspend backup..."
 
-    local critical_dirs="/workspace/projects /home/developer/.claude /workspace/.config"
+    local critical_dirs="/workspace/projects /workspace/developer/.claude /workspace/.config"
 
     # Create lightweight suspend backup
     local suspend_script="
@@ -210,7 +210,7 @@ tar -xzf \"/tmp/$backup_name\"
 
 # Set correct permissions
 chown -R developer:developer /workspace 2>/dev/null || true
-chown -R developer:developer /home/developer/.claude 2>/dev/null || true
+chown -R developer:developer /workspace/developer/.claude 2>/dev/null || true
 
 # Clean up uploaded file
 rm \"/tmp/$backup_name\"
@@ -219,7 +219,7 @@ echo '✅ Backup extracted successfully'
 echo '📁 Restored directories:'
 echo '   /workspace/projects'
 echo '   /workspace/.config'
-echo '   /home/developer/.claude'
+echo '   /workspace/developer/.claude'
 "
 
     execute_remote_script "$remote_host" "$remote_port" "$remote_user" "$extract_script"
@@ -342,7 +342,7 @@ create_pre_restore_backup() {
 
     local backup_script="
 set -e
-BACKUP_DIRS=\"/workspace/projects /workspace/.config /home/developer/.claude\"
+BACKUP_DIRS=\"/workspace/projects /workspace/.config /workspace/developer/.claude\"
 BACKUP_FILE=\"/workspace/backups/$backup_name\"
 
 # Create backups directory
@@ -381,13 +381,13 @@ echo "📁 Workspace structure:"
 find /workspace -maxdepth 2 -type d 2>/dev/null | head -10
 
 echo -e "\n🔧 Claude configuration:"
-if [[ -f /home/developer/.claude/CLAUDE.md ]]; then
+if [[ -f /workspace/developer/.claude/CLAUDE.md ]]; then
     echo "   ✅ Global CLAUDE.md found"
 else
     echo "   ❌ Global CLAUDE.md missing"
 fi
 
-if [[ -f /home/developer/.claude/settings.json ]]; then
+if [[ -f /workspace/developer/.claude/settings.json ]]; then
     echo "   ✅ Claude settings found"
 else
     echo "   ❌ Claude settings missing"

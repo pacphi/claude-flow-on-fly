@@ -25,9 +25,6 @@ RUN mkdir -p /var/run/sshd && \
 # Setup bash environment for developer user
 RUN /docker/scripts/setup-bashrc.sh
 
-# Install NVM and configure Git for developer user
-RUN /docker/scripts/install-nvm.sh
-
 # Create welcome script for developer user
 RUN /docker/scripts/create-welcome.sh
 

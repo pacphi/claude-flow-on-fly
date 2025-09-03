@@ -7,7 +7,7 @@ This repository contains everything you need to set up a secure, cost-optimized 
 ## 🌟 What You Get
 
 - **Zero Local Installation**: All AI tools run on remote VMs
-- **Cost Optimization**: Auto-suspend VMs with persistent storage (~$2-5/month)
+- **Cost Optimization**: Auto-suspend VMs with persistent storage (~$1.70-8.70/month)
 - **IDE Integration**: Full VSCode and IntelliJ remote development support
 - **Team Collaboration**: Shared or individual VMs with persistent volumes
 - **Security**: SSH-based access with Fly.io's network isolation
@@ -119,7 +119,6 @@ Before starting, you'll need:
 │       ├── create-welcome.sh          # Welcome message creator
 │       ├── entrypoint.sh              # Container entrypoint
 │       ├── health-check.sh            # Health check script
-│       ├── install-nvm.sh             # Node Version Manager installer
 │       ├── install-packages.sh        # System packages installer
 │       ├── setup-bashrc.sh            # Bash configuration
 │       ├── setup-user.sh              # User account setup
@@ -312,10 +311,12 @@ npx claude-flow@alpha swarm "build a REST API"
 
 ### Estimated Costs
 
-- **Minimal usage**: ~$2-3/month (mostly storage)
-- **Regular usage**: ~$5-8/month
-- **Heavy usage**: ~$10-15/month
-- **Always-on**: ~$30-50/month
+- **Minimal usage** (1x shared 256MB, ~10% uptime): ~$1.70/month
+- **Regular usage** (1x shared 1GB, ~25% uptime): ~$3.00/month
+- **Heavy usage** (2x shared 2GB, ~50% uptime): ~$8.70/month
+- **Always-on** (1x shared 1GB, 100% uptime): ~$7.20/month
+
+*Costs include compute + 10-20GB storage. Actual costs depend on CPU/memory configuration and usage patterns.*
 
 ## 🔒 Security Features
 

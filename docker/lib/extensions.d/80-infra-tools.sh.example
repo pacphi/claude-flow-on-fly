@@ -9,7 +9,7 @@ print_header "Infrastructure Tooling Setup"
 # Terraform
 print_info "Installing Terraform..."
 if ! command -v terraform &> /dev/null; then
-    TERRAFORM_VERSION="1.9.5"
+    TERRAFORM_VERSION="1.13.0"
     wget -q "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
     unzip -q "terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
     sudo mv terraform /usr/local/bin/

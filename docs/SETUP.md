@@ -44,7 +44,7 @@ This setup enables AI-assisted development using Claude Code and Claude Flow on 
                                                │
                                         ┌──────▼───────────┐
                                         │ Persistent       │
-                                        │ Volume (10GB)    │
+                                        │ Volume (30GB)    │
                                         │ - Source Code    │
                                         │ - Dependencies   │
                                         │ - Claude Memory  │
@@ -77,24 +77,29 @@ This setup enables AI-assisted development using Claude Code and Claude Flow on 
 
 ### Estimated Monthly Costs
 
-**Minimal Setup (Hobby/Individual)**
+**Default Setup (Current defaults)**
 
-- VM (1GB RAM, 1 shared CPU): ~$5/month when running
+- VM (8GB RAM, 2 shared CPUs): $0.0316/hr (~$22.75/mo if always on)
+- Persistent Volume (30GB): $4.50/month
+- With auto-stop (10% uptime): ~$6.78/month total
+
+**Minimal Setup (Budget-conscious)**
+
+- VM (1GB RAM, 1 shared CPU): $0.0079/hr (~$5.69/mo if always on)
 - Persistent Volume (10GB): $1.50/month
-- With auto-stop: ~$2-3/month total
+- With auto-stop (10% uptime): ~$2.07/month total
 
 **Performance Setup (Intensive Development)**
 
-- VM (2GB RAM, 2 shared CPUs): ~$10/month when running
-- VM (2GB RAM, 1 performance CPU): ~$15/month when running
-- Persistent Volume (20GB): $3/month
-- With auto-stop: ~$5-8/month total
+- VM (8GB RAM, 2 performance CPUs): $0.0861/hr (~$62.00/mo if always on)
+- Persistent Volume (50GB): $7.50/month
+- With auto-stop (20% uptime): ~$19.90/month total
 
 **Team Setup (Small team)**
 
-- VM (4GB RAM, 2 performance CPUs): ~$30/month when running
+- VM (4GB RAM, 2 performance CPUs): $0.0861/hr (~$62.00/mo if always on)
 - Persistent Volume (50GB): $7.50/month
-- With auto-stop: ~$10-15/month total
+- With auto-stop (20% uptime): ~$19.90/month total
 
 **Note**: Storage costs persist even when VM is stopped. Only compute costs stop.
 
@@ -133,8 +138,8 @@ The `vm-setup.sh` script automates the entire initial setup:
 Options:
   --app-name NAME     Name for the Fly.io app (default: claude-dev-env)
   --region REGION     Fly.io region (default: iad)
-  --volume-size SIZE  Volume size in GB (default: 10)
-  --memory SIZE       VM memory in MB (default: 1024)
+  --volume-size SIZE  Volume size in GB (default: 30)
+  --memory SIZE       VM memory in MB (default: 8192)
   --help              Show help message
 
 Examples:
@@ -170,7 +175,7 @@ flyctl launch --no-deploy \
 ### Step 2: Create Persistent Volume
 
 ```bash
-# Create a 10GB volume in the same region
+# Create a 30GB volume in the same region
 flyctl volumes create claude_data \
   --region iad \
   --size 10 \
@@ -264,7 +269,7 @@ RUN mkdir -p /workspace && chown developer:developer /workspace
 
 # Switch to developer user
 USER developer
-WORKDIR /home/developer
+WORKDIR /workspace/developer
 
 # Create SSH directory
 RUN mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -288,9 +293,9 @@ USER root
 RUN echo '#!/bin/bash\n\
 # Add SSH keys from environment\n\
 if [ ! -z "$AUTHORIZED_KEYS" ]; then\n\
-    echo "$AUTHORIZED_KEYS" > /home/developer/.ssh/authorized_keys\n\
-    chown developer:developer /home/developer/.ssh/authorized_keys\n\
-    chmod 600 /home/developer/.ssh/authorized_keys\n\
+    echo "$AUTHORIZED_KEYS" > /workspace/developer/.ssh/authorized_keys\n\
+    chown developer:developer /workspace/developer/.ssh/authorized_keys\n\
+    chmod 600 /workspace/developer/.ssh/authorized_keys\n\
 fi\n\
 # Ensure workspace permissions\n\
 chown -R developer:developer /workspace\n\
@@ -340,7 +345,7 @@ Create a backup script on the VM (`/workspace/scripts/backup.sh`):
 
 BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/workspace/backups"
-CRITICAL_DIRS="/workspace/projects /home/developer/.claude"
+CRITICAL_DIRS="/workspace/projects /workspace/developer/.claude"
 
 # Create backup directory
 mkdir -p $BACKUP_DIR
@@ -666,7 +671,7 @@ This is a [project type] built with [technologies].
 
 ### Global Preferences
 
-Create `/home/developer/.claude/CLAUDE.md`:
+Create `/workspace/developer/.claude/CLAUDE.md`:
 
 ```markdown
 # Developer Preferences
@@ -727,8 +732,8 @@ echo -e "\nVolume Usage:"
 flyctl volumes list
 
 echo -e "\nEstimated Costs:"
-echo "- VM (when running): ~$0.0067/hour"
-echo "- Volume (10GB): $0.15/GB/month = $1.50/month"
+echo "- VM (when running): ~$0.0079/hr (1x shared 1GB)"
+echo "- Volume (30GB): $0.15/GB/month = $4.50/month"
 echo "- Current uptime this month: $(flyctl logs | grep 'Machine started' | wc -l) starts"
 ```
 
@@ -1002,13 +1007,13 @@ npx claude-flow@alpha --help   # Claude Flow help
 
 - `/fly.toml` - Fly.io configuration
 - `/workspace/your-project/CLAUDE.md` - Project context
-- `/home/developer/.claude/` - Claude configuration
+- `/workspace/developer/.claude/` - Claude configuration
 - `/workspace/your-project/.swarm/` - Claude Flow memory
 
 ### Important Paths
 
 - `/workspace/` - Persistent volume mount
-- `/home/developer/` - User home (ephemeral)
+- `/workspace/developer/` - User home (persistent)
 - `~/.ssh/` - SSH configuration
 - `~/.claude/` - Claude user settings
 

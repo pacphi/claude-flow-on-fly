@@ -28,9 +28,8 @@ fi
 print_status "Installing .NET SDKs..."
 
 dotnet_sdks=(
-    "dotnet-sdk-8.0"    # Current LTS
-    "dotnet-sdk-7.0"    # Previous version
-    "dotnet-sdk-6.0"    # Previous LTS
+    "dotnet-sdk-9.0"    # Current LTS
+    "dotnet-sdk-8.0"    # Previous version
 )
 
 for sdk in "${dotnet_sdks[@]}"; do

@@ -203,7 +203,7 @@ setup_agent_discovery() {
         source "$discovery_script"
 
         # Add sourcing to bashrc if not already present
-        local bashrc_file="/home/developer/.bashrc"
+        local bashrc_file="/workspace/developer/.bashrc"
         if [[ -f "$bashrc_file" ]]; then
             if ! grep -q "agent-discovery.sh" "$bashrc_file"; then
                 print_status "📝 Adding agent-discovery.sh to .bashrc..."

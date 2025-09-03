@@ -113,7 +113,7 @@ ssh developer@my-claude-dev.fly.dev -p 10022
 
    ```bash
    flyctl ssh console -a my-claude-dev
-   cat /home/developer/.ssh/authorized_keys
+   cat /workspace/developer/.ssh/authorized_keys
    ```
 
 ## Creating and Managing SSH Keys

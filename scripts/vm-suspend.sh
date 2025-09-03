@@ -55,7 +55,7 @@ show_cost_info() {
     echo "  • Estimated savings: ~\$5-10/month in compute costs"
     echo "  • Resume time: ~30-60 seconds"
     echo
-    print_warning "💡 Volume storage costs (~\$1.50/month for 10GB) continue even when suspended"
+    print_warning "💡 Volume storage costs (~\$4.50/month for 30GB) continue even when suspended"
 }
 
 # Function to show resume instructions

@@ -23,7 +23,7 @@ export SCRIPTS_DIR="${SCRIPTS_DIR:-$WORKSPACE_DIR/scripts}"
 export PROJECTS_DIR="${PROJECTS_DIR:-$WORKSPACE_DIR/projects}"
 export BACKUPS_DIR="${BACKUPS_DIR:-$WORKSPACE_DIR/backups}"
 export CONFIG_DIR="${CONFIG_DIR:-$WORKSPACE_DIR/.config}"
-export EXTENSIONS_DIR="${EXTENSIONS_DIR:-$SCRIPTS_DIR/extensions.d}"
+export EXTENSIONS_DIR="${EXTENSIONS_DIR:-$SCRIPTS_DIR/lib/extensions.d}"
 
 # Function to print colored output
 print_status() {

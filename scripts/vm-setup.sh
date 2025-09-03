@@ -14,11 +14,10 @@ NC='\033[0m' # No Color
 # Configuration variables (can be overridden with environment variables)
 APP_NAME="${APP_NAME:-claude-dev-env}"
 REGION="${REGION:-iad}"
-VM_SIZE="${VM_SIZE:-shared-cpu-1x}"
-VM_MEMORY="${VM_MEMORY:-1024}"
+VM_MEMORY="${VM_MEMORY:-8192}"
 CPU_KIND="${CPU_KIND:-shared}"
-CPU_COUNT="${CPU_COUNT:-1}"
-VOLUME_SIZE="${VOLUME_SIZE:-10}"
+CPU_COUNT="${CPU_COUNT:-2}"
+VOLUME_SIZE="${VOLUME_SIZE:-30}"
 VOLUME_NAME="${VOLUME_NAME:-claude_data}"
 
 # Function to print colored output
@@ -270,6 +269,9 @@ update_fly_toml() {
     sed -i.tmp "s/{{VOLUME_NAME}}/$VOLUME_NAME/g" fly.toml
     rm fly.toml.tmp
 
+    sed -i.tmp "s/{{VOLUME_SIZE}}/$VOLUME_SIZE/g" fly.toml
+    rm fly.toml.tmp
+
     sed -i.tmp "s/{{VM_MEMORY}}/$VM_MEMORY/g" fly.toml
     rm fly.toml.tmp
 
@@ -330,11 +332,18 @@ show_connection_info() {
 # Function to show cost information
 show_cost_info() {
     echo
+    # Calculate actual costs based on configuration
+    source "$SCRIPT_DIR/lib/fly-common.sh" 2>/dev/null || true
+    local hourly_cost=$(calculate_hourly_cost "$CPU_KIND" "$CPU_COUNT" "$VM_MEMORY" 2>/dev/null || echo "0.0067")
+    local monthly_compute=$(echo "scale=2; $hourly_cost * 720" | bc 2>/dev/null || echo "5")
+    local volume_cost=$(echo "scale=2; $VOLUME_SIZE * 0.15" | bc 2>/dev/null || echo "1.50")
+    local estimated_total=$(echo "scale=2; ($hourly_cost * 360) + $volume_cost" | bc 2>/dev/null || echo "5")
+
     print_status "💰 Cost Information:"
-    echo "  • VM (when running): ~\$0.0067/hour (\$5/month if always on)"
-    echo "  • Volume ($VOLUME_SIZE GB): \$$(echo "$VOLUME_SIZE * 0.15" | bc)/month"
-    echo "  • With auto-suspend: ~\$2-5/month total"
-    echo "  • Scale to zero: Only pay for storage when idle"
+    echo "  • VM (when running): \$$hourly_cost/hr or \$$monthly_compute/mo if always on"
+    echo "  • Volume ($VOLUME_SIZE GB): \$$volume_cost/mo"
+    echo "  • Estimated total (50% uptime): ~\$$estimated_total/mo"
+    echo "  • Scale to zero: Only pay for storage (\$$volume_cost/mo) when idle"
     echo
     print_warning "💡 Volume costs persist even when VM is stopped!"
 }
@@ -379,10 +388,10 @@ Usage: $0 [OPTIONS]
 Options:
   --app-name NAME     Name for the Fly.io app (default: claude-dev-env)
   --region REGION     Fly.io region (default: iad)
-  --volume-size SIZE  Volume size in GB (default: 10)
-  --memory SIZE       VM memory in MB (default: 1024)
+  --volume-size SIZE  Volume size in GB (default: 30)
+  --memory SIZE       VM memory in MB (default: 8192)
   --cpu-kind KIND     CPU type: "shared" or "performance" (default: shared)
-  --cpu-count COUNT   Number of CPUs (default: 1)
+  --cpu-count COUNT   Number of CPUs (default: 2)
   --help              Show this help message
 
 Environment Variables:

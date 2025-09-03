@@ -2,7 +2,8 @@
 set -e
 
 # Create developer user with sudo privileges
-useradd -m -s /bin/bash -G sudo developer
+# -M flag: don't create home directory (will be created on persistent volume)
+useradd -M -s /bin/bash -G sudo developer
 
 # Set initial password (will be disabled later for SSH key-only access)
 echo "developer:developer" | chpasswd
@@ -10,11 +11,8 @@ echo "developer:developer" | chpasswd
 # Configure sudo access without password
 echo "developer ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/developer
 
-# Create workspace directory (will be mounted as volume)
+# Create workspace mount point (will be mounted as volume)
+# Note: The actual workspace directories and developer home will be created
+# in entrypoint.sh after the volume is mounted
 mkdir -p /workspace
-chown developer:developer /workspace
 chmod 755 /workspace
-
-# Create scripts directory in workspace
-mkdir -p /workspace/scripts
-chown developer:developer /workspace/scripts

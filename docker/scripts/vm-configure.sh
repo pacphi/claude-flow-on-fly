@@ -153,6 +153,11 @@ EOF
     # Handle extensions-only mode
     if [[ "$extensions_only" == true ]]; then
         print_status "Running extensions only..."
+
+        # Ensure workspace structure exists
+        setup_workspace_structure
+
+        # Run extension phases
         run_extensions "pre-install"
         run_extensions "install"
         run_extensions "post-install"
@@ -162,7 +167,6 @@ EOF
 
     # Run configuration steps
     setup_workspace_structure
-    copy_turbo_flow_extensions  # Copy our turbo-flow extensions
     setup_nodejs
 
     # Setup GitHub CLI early if token is available (needed for agent-manager)

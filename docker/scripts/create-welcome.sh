@@ -2,9 +2,8 @@
 set -e
 
 # Create a welcome script for the developer user
-USER_HOME="/home/developer"
-
-cat > $USER_HOME/welcome.sh << 'EOF'
+# Create welcome script in /etc/skel so it gets copied to the persistent home
+cat > /etc/skel/welcome.sh << 'EOF'
 #!/bin/bash
 echo "🚀 Welcome to your Claude Development Environment!"
 echo "📍 You are connected to: $(hostname)"
@@ -30,5 +29,4 @@ echo ""
 echo "💡 Tip: All your work should be in /workspace (persistent volume)"
 EOF
 
-chmod +x $USER_HOME/welcome.sh
-chown developer:developer $USER_HOME/welcome.sh
+chmod +x /etc/skel/welcome.sh

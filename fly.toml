@@ -25,6 +25,16 @@ primary_region = "{{REGION}}"
   # Mount persistent volume for all development work
   source = "{{VOLUME_NAME}}"
   destination = "/workspace"
+  # Initial size matches the volume size specified during creation
+  initial_size = "{{VOLUME_SIZE}}GB"
+  # Keep snapshots for a week
+  snapshot_retention = 7
+  # Auto-extend when 80% full
+  auto_extend_size_threshold = 80
+  # Grow by 5GB increments
+  auto_extend_size_increment = "5GB"
+  # Maximum size limit
+  auto_extend_size_limit = "100GB"
 
 # SSH service configuration (primary access method)
 [[services]]
@@ -62,6 +72,8 @@ primary_region = "{{REGION}}"
   cpu_kind = "{{CPU_KIND}}"    # Options: "shared", "performance"
   cpus = {{CPU_COUNT}}         # Number of CPUs
   memory = "{{VM_MEMORY}}mb"
+  # Swap space for memory pressure relief (2GB)
+  swap_size_mb = 2048
 
 # Deployment settings
 [deploy]
@@ -92,7 +104,7 @@ primary_region = "{{REGION}}"
 #   worker = "background-tasks"
 
 # Volume configuration reference
-# Create volume with: flyctl volumes create claude_data --region iad --size 10
+# Create volume with: flyctl volumes create claude_data --region iad --size 30
 # Volume naming pattern: <app-name>_data
 # Pricing: ~$0.15/GB/month
 
@@ -100,7 +112,7 @@ primary_region = "{{REGION}}"
 # 1. auto_stop_machines = "suspend" - Fastest restart, lowest cost when idle
 # 2. min_machines_running = 0 - Allows complete scale-to-zero
 # 3. Shared CPU - Most cost-effective for development workloads
-# 4. 1GB RAM - Sufficient for most development tasks, upgrade as needed
+# 4. 8GB RAM - Good performance for development tasks with Claude Flow
 
 # Security notes:
 # 1. SSH access only via key authentication (configured in Dockerfile)

@@ -82,7 +82,7 @@ if ! command_exists symfony; then
     print_status "Installing Symfony CLI..."
 
     if wget https://get.symfony.com/cli/installer -O - | bash 2>/dev/null; then
-        sudo mv /home/developer/.symfony*/bin/symfony /usr/local/bin/symfony
+        sudo mv /workspace/developer/.symfony*/bin/symfony /usr/local/bin/symfony
         print_success "Symfony CLI installed: $(symfony version)"
     else
         print_error "Failed to install Symfony CLI"

@@ -6,6 +6,33 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
+# Function to install NVM (Node Version Manager)
+install_nvm() {
+    print_status "Installing Node Version Manager (NVM)..."
+
+    local nvm_version="v0.40.3"
+    
+    if [ -d "$HOME/.nvm" ]; then
+        print_warning "NVM already installed at $HOME/.nvm"
+        return 0
+    fi
+
+    # Install NVM
+    if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_version}/install.sh" | bash; then
+        print_success "NVM ${nvm_version} installed successfully"
+        
+        # Load NVM for immediate use
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+        
+        return 0
+    else
+        print_error "Failed to install NVM"
+        return 1
+    fi
+}
+
 # Function to install Node.js and npm
 setup_nodejs() {
     print_status "Setting up Node.js environment..."
@@ -15,8 +42,15 @@ setup_nodejs() {
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
     if ! command_exists nvm; then
-        print_error "NVM not found. Please check Docker installation."
-        return 1
+        print_status "NVM not found, installing it first..."
+        if ! install_nvm; then
+            print_error "Failed to install NVM"
+            return 1
+        fi
+        
+        # Reload NVM after installation
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
     fi
 
     # Install latest LTS Node.js
@@ -197,33 +231,81 @@ run_extensions() {
     local extension_files=("$EXTENSIONS_DIR"/*.sh)
 
     if [[ ! -e "${extension_files[0]}" ]]; then
-        print_debug "No extension scripts found"
+        print_debug "No extension scripts found in $EXTENSIONS_DIR"
         return 0
     fi
 
     print_status "Running extension scripts (phase: $phase)..."
 
+    # Debug: Show discovered extensions and process them in single loop
+    print_debug "Discovered extensions in $EXTENSIONS_DIR:"
+    local total_count=0
+    local executed_count=0
+
+    # Single loop: discovery, debug output, and execution
     for extension in "${extension_files[@]}"; do
         if [[ -f "$extension" ]] && [[ -x "$extension" ]]; then
             local basename=$(basename "$extension")
+            local assigned_phase=""
+            local will_execute=false
 
-            # Check if extension should run in this phase
-            if [[ "$phase" == "pre-install" ]] && [[ "$basename" =~ ^pre- ]]; then
-                print_status "Running pre-install extension: $basename"
-                source "$extension" || print_warning "Extension failed: $basename"
-            elif [[ "$phase" == "install" ]] && [[ ! "$basename" =~ ^(pre-|post-) ]]; then
-                print_status "Running extension: $basename"
-                source "$extension" || print_warning "Extension failed: $basename"
-            elif [[ "$phase" == "post-install" ]] && [[ "$basename" =~ ^post- ]]; then
-                print_status "Running post-install extension: $basename"
-                source "$extension" || print_warning "Extension failed: $basename"
+            total_count=$((total_count + 1))
+
+            # Determine which phase this extension belongs to
+            if [[ "$basename" =~ ^pre- ]]; then
+                assigned_phase="pre-install"
+                if [[ "$phase" == "pre-install" ]]; then
+                    will_execute=true
+                fi
+            elif [[ "$basename" =~ ^post- ]]; then
+                assigned_phase="post-install"
+                if [[ "$phase" == "post-install" ]]; then
+                    will_execute=true
+                fi
+            else
+                assigned_phase="install"
+                if [[ "$phase" == "install" ]]; then
+                    will_execute=true
+                fi
+            fi
+
+            print_debug "  $basename → $assigned_phase phase (will run: $will_execute)"
+
+            # Execute if matches current phase
+            if [[ "$will_execute" == true ]]; then
+                case "$assigned_phase" in
+                    "pre-install")
+                        print_status "Running pre-install extension: $basename"
+                        ;;
+                    "post-install")
+                        print_status "Running post-install extension: $basename"
+                        ;;
+                    *)
+                        print_status "Running extension: $basename"
+                        ;;
+                esac
+
+                if bash "$extension"; then
+                    executed_count=$((executed_count + 1))
+                else
+                    print_warning "Extension failed: $basename"
+                fi
             fi
         fi
     done
 
-    print_success "Extension scripts completed"
+    print_debug "Phase summary: $executed_count of $total_count extensions executed in '$phase' phase"
+
+    # Log phase execution status
+    if [[ $executed_count -eq 0 ]]; then
+        print_status "No extensions found for $phase phase, skipping"
+    else
+        print_status "Found $executed_count extensions for $phase phase"
+    fi
+
+    print_success "Extension scripts completed for $phase phase ($executed_count executed)"
 }
 
 # Export functions
-export -f setup_nodejs install_claude_code install_dev_tools setup_claude_config
+export -f install_nvm setup_nodejs install_claude_code install_dev_tools setup_claude_config
 export -f check_tool_versions run_extensions

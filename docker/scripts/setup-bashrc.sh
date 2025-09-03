@@ -1,17 +1,12 @@
 #!/bin/bash
 set -e
 
-# This script sets up the developer user's bash environment
-USER_HOME="/home/developer"
+# This script sets up the initial bashrc that will be used as a template
+# The actual home directory will be created on the persistent volume during runtime
 
-# Create SSH directory with proper permissions
-sudo -u developer mkdir -p $USER_HOME/.ssh
-chmod 700 $USER_HOME/.ssh
-sudo -u developer touch $USER_HOME/.ssh/authorized_keys
-chmod 600 $USER_HOME/.ssh/authorized_keys
-
-# Create .bashrc with useful aliases and environment setup
-cat >> $USER_HOME/.bashrc << 'EOF'
+# Create the bashrc content and save it to /etc/skel so it gets copied
+# to the developer home when created
+cat >> /etc/skel/.bashrc << 'EOF'
 
 # Custom aliases and functions
 alias ll="ls -alF"
@@ -29,7 +24,7 @@ PS1="\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
 # Change to workspace by default
 cd /workspace
 
-# NVM setup (will be configured by install-nvm.sh)
+# NVM setup
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
@@ -51,5 +46,16 @@ if [ ! -f ~/.welcome_shown ]; then
 fi
 EOF
 
-# Ensure proper ownership
-chown developer:developer $USER_HOME/.bashrc
+# Create necessary directories in /etc/skel for Claude tools
+# These will be copied to the persistent home directory during entrypoint.sh
+mkdir -p /etc/skel/.claude
+mkdir -p /etc/skel/.config
+
+# Set up basic Git configuration (will be available system-wide)
+git config --system init.defaultBranch main 2>/dev/null || true
+git config --system pull.rebase false 2>/dev/null || true
+git config --system user.name "Developer" 2>/dev/null || true
+git config --system user.email "developer@example.com" 2>/dev/null || true
+
+# Note: The .bashrc file will be copied from /etc/skel to the developer home
+# directory during entrypoint.sh execution when the persistent volume is mounted

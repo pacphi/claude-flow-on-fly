@@ -116,7 +116,7 @@ create_remote_backup() {
 set -e
 
 # Define directories to backup
-BACKUP_DIRS="/workspace/projects /workspace/.config /home/developer/.claude /workspace/scripts"
+BACKUP_DIRS="/workspace/projects /workspace/.config /workspace/developer/.claude /workspace/scripts"
 BACKUP_FILE="/workspace/backups/$remote_backup_name"
 
 # Create backups directory

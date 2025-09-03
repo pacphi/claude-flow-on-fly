@@ -42,8 +42,8 @@ That's it! The script will:
 ./scripts/vm-setup.sh \
   --app-name my-dev-env \     # Your app name (must be unique)
   --region sjc \               # Fly.io region (see https://fly.io/docs/reference/regions/)
-  --volume-size 20 \           # Storage size in GB (default: 10)
-  --memory 2048                # VM memory in MB (default: 1024)
+  --volume-size 20 \           # Storage size in GB (default: 30)
+  --memory 2048                # VM memory in MB (default: 8192)
 
 # With API key (optional)
 ANTHROPIC_API_KEY=sk-ant-... ./scripts/vm-setup.sh --app-name my-claude
@@ -154,9 +154,10 @@ npx claude-flow@alpha init --force
 
 Your environment automatically suspends when idle to save costs:
 
-- **Minimal usage**: ~$2-3/month
-- **Regular usage**: ~$5-8/month
-- **Always-on**: ~$30-50/month
+- **Default setup**: ~$6.78/month (2x shared 8GB, ~10% uptime)
+- **Regular usage**: ~$11.61/month (2x shared 8GB, ~25% uptime)
+- **Always-on**: ~$27.25/month (2x shared 8GB, 100% uptime)
+- **Budget option**: ~$2.07/month (1x shared 1GB, ~10% uptime)
 
 Manage costs with:
 

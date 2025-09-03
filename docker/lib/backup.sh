@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
 BACKUP_DATE=$(get_timestamp)
-CRITICAL_DIRS="/workspace/projects /home/developer/.claude /workspace/.config"
+CRITICAL_DIRS="/workspace/projects /workspace/developer/.claude /workspace/.config"
 
 print_status "Creating backup: backup_$BACKUP_DATE.tar.gz"
 

@@ -172,14 +172,16 @@ show_cost_breakdown() {
     print_metric "Current State:" "$machine_state"
 
     if [[ "$machine_state" == "started" ]]; then
-        print_metric "Hourly Compute Cost:" "\$$hourly_rate"
-        print_metric "Daily Cost (if always on):" "\$$(echo "scale=2; $hourly_rate * 24" | bc 2>/dev/null || echo "0.16")"
+        local monthly_if_always_on=$(echo "scale=2; $hourly_rate * 720" | bc 2>/dev/null || echo "0")
+        print_metric "Compute Cost (hourly):" "\$$hourly_rate/hr"
+        print_metric "Compute Cost (monthly if always on):" "\$$monthly_if_always_on/mo"
+        print_metric "Daily Cost (24hr):" "\$$(echo "scale=2; $hourly_rate * 24" | bc 2>/dev/null || echo "0.16")"
     else
-        print_metric "Compute Cost:" "\$0.00 (suspended)"
+        print_metric "Compute Cost:" "\$0.00/hr (suspended)"
     fi
 
-    print_metric "Volume Cost (monthly):" "\$${volume_monthly_cost}"
-    print_metric "Estimated Monthly Total:" "\$$(echo "scale=2; $monthly_compute_cost + $volume_monthly_cost" | bc 2>/dev/null || echo "6.50")"
+    print_metric "Volume Cost:" "\$${volume_monthly_cost}/mo"
+    print_metric "Estimated Monthly Total:" "\$$(echo "scale=2; $monthly_compute_cost + $volume_monthly_cost" | bc 2>/dev/null || echo "6.50")/mo (based on ${estimated_monthly_hours}h usage)"
 
     echo
     print_status "💡 Cost Optimization Tips:"

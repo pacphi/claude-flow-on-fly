@@ -29,10 +29,16 @@ fi
 
 # Install useful Rust tools
 print_status "Installing additional Rust tools..."
+print_warning "Note: This may take 10-15 minutes as tools compile from source"
 
-rust_tools=(
+# Essential tools (install first)
+essential_tools=(
     "cargo-watch"     # Watch for changes and rebuild
     "cargo-edit"      # Add/remove dependencies from command line
+)
+
+# Optional tools (may be slow to compile)
+optional_tools=(
     "cargo-audit"     # Security audit for dependencies
     "cargo-expand"    # Expand macros for debugging
     "cargo-outdated"  # Check for outdated dependencies
@@ -43,14 +49,33 @@ rust_tools=(
     "tokei"           # Count lines of code
 )
 
-for tool in "${rust_tools[@]}"; do
-    print_debug "Installing $tool..."
-    if cargo install "$tool" 2>/dev/null; then
+# Install essential tools first
+for tool in "${essential_tools[@]}"; do
+    print_debug "Installing essential tool: $tool..."
+    if timeout 300 cargo install "$tool"; then
         print_debug "✓ $tool installed"
     else
-        print_warning "Failed to install $tool (may take time to compile)"
+        print_warning "Failed to install $tool (timeout after 5 minutes)"
     fi
 done
+
+# Install optional tools in background (user can continue)
+print_status "Installing optional tools in background..."
+print_info "You can continue working - these will install in the background"
+
+for tool in "${optional_tools[@]}"; do
+    print_debug "Starting background installation of $tool..."
+    (
+        if timeout 600 cargo install "$tool" &>/dev/null; then
+            echo "[$(date)] ✓ $tool installed successfully" >> /workspace/rust-install.log
+        else
+            echo "[$(date)] ✗ $tool installation failed or timed out" >> /workspace/rust-install.log
+        fi
+    ) &
+done
+
+print_info "Background installations will log to /workspace/rust-install.log"
+print_info "Check progress with: tail -f /workspace/rust-install.log"
 
 # Install rust-analyzer for IDE support
 print_status "Installing rust-analyzer..."
@@ -222,4 +247,3 @@ if command_exists git; then
 fi
 
 print_success "Rust development environment configured"
-print_status "Create new Rust projects with: /workspace/scripts/create-rust-project.sh <name> [binary|library]"
