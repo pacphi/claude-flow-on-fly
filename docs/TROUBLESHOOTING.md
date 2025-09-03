@@ -304,7 +304,7 @@ git config --global user.email "your-email@example.com"
 
 ### VSCode Remote-SSH Issues
 
-See [VSCode Setup Guide](VSCODE.md#troubleshooting) for detailed VSCode-specific troubleshooting.
+See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) for general issues and [VSCode Setup Guide](VSCODE.md#vs-code-troubleshooting) for VS Code-specific troubleshooting.
 
 Common quick fixes:
 
@@ -318,7 +318,7 @@ Common quick fixes:
 
 ### IntelliJ Gateway Issues
 
-See [IntelliJ Setup Guide](INTELLIJ.md#troubleshooting) for detailed IntelliJ-specific troubleshooting.
+See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) for general issues and [IntelliJ Setup Guide](INTELLIJ.md#intellij-troubleshooting) for IntelliJ-specific troubleshooting.
 
 Common quick fixes:
 

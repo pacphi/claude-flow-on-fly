@@ -1,206 +1,97 @@
-# VSCode Remote Development Setup Guide
+# VS Code Remote Development Setup
 
-## Complete setup guide for connecting VSCode to your Claude development environment on Fly.io
+## Connect VS Code to your Claude development environment on Fly.io
 
-> **⚡ Need to set up your Fly.io environment first?** Use our automated setup script: `./scripts/vm-setup.sh --app-name my-claude-dev`. See the [Quick Start Guide](QUICKSTART.md) for details.
+> **📋 Complete the common setup first:** See [IDE Setup Guide](IDE_SETUP.md) for prerequisites, SSH configuration, and VM setup before proceeding.
 
-This guide walks you through connecting Visual Studio Code to your Fly.io-hosted Claude development environment using the Remote-SSH extension.
+This guide covers VS Code-specific setup using the Remote-SSH extension.
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Install Remote-SSH Extension](#install-remote-ssh-extension)
-3. [Configure SSH Connection](#configure-ssh-connection)
-4. [Connect to Remote VM](#connect-to-remote-vm)
-5. [Install Remote Extensions](#install-remote-extensions)
-6. [Optimize Performance](#optimize-performance)
-7. [Troubleshooting](#troubleshooting)
-8. [Tips and Best Practices](#tips-and-best-practices)
-
-## Prerequisites
-
-Before starting, ensure you have:
-
-- ✅ VSCode installed (latest version recommended)
-- ✅ Your Fly.io Claude development environment deployed (use `./scripts/vm-setup.sh` if not)
-- ✅ SSH key pair created and configured with Fly.io
-- ✅ VM is running (check with `flyctl status -a your-app-name`)
-
-### Quick Environment Setup
-
-If you haven't set up your Fly.io environment yet:
-
-```bash
-# Clone the repository
-git clone https://github.com/pacphi/claude-flow-on-fly.git
-cd claude-flow-on-fly
-
-# Run automated setup
-./scripts/vm-setup.sh --app-name my-claude-dev --region iad
-```
-
-The script will handle all the Fly.io configuration and provide connection details.
+1. [Install Remote-SSH Extension](#install-remote-ssh-extension)
+2. [Connect to Remote VM](#connect-to-remote-vm)
+3. [Install Remote Extensions](#install-remote-extensions)
+4. [VS Code Optimization](#vs-code-optimization)
+5. [VS Code Troubleshooting](#vs-code-troubleshooting)
+6. [Advanced Configuration](#advanced-configuration)
 
 ## Install Remote-SSH Extension
 
-### Step 1: Open VSCode Extensions
+1. **Open VS Code Extensions**
+   - Click Extensions icon (⇧⌘X on Mac, Ctrl+Shift+X on Windows/Linux)
+   - Search for "Remote - SSH"
+   - Install the official "Remote - SSH" extension by Microsoft
 
-1. Open VSCode
-2. Click the Extensions icon (⇧⌘X on Mac, Ctrl+Shift+X on Windows/Linux)
-3. Search for "Remote - SSH"
-4. Install the official "Remote - SSH" extension by Microsoft
-
-### Step 2: Verify Installation
-
-- You should see a remote indicator in the bottom-left corner of VSCode
-- The remote indicator looks like: `><`
-
-## Configure SSH Connection
-
-### Step 1: Open SSH Configuration
-
-**Method 1: Using Command Palette**
-1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
-2. Type "Remote-SSH: Open SSH Configuration File"
-3. Select your SSH config file (usually `~/.ssh/config`)
-
-**Method 2: Direct File Edit**
-1. Open `~/.ssh/config` in any text editor
-2. If the file doesn't exist, create it
-
-### Step 2: Add Configuration
-
-Add this configuration to your `~/.ssh/config` file:
-
-```bash
-# Replace 'my-claude-dev' with your actual app name
-Host claude-dev
-    HostName my-claude-dev.fly.dev
-    Port 10022
-    User developer
-    IdentityFile ~/.ssh/id_rsa
-    ServerAliveInterval 60
-    ServerAliveCountMax 3
-    StrictHostKeyChecking accept-new
-    LogLevel ERROR
-
-# Optional: Add a shorter alias
-Host dev
-    HostName my-claude-dev.fly.dev
-    Port 10022
-    User developer
-    IdentityFile ~/.ssh/id_rsa
-    ServerAliveInterval 60
-    ServerAliveCountMax 3
-```
-
-### Step 3: Test SSH Connection
-
-Before using VSCode, test the SSH connection:
-
-```bash
-ssh claude-dev
-```
-
-You should connect successfully and see the welcome message from your VM.
+2. **Verify Installation**
+   - You should see a remote indicator (`><`) in the bottom-left corner
 
 ## Connect to Remote VM
 
-### Step 1: Connect Using Command Palette
+> **📋 Prerequisites:** Complete the [IDE Setup Guide](IDE_SETUP.md) first to configure SSH and run the VM configuration script.
 
-1. Open VSCode
-2. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
-3. Type "Remote-SSH: Connect to Host"
-4. Select your configured host (`claude-dev`)
+### Connection Methods
 
-### Step 2: Alternative Connection Methods
+**Method 1: Command Palette**
 
-**Method 1: Remote Explorer**
-1. Click the Remote Explorer icon in the sidebar
+1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+2. Type "Remote-SSH: Connect to Host"
+3. Select your configured host (`claude-dev`)
+
+**Method 2: Remote Explorer**
+
+1. Click Remote Explorer icon in sidebar
 2. Find your host under "SSH TARGETS"
 3. Click the folder icon next to your host
 
-**Method 2: Status Bar**
-1. Click the remote indicator (`><`) in the bottom-left corner
+**Method 3: Status Bar**
+
+1. Click remote indicator (`><`) in bottom-left
 2. Select "Connect to Host..."
 3. Choose your configured host
 
-### Step 3: First Connection Setup
+### First Connection
 
-On first connection:
-1. VSCode will install the VS Code Server on the remote machine
-2. This process takes 1-2 minutes
-3. You'll see progress in the bottom-right corner
-4. A new VSCode window will open connected to the remote VM
+1. **VS Code Server Installation**
+   - VS Code installs the server on remote VM (1-2 minutes)
+   - Progress shown in bottom-right corner
+   - New VS Code window opens when complete
 
-### Step 4: First-Time Configuration
-
-**Important**: On your first connection, run the configuration script:
-
-1. Open the integrated terminal in VSCode (Terminal → New Terminal)
-2. Run the configuration script:
-   ```bash
-   /workspace/scripts/vm-configure.sh
-   ```
-3. Follow the prompts to:
-   - Install Node.js, Claude Code, and Claude Flow
-   - Configure Git settings
-   - Set up workspace structure
-   - Optionally install development tools
-
-### Step 5: Open Workspace
-
-1. After configuration, click "Open Folder" (or File → Open Folder)
-2. Navigate to `/workspace/projects/active` (created by the config script)
-3. Select your project directory or create a new one
+2. **Open Workspace**
+   - Click "Open Folder" or File → Open Folder
+   - Navigate to `/workspace/projects/active`
+   - Select your project directory
 
 ## Install Remote Extensions
 
-### Essential Extensions for Claude Development
+### Essential Extensions
 
-After connecting, install these extensions on the remote VM:
+**Core Development:**
 
-**Core Development Extensions:**
-```
-ms-vscode.vscode-typescript-next
-ms-python.python
-bradlc.vscode-tailwindcss
-esbenp.prettier-vscode
-ms-vscode.vscode-eslint
-ms-vscode.vscode-json
-```
+- `ms-vscode.vscode-typescript-next` - TypeScript support
+- `ms-python.python` - Python development
+- `esbenp.prettier-vscode` - Code formatting
+- `ms-vscode.vscode-eslint` - JavaScript linting
+- `ms-vscode.vscode-json` - JSON support
 
-**Additional Helpful Extensions:**
-```
-ms-vscode.remote-ssh-edit
-ms-vscode.remote-explorer
-ms-vscode.vscode-docker
-github.copilot (if you have access)
-ms-vscode.live-share
-```
+**Additional:**
 
-### Installation Methods
+- `ms-vscode.vscode-docker` - Docker support
+- `github.copilot` - AI coding assistant
+- `ms-vscode.live-share` - Collaborative editing
 
-**Method 1: Via Extensions Panel**
-1. Open Extensions (⇧⌘X)
-2. Search for extension name
-3. Click "Install in SSH: claude-dev"
+### Installation
 
-**Method 2: Via Command Line (on remote VM)**
-```bash
-# After SSH into the VM
-code --install-extension ms-python.python
-code --install-extension esbenp.prettier-vscode
-```
+1. **Extensions Panel:** Open Extensions (⇧⌘X) → Search → "Install in SSH: claude-dev"
+2. **Command Line:** `code --install-extension extension-name`
+3. **Settings Sync:** Enable to automatically sync extensions
 
-**Method 3: Sync Settings**
-- Enable Settings Sync in VSCode to automatically sync extensions
+**Note:** Extensions install on the remote VM, not locally.
 
-## Optimize Performance
+## VS Code Optimization
 
 ### Connection Settings
 
-Add these settings to VSCode's `settings.json`:
+Add to VS Code's `settings.json`:
 
 ```json
 {
@@ -211,256 +102,132 @@ Add these settings to VSCode's `settings.json`:
   "files.watcherExclude": {
     "**/node_modules/**": true,
     "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true,
     "**/dist/**": true,
-    "**/build/**": true
+    "**/build/**": true,
+    "**/__pycache__/**": true
   }
 }
 ```
 
 ### Performance Tips
 
-1. **Exclude Large Directories**
-   - Add `node_modules`, `dist`, `.git/objects` to file watcher exclusions
-   - This reduces CPU usage and improves responsiveness
+- **Use Remote Terminal:** All commands run on remote VM
+- **Disable Auto Port Forwarding:** Forward only needed ports
+- **Work in `/workspace`:** Use persistent volume for all files
+- **Exclude Large Directories:** Reduces CPU and improves responsiveness
 
-2. **Use Remote Terminal**
-   - Always use VSCode's integrated terminal when connected
-   - This runs commands on the remote VM, not locally
+## VS Code Troubleshooting
 
-3. **Forward Only Necessary Ports**
-   - Disable auto port forwarding
-   - Manually forward only the ports you need
+> **📋 General Issues:** See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) and [Troubleshooting Guide](TROUBLESHOOTING.md) for SSH and VM issues.
 
-4. **Optimize File Sync**
-   - Work directly in `/workspace` (persistent volume)
-   - Avoid editing files outside the workspace
+### VS Code-Specific Issues
 
-## Troubleshooting
+#### Server Installation Fails
 
-For comprehensive troubleshooting including SSH issues, VM management, and performance optimization, see our dedicated [Troubleshooting Guide](TROUBLESHOOTING.md).
+**Symptoms:** Server installation hangs or fails
 
-### VSCode-Specific Issues
+**Solutions:**
 
-#### Issue 1: SSH Connection Issues
+1. Wait for VM to fully start (30-60 seconds)
+2. Clear remote server: `Cmd+Shift+P` → "Remote-SSH: Kill VS Code Server on Host"
+3. Reconnect
 
-For detailed SSH troubleshooting including:
-- Permission denied errors
-- Host key verification failures
-- Connection timeouts
-- SSH key management
+#### Extensions Don't Work
 
-See [SSH Connection Issues](TROUBLESHOOTING.md#ssh-connection-issues) in our Troubleshooting Guide.
+**Symptoms:** Extensions show errors or don't activate
 
-**Quick SSH Debug:**
-```bash
-# Test connection directly
-ssh -vvv developer@your-app-name.fly.dev -p 10022
+**Solutions:**
 
-# If host key verification fails after VM recreation:
-ssh-keygen -R "[your-app-name.fly.dev]:10022"
-```
-
-#### Issue 2: Connection Timeout
-**Symptoms**: VSCode fails to connect, timeout errors
-**Solutions**:
-1. Check if VM is running: `flyctl status -a your-app-name`
-2. Start VM if stopped: `flyctl machine start <machine-id> -a your-app-name`
-3. Test SSH connection: `ssh claude-dev`
-4. Check SSH config syntax
-
-#### Issue 3: VS Code Server Installation Fails
-**Symptoms**: Server installation hangs or fails
-**Solutions**:
-1. Wait for VM to fully start (can take 30-60 seconds)
-2. Try connecting again
-3. Clear remote server: Press `Cmd+Shift+P` → "Remote-SSH: Kill VS Code Server on Host"
-4. Reconnect
-
-#### Issue 4: Extensions Don't Work
-**Symptoms**: Extensions show errors or don't activate
-**Solutions**:
-1. Ensure extensions are installed on remote, not locally
+1. Ensure extensions installed on remote, not locally
 2. Reload window: `Cmd+Shift+P` → "Developer: Reload Window"
 3. Check extension compatibility with remote development
 
-#### Issue 5: Slow Performance
-**Symptoms**: Sluggish editing, slow file operations
-**Solutions**:
-1. Check VM resources: `htop` on remote VM
-2. Upgrade VM size if needed
-3. Exclude large directories from file watcher
-4. Close unused tabs and panels
+#### Slow Performance
 
-#### Issue 6: File Changes Not Detected
-**Symptoms**: Hot reload doesn't work, changes not reflected
-**Solutions**:
-1. Use VSCode's integrated terminal for development commands
-2. Check if development server is running on remote VM
+**Solutions:**
+
+1. Check VM resources: `htop` on remote VM
+2. Exclude large directories from file watcher
+3. Close unused tabs and panels
+4. Upgrade VM size if needed
+
+#### File Changes Not Detected
+
+**Solutions:**
+
+1. Use VS Code's integrated terminal for dev commands
+2. Check development server running on remote VM
 3. Verify port forwarding configuration
 
-### Debug Connection Issues
+### Debug Tools
 
-**Enable SSH Debug Logging**:
+**VS Code Remote Logs:**
+
+- `Cmd+Shift+P` → "Remote-SSH: Show Log"
+
+**Test Connection:**
+
 ```bash
-# Add to ~/.ssh/config for your host
-LogLevel DEBUG3
+ssh -v claude-dev 'echo "Connection works"'
 ```
 
-**Check VSCode Remote Logs**:
-1. Press `Cmd+Shift+P` → "Remote-SSH: Show Log"
-2. Review connection logs for errors
-
-**Test SSH from Terminal**:
-```bash
-# Test connection with verbose output
-ssh -v claude-dev
-
-# Test specific components
-ssh claude-dev 'echo "Connection works"'
-ssh claude-dev 'ls /workspace'
-```
-
-## Tips and Best Practices
+## VS Code Best Practices
 
 ### Development Workflow
 
-1. **Always Use Remote Terminal**
+1. **Use Integrated Terminal**
+
    ```bash
-   # Run all commands in VSCode's integrated terminal
-   cd /workspace/my-project
-   npm install
+   # All commands run on remote VM
+   cd /workspace/projects/active/my-project
    npm run dev
    ```
 
-2. **Port Forwarding for Development Servers**
-   - When running a dev server (e.g., port 3000)
-   - VSCode will automatically prompt to forward the port
-   - Click "Forward Port" to access from your local browser
+2. **Port Forwarding**
+   - VS Code auto-prompts to forward dev server ports
+   - Click "Forward Port" to access from local browser
+   - Manually forward: Ports panel in bottom bar
 
-3. **File Organization**
-   ```
-   /workspace/
-   ├── projects/
-   │   ├── active/          # Current projects
-   │   └── archive/         # Completed projects
-   ├── scripts/             # Utility scripts
-   └── .config/             # Configuration files
-   ```
+3. **File Management**
+   - Work directly in `/workspace` (persistent)
+   - Use File Explorer for navigation
+   - Auto-save recommended: `"files.autoSave": "afterDelay"`
 
-### Git Workflow
+### Recommended Settings
 
-1. **Configure Git on Remote VM**:
-   ```bash
-   git config --global user.name "Your Name"
-   git config --global user.email "your.email@example.com"
-   ```
+```json
+{
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 5000,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "terminal.integrated.persistentSessionReviveProcess": "onExit"
+}
+```
 
-2. **SSH Agent Forwarding** (optional):
-   Add to SSH config for seamless Git operations:
-   ```bash
-   Host claude-dev
-       ForwardAgent yes
-       # ... other settings
-   ```
+### Multi-Project Workflow
 
-### Claude Code Integration
-
-1. **Run Claude Code from VSCode Terminal**:
-   ```bash
-   cd /workspace/your-project
-   claude
-   ```
-
-2. **Create CLAUDE.md in Project Root**:
-   - Use the template from `/workspace/templates/CLAUDE.md.example`
-   - Customize for your specific project
-
-3. **Use Claude Flow for Multi-Agent Development**:
-   ```bash
-   cd /workspace/your-project
-   npx claude-flow@alpha init --force
-   npx claude-flow@alpha swarm "your development task"
-   ```
-
-### Session Management
-
-1. **Use tmux for Persistent Sessions**:
-   ```bash
-   # Create named session
-   tmux new-session -s dev
-
-   # Detach: Ctrl+B, then D
-   # Reattach: tmux attach -t dev
-   ```
-
-2. **Save Work Regularly**:
-   - All work in `/workspace` is persistent
-   - Use Git commits frequently
-   - Run backup script periodically
-
-### Performance Optimization
-
-1. **Monitor Resource Usage**:
-   ```bash
-   # Check system resources
-   htop
-   df -h /workspace
-   ```
-
-2. **Optimize VSCode Settings**:
-   ```json
-   {
-     "files.autoSave": "afterDelay",
-     "files.autoSaveDelay": 5000,
-     "editor.formatOnSave": true,
-     "editor.codeActionsOnSave": {
-       "source.fixAll.eslint": true
-     }
-   }
-   ```
-
-### Security Best Practices
-
-1. **Keep SSH Keys Secure**:
-   - Use strong passphrases
-   - Rotate keys regularly
-   - Don't share private keys
-
-2. **Use Environment Variables for Secrets**:
-   ```bash
-   # Set secrets in Fly.io
-   flyctl secrets set API_KEY=your_secret -a your-app-name
-   ```
-
-3. **Regular Security Updates**:
-   ```bash
-   # Update system packages (run periodically)
-   sudo apt update && sudo apt upgrade
-   ```
+- **Multiple Windows:** File → New Window → Connect to same host
+- **Workspace Files:** Save multi-root workspaces for related projects
+- **Project Switching:** File → Open Recent
 
 ## Advanced Configuration
 
-### Custom VSCode Workspace Settings
+### Project-Specific Settings
 
 Create `.vscode/settings.json` in your project:
 
 ```json
 {
   "python.defaultInterpreterPath": "/usr/bin/python3",
-  "python.terminal.activateEnvironment": true,
   "eslint.workingDirectories": ["src"],
   "prettier.configPath": ".prettierrc",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true,
     "source.organizeImports": true
-  },
-  "files.exclude": {
-    "**/node_modules": true,
-    "**/.git": true,
-    "**/dist": true,
-    "**/build": true
   }
 }
 ```
@@ -477,10 +244,7 @@ Create `.vscode/launch.json` for debugging:
       "name": "Launch Node.js",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/src/index.js",
-      "env": {
-        "NODE_ENV": "development"
-      }
+      "program": "${workspaceFolder}/src/index.js"
     },
     {
       "name": "Python Debugger",
@@ -493,23 +257,14 @@ Create `.vscode/launch.json` for debugging:
 }
 ```
 
-### Tasks Configuration
+### Custom Tasks
 
-Create `.vscode/tasks.json` for custom tasks:
+Create `.vscode/tasks.json`:
 
 ```json
 {
   "version": "2.0.0",
   "tasks": [
-    {
-      "label": "npm: install",
-      "type": "shell",
-      "command": "npm install",
-      "group": "build",
-      "presentation": {
-        "panel": "new"
-      }
-    },
     {
       "label": "npm: dev",
       "type": "shell",
@@ -527,87 +282,17 @@ Create `.vscode/tasks.json` for custom tasks:
 }
 ```
 
-## Terminal Utilities
-
-The environment provides helpful utilities you can use directly in VSCode's integrated terminal:
-
-### Using Common Libraries
-
-Source the common library for colored output and utilities:
-
-```bash
-# Source the common library for colored output
-source /workspace/scripts/lib/common.sh
-
-# Use print functions in your terminal
-print_success "Build completed!"
-print_error "Tests failed"
-print_warning "Low disk space"
-print_status "Running deployment..."
-```
-
-### Available Utilities
-
-**Common Functions:**
-```bash
-# Check if a command exists
-if command_exists docker; then
-    echo "Docker is available"
-fi
-
-# Create directories with proper ownership
-create_directory "/workspace/my-project"
-
-# Run commands with retry logic
-retry_with_backoff 3 2 "npm install"
-```
-
-**Workspace Functions:**
-```bash
-# Source workspace utilities
-source /workspace/scripts/lib/workspace.sh
-
-# Create a new project
-setup_workspace_structure
-create_project_templates
-```
-
-**Git Utilities:**
-```bash
-# Source Git utilities
-source /workspace/scripts/lib/git.sh
-
-# Setup Git aliases and hooks
-setup_git_aliases
-setup_git_hooks
-```
-
-**Quick Commands:**
-```bash
-# System status
-/workspace/scripts/system-status.sh
-
-# Backup workspace
-/workspace/scripts/backup.sh
-
-# Create new project
-/workspace/scripts/new-project.sh my-app node
-```
-
 ## Summary
 
-With this setup, you have:
+VS Code is now connected to your remote Claude development environment with:
 
-- ✅ VSCode connected to your remote Claude development environment
-- ✅ Full IDE functionality with syntax highlighting, debugging, and extensions
-- ✅ Access to Claude Code and Claude Flow on the remote VM
-- ✅ Persistent workspace that survives VM restarts
+- ✅ Full IDE functionality with debugging and extensions
+- ✅ Remote development on persistent Fly.io infrastructure
+- ✅ Integrated access to Claude Code and Claude Flow
 - ✅ Optimized performance and connection settings
-
-Your development environment is now ready for AI-assisted coding with Claude tools, all running securely on Fly.io with persistent storage and cost-effective auto-scaling.
 
 ## Related Documentation
 
-- **[Quick Start Guide](QUICKSTART.md)** - Fast-track setup with automated scripts
-- **[Complete Setup Guide](SETUP.md)** - Detailed manual setup instructions
-- **[IntelliJ Setup](INTELLIJ.md)** - JetBrains IDE remote development
+- **[IDE Setup Guide](IDE_SETUP.md)** - Common setup and utilities
+- **[IntelliJ Setup](INTELLIJ.md)** - JetBrains IDE alternative
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Problem resolution

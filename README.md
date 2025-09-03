@@ -28,21 +28,22 @@ claude
 - **[Cost Management](docs/COST_MANAGEMENT.md)** - Optimization strategies and monitoring
 - **[Customization](docs/CUSTOMIZATION.md)** - Extensions, tools, and configuration
 - **[Security](docs/SECURITY.md)** - Security features and best practices
-- **[Advanced Features](docs/ADVANCED_FEATURES.md)** - Integrations and complex setups
-  - **[Turbo Flow](docs/TURBO_FLOW.md)** - Features heavily borrowed from [turbo-flow-claude](https://github.com/marcuspat/turbo-flow-claude)
+- **[Agents](docs/AGENTS.md)** - Agent management, search, and development
+- **[Turbo Flow](docs/TURBO_FLOW.md)** - Mimic enterprise AI development features from [turbo-flow-claude](https://github.com/marcuspat/turbo-flow-claude)
 - **[Contributing](docs/CONTRIBUTING.md)** - Contribution guidelines and roadmap
 - **[Reference](docs/REFERENCE.md)** - Complete command and configuration reference
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ### IDE Setup
 
-- **[VSCode](docs/VSCODE.md)** - Remote development setup
-- **[IntelliJ](docs/INTELLIJ.md)** - JetBrains Gateway configuration
+- **[IDE Setup Guide](docs/IDE_SETUP.md)** - Common setup for all IDEs
+- **[VSCode](docs/VSCODE.md)** - VS Code-specific configuration
+- **[IntelliJ](docs/INTELLIJ.md)** - JetBrains IDE-specific configuration
 
 ## 🌟 Key Features
 
 - **Zero Local Setup** - All AI tools run on remote VMs
-- **Cost Optimized** - Auto-suspend VMs (from ~$1.70-8.70/month depending on configuration and usage)
+- **Cost Optimized** - Auto-suspend VMs (see [cost guide](docs/COST_MANAGEMENT.md) for details)
 - **IDE Integration** - VSCode and IntelliJ remote development
 - **Team Ready** - Shared or individual VMs with persistent volumes
 - **Secure** - SSH access with Fly.io network isolation
@@ -70,7 +71,7 @@ Manual controls:
 ```
 
 > [!TIP]
-> See the cost management [guide]((docs/COST_MANAGEMENT.md)) for optimization strategies.
+> See the [cost management guide](docs/COST_MANAGEMENT.md) for optimization strategies.
 
 ## 🔧 Essential Commands
 

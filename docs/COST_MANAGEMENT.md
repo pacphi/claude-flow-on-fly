@@ -139,8 +139,8 @@ flyctl metrics -a my-claude-dev
 The built-in cost monitoring script provides detailed usage analytics:
 
 ```bash
-# Check current status and estimated costs
-./scripts/cost-monitor.sh --action status
+# Check current status and estimated costs (default)
+./scripts/cost-monitor.sh
 
 # View historical usage patterns
 ./scripts/cost-monitor.sh --action history
@@ -174,20 +174,6 @@ The built-in cost monitoring script provides detailed usage analytics:
 # On the VM
 df -h /workspace
 du -sh /workspace/*
-
-# From local machine
-./scripts/volume-backup.sh --action analyze
-```
-
-**Clean up unnecessary files:**
-
-```bash
-# On the VM
-/workspace/scripts/lib/cleanup.sh
-
-# Remove old caches
-rm -rf /workspace/developer/.cache/npm
-rm -rf /workspace/developer/.cache/pip
 ```
 
 **Archive old projects:**
@@ -196,8 +182,9 @@ rm -rf /workspace/developer/.cache/pip
 # Move to archive directory
 mv /workspace/projects/active/old-project /workspace/projects/archive/
 
-# Or create backup and remove
-./scripts/volume-backup.sh --project old-project
+# Or create backup then manually remove
+./scripts/volume-backup.sh
+# After backup completes, remove old projects manually
 rm -rf /workspace/projects/active/old-project
 ```
 
@@ -210,14 +197,14 @@ rm -rf /workspace/projects/active/old-project
 - **Monthly**: Archive and compress old backups
 
 ```bash
-# Incremental backup (faster, cheaper)
-./scripts/volume-backup.sh --action incremental
+# Standard backup (creates compressed tar.gz)
+./scripts/volume-backup.sh
 
-# Full backup (thorough, more expensive)
-./scripts/volume-backup.sh --action full
-
-# Compressed archive
-./scripts/volume-backup.sh --action archive --compress
+# Available backup actions:
+./scripts/volume-backup.sh --action backup   # Default backup
+./scripts/volume-backup.sh --action sync     # Sync workspace data
+./scripts/volume-backup.sh --action list     # List existing backups
+./scripts/volume-backup.sh --action cleanup --keep 3  # Keep only 3 most recent
 ```
 
 ## Team Cost Management
@@ -304,23 +291,23 @@ Monitor and optimize resource allocation:
 - Compute: `$hourly_rate * $hours_running * $days_per_month`
 - Egress: `$gb_transferred * $0.02`
 
-**Budget Planning Tool:**
+**Cost Monitoring:**
 
 ```bash
-./scripts/cost-monitor.sh --action budget --monthly-limit 50
-# Sets alerts when approaching $50/month spending
+# Get current costs and optimization recommendations
+./scripts/cost-monitor.sh
 ```
 
-### Cost Alerts
+### Manual Cost Tracking
 
-Set up notifications for cost management:
+Cost monitoring provides recommendations but no automated alerts:
 
 ```bash
-# Daily cost summary
-./scripts/cost-monitor.sh --action alert --daily-email user@example.com
+# Regular monitoring (run weekly)
+./scripts/cost-monitor.sh
 
-# Budget threshold alerts
-./scripts/cost-monitor.sh --action budget --threshold 80 --notify slack
+# Export data for your own tracking
+./scripts/cost-monitor.sh --action export --export-format csv --export-file monthly_costs.csv
 ```
 
 ## Cost Troubleshooting
@@ -351,8 +338,8 @@ flyctl machine stop --all -a my-claude-dev
 flyctl scale memory 256 -a my-claude-dev
 flyctl scale count 1 -a my-claude-dev
 
-# Check for resource leaks
-./scripts/cost-monitor.sh --action audit
+# Review current costs and get recommendations
+./scripts/cost-monitor.sh
 ```
 
 By following these cost management strategies, you can maintain a powerful AI-assisted development environment while keeping expenses predictable and optimized.

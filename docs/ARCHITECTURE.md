@@ -8,7 +8,7 @@ This project provides a complete remote development environment running on Fly.i
 
 ### Fly.io VM
 
-- **Base Image**: Ubuntu 22.04 container
+- **Base Image**: Ubuntu 24.04 container
 - **Auto-scaling**: Scale-to-zero when idle, auto-start on connection
 - **Network**: Private networking with SSH access on port 10022
 - **Resource Options**: Shared or performance CPU, configurable memory

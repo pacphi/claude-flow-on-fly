@@ -151,6 +151,7 @@ flyctl metrics -a <app-name>
 ### Volume Management
 
 **List volumes:**
+
 ```bash
 flyctl volumes list -a <app-name>
 ```
@@ -484,7 +485,7 @@ sudo tail -f /var/log/auth.log
 
 **On VM (Runtime):**
 
-```
+```text
 /workspace/                     # Persistent volume root
 ├── developer/                  # User home directory
 ├── projects/                   # Development projects
@@ -500,7 +501,7 @@ sudo tail -f /var/log/auth.log
 
 **Repository Structure:**
 
-```
+```text
 claude-flow-on-fly/
 ├── README.md                  # Main documentation
 ├── CLAUDE.md                  # Claude context

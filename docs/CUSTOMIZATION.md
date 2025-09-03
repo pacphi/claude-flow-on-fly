@@ -61,62 +61,86 @@ chmod +x /workspace/scripts/extensions.d/50-mycustomtool.sh
 /workspace/scripts/vm-configure.sh --extensions-only
 ```
 
-## Built-in Extension Examples
+### Extension Manager Utility
 
-### Language Tools
+The `extension-manager.sh` utility in `/workspace/docker/lib/` provides comprehensive management for activating and deactivating extensions:
 
-**Rust Toolchain:**
-
-```bash
-# Enable Rust development
-cp /workspace/scripts/extensions.d/10-rust.sh.example \
-   /workspace/scripts/extensions.d/10-rust.sh
-
-# Customize installation
-vim /workspace/scripts/extensions.d/10-rust.sh
-```
-
-**Go Development:**
+**List all available extensions:**
 
 ```bash
-# Enable Go toolchain
-cp /workspace/scripts/extensions.d/20-golang.sh.example \
-   /workspace/scripts/extensions.d/20-golang.sh
+# Show all extensions and their activation status
+/workspace/docker/lib/extension-manager.sh list
+
+# Example output:
+# Available extensions in /workspace/scripts/extensions.d:
+#
+#   ✓ python (05-python.sh) - activated
+#   ○ rust (10-rust.sh.example) - not activated
+#   ○ golang (20-golang.sh.example) - not activated
+#   ✓ docker (30-docker.sh) - activated
 ```
 
-**Python Tools:**
+**Activate a single extension:**
 
 ```bash
-# Enable advanced Python setup
-cp /workspace/scripts/extensions.d/05-python.sh.example \
-   /workspace/scripts/extensions.d/05-python.sh
+# Activate Rust toolchain
+/workspace/docker/lib/extension-manager.sh activate rust
+
+# Activate Python development tools
+/workspace/docker/lib/extension-manager.sh activate python
+
+# Activate Docker utilities
+/workspace/docker/lib/extension-manager.sh activate docker
 ```
 
-### Infrastructure Tools
-
-**Docker Utilities:**
+**Deactivate a single extension:**
 
 ```bash
-# Enable Docker development
-cp /workspace/scripts/extensions.d/30-docker.sh.example \
-   /workspace/scripts/extensions.d/30-docker.sh
+# Deactivate with confirmation prompt
+/workspace/docker/lib/extension-manager.sh deactivate golang
+
+# Deactivate without confirmation
+/workspace/docker/lib/extension-manager.sh deactivate golang --yes
+
+# Deactivate and create backup (automatic for modified extensions)
+/workspace/docker/lib/extension-manager.sh deactivate python --backup --yes
 ```
 
-**JVM Languages:**
+**Activate all extensions:**
 
 ```bash
-# Java, Scala, Kotlin support
-cp /workspace/scripts/extensions.d/40-jvm.sh.example \
-   /workspace/scripts/extensions.d/40-jvm.sh
+# Activate all available extensions at once
+/workspace/docker/lib/extension-manager.sh activate-all
+
+# Summary output shows:
+#   Activated: 6
+#   Skipped (already active): 2
+#   Failed: 0
 ```
 
-**Infrastructure Tools:**
+**Deactivate all non-protected extensions:**
 
 ```bash
-# Terraform, kubectl, cloud CLIs
-cp /workspace/scripts/extensions.d/80-infra-tools.sh.example \
-   /workspace/scripts/extensions.d/80-infra-tools.sh
+# Deactivate all with confirmation
+/workspace/docker/lib/extension-manager.sh deactivate-all
+
+# Deactivate all without confirmation, creating backups
+/workspace/docker/lib/extension-manager.sh deactivate-all --backup --yes
 ```
+
+**Running individual extensions after activation:**
+
+```bash
+# After activation, extensions run automatically during vm-configure.sh
+# To run a specific extension manually:
+/workspace/scripts/extensions.d/10-rust.sh
+
+# Or run only extensions without full VM configuration:
+/workspace/scripts/vm-configure.sh --extensions-only
+```
+
+> [!NOTE]
+> Extensions 01-04 are core system components (marked as `[PROTECTED]`) and cannot be deactivated. Modified extensions automatically create backups when deactivated.
 
 ## Using Common Libraries
 
@@ -435,6 +459,185 @@ EOF
 # Configuration files
 cp /workspace/templates/common/.eslintrc.js .
 cp /workspace/templates/common/.gitignore .
+```
+
+### CI/CD Integration
+
+**GitHub Actions Setup:**
+
+```bash
+#!/bin/bash
+# /workspace/scripts/extensions.d/60-github-actions.sh
+source /workspace/scripts/lib/common.sh
+
+print_status "Setting up GitHub Actions development tools..."
+
+# Install Act for local testing
+curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+
+# GitHub CLI for workflow management
+if ! command_exists gh; then
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+    apt update && apt install gh -y
+fi
+
+# Create GitHub Actions templates
+mkdir -p /workspace/templates/github-workflows
+
+cat > /workspace/templates/github-workflows/remote-dev-test.yml << 'EOF'
+name: Remote Development Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-on-fly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy test environment
+        run: |
+          flyctl deploy --remote-only \
+            --build-arg ENVIRONMENT=test \
+            -a test-claude-dev
+
+      - name: Run tests
+        run: |
+          flyctl ssh console -a test-claude-dev \
+            "cd /workspace/projects/active && npm test"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          flyctl apps destroy test-claude-dev --yes
+EOF
+
+cat > /workspace/templates/github-workflows/deploy.yml << 'EOF'
+name: Deploy to Development
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to development
+        run: |
+          flyctl deploy --remote-only -a my-claude-dev
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+EOF
+
+print_success "GitHub Actions tools ready"
+```
+
+### Kubernetes Development
+
+**Local Kubernetes Setup:**
+
+```bash
+#!/bin/bash
+# /workspace/scripts/extensions.d/70-kubernetes.sh
+source /workspace/scripts/lib/common.sh
+
+print_status "Installing Kubernetes development tools..."
+
+# Install k3s lightweight Kubernetes
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--data-dir /workspace/k3s" sh -
+
+# Install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# Install Helm
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Configure kubeconfig
+mkdir -p /workspace/developer/.kube
+cp /etc/rancher/k3s/k3s.yaml /workspace/developer/.kube/config
+chown developer:developer /workspace/developer/.kube/config
+
+print_success "Kubernetes environment ready"
+```
+
+### Monitoring and Observability
+
+**Monitoring Stack Setup:**
+
+```bash
+#!/bin/bash
+# /workspace/scripts/extensions.d/75-monitoring.sh
+source /workspace/scripts/lib/common.sh
+
+print_status "Setting up monitoring stack..."
+
+# Prometheus
+wget https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
+tar xvfz prometheus-*.tar.gz
+mv prometheus-*/prometheus /usr/local/bin/
+mv prometheus-*/promtool /usr/local/bin/
+
+# Node Exporter
+wget https://github.com/prometheus/node_exporter/releases/download/v1.9.1/node_exporter-1.9.1.linux-amd64.tar.gz
+tar xvfz node_exporter-*.tar.gz
+mv node_exporter-*/node_exporter /usr/local/bin/
+
+# Grafana
+apt install -y software-properties-common
+add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
+wget -q -O - https://packages.grafana.com/gpg.key | apt-key add -
+apt update
+apt install grafana -y
+
+systemctl enable grafana-server
+systemctl start grafana-server
+
+# Create Docker Compose for ELK stack
+mkdir -p /workspace/docker/monitoring
+cat > /workspace/docker/monitoring/docker-compose.yml << 'EOF'
+version: '3.8'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.3
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - /workspace/data/elasticsearch:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.1.3
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:9.1.3
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+      - elasticsearch
+EOF
+
+print_success "Monitoring stack ready"
 ```
 
 This comprehensive customization system allows you to tailor the development environment to your specific needs while maintaining consistency and automation.

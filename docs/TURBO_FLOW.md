@@ -84,7 +84,7 @@ claude
 # Start the tmux workspace
 tmux-workspace
 
-# Install agents
+# Install agents (see AGENTS.md for complete management guide)
 agent-install
 
 # Begin AI-assisted development
@@ -95,104 +95,13 @@ cf-swarm "Build a modern web application with authentication"
 
 ### Agent Management
 
-#### Installing Agents
+For complete agent management including installation, search, discovery, custom sources, and development, see **[AGENTS.md](AGENTS.md)**.
 
-```bash
-# Install all configured agents
-agent-install
+Key commands:
 
-# Install specific source
-agent-install --source awesome-claude-code-subagents
-
-# List installed agents
-agent-list
-
-# Update agents
-agent-update
-```
-
-#### Finding Agents
-
-The agent discovery system provides powerful search capabilities:
-
-```bash
-# Get help on all agent commands
-agent-help
-
-# Basic search
-agent-find "testing"         # Search by name
-agent-search "react"         # Search by content
-agent-by-category            # Browse by category
-agent-by-tag "security"      # Find by tag
-agent-with-keyword "api"     # Find by filename keyword
-
-# Information and statistics
-agent-count                  # Total agent count
-agent-stats                  # Comprehensive statistics
-agent-list-all               # List all with descriptions
-agent-info <file>            # Show agent metadata
-
-# Advanced features
-agent-index                  # Create search index for speed
-agent-search-fast "term"     # Use indexed search (faster)
-agent-duplicates             # Find duplicate agents
-agent-validate-all           # Validate all agents
-
-# Random discovery
-agent-sample                 # Show 5 random agents
-agent-sample 10              # Show 10 random agents
-```
-
-#### Adding Custom Agent Sources
-
-You can customize agent sources in two ways:
-
-**Before deployment** (recommended):
-
-```bash
-# Edit templates before VM setup
-nano docker/config/agents-config.yaml    # Configure agent sources
-nano docker/config/agent-aliases         # Customize agent aliases
-nano docker/lib/agent-discovery.sh       # Add discovery functions
-nano docker/config/tmux.conf             # Customize tmux settings
-nano docker/lib/tmux-workspace.sh        # Modify workspace launcher
-```
-
-**After deployment**:
-
-```bash
-# Edit deployed configurations
-nano /workspace/config/agents-config.yaml          # Agent sources
-nano /workspace/.agent-aliases                     # Agent aliases
-nano /workspace/scripts/lib/agent-discovery.sh     # Discovery functions
-nano /workspace/config/tmux.conf                   # Tmux configuration
-nano /workspace/scripts/tmux-workspace.sh          # Workspace launcher
-nano /workspace/.tmux-aliases                      # Tmux aliases
-
-# Then reload/reinstall (these are auto-sourced in new sessions)
-source /workspace/.agent-aliases                   # Reload agent aliases
-source /workspace/scripts/lib/agent-discovery.sh   # Reload discovery functions
-source /workspace/.tmux-aliases                    # Reload tmux aliases
-tmux source-file ~/.tmux.conf                      # Reload tmux config
-agent-install                                      # Reinstall agents if config changed
-```
-
-Example custom source configuration:
-
-```yaml
-sources:
-  - name: my-custom-agents
-    enabled: true
-    type: github
-    repository: my-org/my-agents
-    branch: main
-    paths:
-      source: agents
-      target: ${settings.base_dir}
-    filters:
-      include_patterns:
-        - "*.md"
-```
+- `agent-install` - Install all configured agents
+- `agent-find <term>` - Search for specific agents
+- `agent-help` - Show all available agent commands
 
 ### Context Management
 
@@ -364,8 +273,7 @@ new-project my-app node
 cd my-app
 
 # Add project-specific context
-new-project-context
-nano CLAUDE.md  # Customize for your project
+nano CLAUDE.md
 ```
 
 ### 2. Development Session
@@ -450,7 +358,6 @@ load-context               # View all context
 validate-context           # Validate context system
 context-hierarchy          # Show loading hierarchy
 cf-l <command>             # Claude Flow with context
-new-project-context        # Create project context
 ```
 
 #### Tmux Management
@@ -588,7 +495,6 @@ nano /workspace/context/global/CLAUDE.md
 # Update development standards
 # Include security requirements
 ```
-
 
 ## Performance Optimization
 

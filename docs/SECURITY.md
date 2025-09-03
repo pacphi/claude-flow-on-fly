@@ -24,7 +24,7 @@ This remote development environment implements multiple layers of security to pr
 
 **SSH Hardening (`/etc/ssh/sshd_config`):**
 
-```
+```bash
 # Authentication
 PasswordAuthentication no
 PermitRootLogin no
