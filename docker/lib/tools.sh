@@ -11,7 +11,7 @@ install_nvm() {
     print_status "Installing Node Version Manager (NVM)..."
 
     local nvm_version="v0.40.3"
-    
+
     if [ -d "$HOME/.nvm" ]; then
         print_warning "NVM already installed at $HOME/.nvm"
         return 0
@@ -20,12 +20,12 @@ install_nvm() {
     # Install NVM
     if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_version}/install.sh" | bash; then
         print_success "NVM ${nvm_version} installed successfully"
-        
+
         # Load NVM for immediate use
         export NVM_DIR="$HOME/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
         [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-        
+
         return 0
     else
         print_error "Failed to install NVM"
@@ -47,7 +47,7 @@ setup_nodejs() {
             print_error "Failed to install NVM"
             return 1
         fi
-        
+
         # Reload NVM after installation
         export NVM_DIR="$HOME/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
