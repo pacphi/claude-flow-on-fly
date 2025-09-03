@@ -57,7 +57,10 @@ EOF
 # Make executable
 chmod +x /workspace/scripts/extensions.d/50-mycustomtool.sh
 
-# Run extensions only
+# Run just your new extension (if it's activated)
+/workspace/scripts/vm-configure.sh --extension mycustomtool
+
+# Or run all extensions
 /workspace/scripts/vm-configure.sh --extensions-only
 ```
 
@@ -131,13 +134,19 @@ The `extension-manager.sh` utility in `/workspace/docker/lib/` provides comprehe
 **Running individual extensions after activation:**
 
 ```bash
-# After activation, extensions run automatically during vm-configure.sh
-# To run a specific extension manually:
+# Run a specific activated extension by name
+/workspace/scripts/vm-configure.sh --extension rust
+/workspace/scripts/vm-configure.sh --extension python
+
+# Run the extension file directly
 /workspace/scripts/extensions.d/10-rust.sh
 
-# Or run only extensions without full VM configuration:
+# Run all activated extensions without full VM configuration
 /workspace/scripts/vm-configure.sh --extensions-only
 ```
+
+> [!TIP]
+> Use `--extension <name>` to run just one activated extension without re-running all others. If the extension isn't activated, you'll receive instructions on how to activate it using the extension-manager.
 
 > [!NOTE]
 > Extensions 01-04 are core system components (marked as `[PROTECTED]`) and cannot be deactivated. Modified extensions automatically create backups when deactivated.

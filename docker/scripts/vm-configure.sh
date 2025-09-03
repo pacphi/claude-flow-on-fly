@@ -100,6 +100,7 @@ main() {
     local interactive=false
     local skip_claude_install=false
     local extensions_only=false
+    local specific_extension=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -115,6 +116,14 @@ main() {
                 extensions_only=true
                 shift
                 ;;
+            --extension)
+                if [[ -z "$2" ]]; then
+                    print_error "Extension name required for --extension option"
+                    exit 1
+                fi
+                specific_extension="$2"
+                shift 2
+                ;;
             --help)
                 cat << EOF
 Usage: $0 [OPTIONS]
@@ -123,6 +132,7 @@ Options:
   --interactive       Run interactive configuration prompts
   --skip-claude       Skip Claude Code/Flow installation
   --extensions-only   Only run extension scripts
+  --extension <name>  Run a specific activated extension by name
   --help              Show this help message
 
 This script configures the development environment inside the Fly.io VM.
@@ -132,6 +142,10 @@ Extension System:
   Place custom installation scripts in $EXTENSIONS_DIR/
   Scripts are executed in alphabetical order during configuration.
   Use prefixes: pre-*, *, post-* to control execution phase.
+
+  For --extension option:
+  Extension must be activated first using:
+    extension-manager.sh activate <extension-name>
 EOF
                 exit 0
                 ;;
@@ -148,6 +162,71 @@ EOF
         print_error "This script should be run inside the Fly.io VM"
         print_error "Connect to your VM first: ssh developer@your-app.fly.dev -p 10022"
         exit 1
+    fi
+
+    # Handle specific extension mode
+    if [[ -n "$specific_extension" ]]; then
+        print_status "Running specific extension: $specific_extension"
+
+        # Ensure workspace structure exists
+        setup_workspace_structure
+
+        # Source extension-manager to use its functions
+        if [[ -f "$LIB_DIR/extension-manager.sh" ]]; then
+            source "$LIB_DIR/extension-manager.sh"
+        else
+            print_error "Extension manager not found at $LIB_DIR/extension-manager.sh"
+            exit 1
+        fi
+
+        # Check if extension is activated
+        local extension_found=false
+        local extension_activated=false
+        local extension_file=""
+
+        # Look for the extension
+        for example_file in "$EXTENSIONS_DIR"/*.sh.example; do
+            [[ ! -f "$example_file" ]] && continue
+
+            local name=$(get_extension_name "$(basename "$example_file")")
+
+            if [[ "$name" == "$specific_extension" ]]; then
+                extension_found=true
+                extension_file="${example_file%.example}"
+
+                if [[ -f "$extension_file" ]]; then
+                    extension_activated=true
+                fi
+                break
+            fi
+        done
+
+        if [[ "$extension_found" == false ]]; then
+            print_error "Extension '$specific_extension' not found"
+            print_status "Available extensions:"
+            for example_file in "$EXTENSIONS_DIR"/*.sh.example; do
+                [[ -f "$example_file" ]] && echo "  - $(get_extension_name "$(basename "$example_file")")"
+            done
+            exit 1
+        fi
+
+        if [[ "$extension_activated" == false ]]; then
+            print_warning "Extension '$specific_extension' is not activated"
+            print_status "To activate it, run: extension-manager.sh activate $specific_extension"
+            print_status "Or use the extension-manager alias in the VM: extension-manager activate $specific_extension"
+            exit 1
+        fi
+
+        # Run the specific extension
+        print_status "Executing extension: $(basename "$extension_file")"
+        if bash "$extension_file"; then
+            print_success "Extension '$specific_extension' completed successfully"
+        else
+            print_error "Extension '$specific_extension' failed with exit code $?"
+            exit 1
+        fi
+
+        return 0
     fi
 
     # Handle extensions-only mode
