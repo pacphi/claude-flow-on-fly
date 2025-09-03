@@ -245,24 +245,6 @@ validate-context
 /workspace/scripts/lib/system-status.sh
 ```
 
-#### Quality Standards
-
-The system enforces quality through:
-
-- **Build Validation**: Code compiles successfully
-- **Test Coverage**: Comprehensive test suites
-- **Code Standards**: Linting and formatting compliance
-- **Type Safety**: Static analysis for typed languages
-
-#### Quality Process
-
-When implementing features:
-
-1. Run build and tests before committing
-2. Apply linting and formatting standards
-3. Validate type safety requirements
-4. Review and refactor as needed
-
 ## Project Development Workflow
 
 ### 1. Create New Project
@@ -299,7 +281,7 @@ Use doc-planner and microtask-breakdown agents to structure the work.
 
 ```bash
 # Run quality checks throughout development
-npm test                    # Run test suite
+npm test                   # Run test suite
 npm run lint               # Check code standards
 npm run typecheck          # Validate types
 npm run build              # Ensure compilation
