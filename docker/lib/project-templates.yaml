@@ -1,0 +1,370 @@
+# Project Templates Configuration
+# Defines templates for different project types, frameworks, and tech stacks
+
+templates:
+  # Language-based templates
+  node:
+    description: "Node.js application"
+    extensions: []
+    detection_patterns: ["node", "npm", "express", "js", "typescript", "ts"]
+    setup_commands:
+      - "npm init -y"
+    files:
+      "package.json": |
+        {
+          "name": "{project_name}",
+          "version": "1.0.0",
+          "main": "index.js",
+          "scripts": {
+            "start": "node index.js",
+            "dev": "nodemon index.js",
+            "test": "jest"
+          }
+        }
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a Node.js application for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      npm install
+      npm run dev
+      ```
+
+      ## Development Commands
+      - `npm start` - Start the application
+      - `npm run dev` - Start with auto-reload
+      - `npm test` - Run tests
+
+      ## Architecture Notes
+      [Add architectural decisions and patterns]
+
+  python:
+    description: "Python application"
+    extensions: ["05-python.sh"]
+    detection_patterns: ["python", "py", "django", "flask", "fastapi", "ml", "data"]
+    setup_commands:
+      - "python3 -m venv venv"
+      - "source venv/bin/activate"
+      - "touch requirements.txt"
+    files:
+      "requirements.txt": ""
+      "main.py": |
+        #!/usr/bin/env python3
+        """
+        {project_name} - Python application
+        """
+
+        def main():
+            print("Hello from {project_name}!")
+
+        if __name__ == "__main__":
+            main()
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a Python application for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      source venv/bin/activate
+      pip install -r requirements.txt
+      python main.py
+      ```
+
+      ## Development Commands
+      - `python main.py` - Run the application
+      - `pytest tests/` - Run tests
+      - `black .` - Format code
+      - `flake8 .` - Lint code
+
+  go:
+    description: "Go application"
+    extensions: ["20-golang.sh"]
+    detection_patterns: ["go", "golang", "api", "service", "microservice"]
+    setup_commands:
+      - "go mod init {project_name}"
+    files:
+      "main.go": |
+        package main
+
+        import "fmt"
+
+        func main() {
+            fmt.Println("Hello from {project_name}!")
+        }
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a Go application for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      go mod tidy
+      go run main.go
+      ```
+
+      ## Development Commands
+      - `go run main.go` - Run the application
+      - `go test ./...` - Run tests
+      - `go build` - Build binary
+
+  rust:
+    description: "Rust application"
+    extensions: ["10-rust.sh"]
+    detection_patterns: ["rust", "rs", "cargo", "cli", "system"]
+    setup_commands:
+      - "cargo init --name {project_name}"
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a Rust application for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      cargo build
+      cargo run
+      ```
+
+      ## Development Commands
+      - `cargo run` - Run the application
+      - `cargo test` - Run tests
+      - `cargo build --release` - Build optimized binary
+
+  # Framework-based templates
+  rails:
+    description: "Ruby on Rails application"
+    extensions: ["60-ruby.sh"]
+    detection_patterns: ["rails", "ruby", "web", "mvc"]
+    setup_commands:
+      - "rails new . --skip-git --force"
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a Ruby on Rails application for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      bundle install
+      rails db:create db:migrate
+      rails server
+      ```
+
+      ## Development Commands
+      - `rails server` - Start development server
+      - `rails console` - Interactive console
+      - `rails test` - Run tests
+      - `rails db:migrate` - Run database migrations
+
+  django:
+    description: "Django web application"
+    extensions: ["05-python.sh"]
+    detection_patterns: ["django", "web", "python"]
+    setup_commands:
+      - "python3 -m venv venv"
+      - "source venv/bin/activate"
+      - "pip install django"
+      - "django-admin startproject {project_name} ."
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a Django web application for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      source venv/bin/activate
+      pip install -r requirements.txt
+      python manage.py migrate
+      python manage.py runserver
+      ```
+
+      ## Development Commands
+      - `python manage.py runserver` - Start development server
+      - `python manage.py shell` - Interactive shell
+      - `python manage.py test` - Run tests
+      - `python manage.py migrate` - Apply migrations
+
+  spring:
+    description: "Spring Boot application"
+    extensions: ["40-jvm.sh"]
+    detection_patterns: ["spring", "java", "boot", "api", "microservice"]
+    setup_commands:
+      - "spring init --dependencies=web,data-jpa {project_name}"
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a Spring Boot application for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      ./mvnw spring-boot:run
+      ```
+
+      ## Development Commands
+      - `./mvnw spring-boot:run` - Start application
+      - `./mvnw test` - Run tests
+      - `./mvnw clean package` - Build JAR
+
+  dotnet:
+    description: ".NET application"
+    extensions: ["70-dotnet.sh"]
+    detection_patterns: ["dotnet", "csharp", "c#", "api", "web", "blazor"]
+    setup_commands:
+      - "dotnet new web"
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a .NET application for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      dotnet restore
+      dotnet run
+      ```
+
+      ## Development Commands
+      - `dotnet run` - Start application
+      - `dotnet test` - Run tests
+      - `dotnet build` - Build application
+
+  # Infrastructure templates
+  terraform:
+    description: "Terraform infrastructure project"
+    extensions: ["80-infra-tools.sh"]
+    detection_patterns: ["terraform", "tf", "infrastructure", "infra", "iac"]
+    setup_commands: []
+    files:
+      "main.tf": |
+        # {project_name} Infrastructure
+
+        terraform {
+          required_version = ">= 1.0"
+          required_providers {
+            aws = {
+              source  = "hashicorp/aws"
+              version = "~> 5.0"
+            }
+          }
+        }
+
+        provider "aws" {
+          region = var.aws_region
+        }
+      "variables.tf": |
+        variable "aws_region" {
+          description = "AWS region"
+          type        = string
+          default     = "us-west-2"
+        }
+
+        variable "environment" {
+          description = "Environment name"
+          type        = string
+          default     = "dev"
+        }
+      "outputs.tf": |
+        # Add outputs here
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a Terraform infrastructure project for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      terraform init
+      terraform plan
+      terraform apply
+      ```
+
+      ## Development Commands
+      - `terraform plan` - Show execution plan
+      - `terraform apply` - Apply changes
+      - `terraform destroy` - Destroy infrastructure
+      - `terraform fmt` - Format files
+
+  docker:
+    description: "Dockerized application"
+    extensions: ["30-docker.sh"]
+    detection_patterns: ["docker", "container", "microservice"]
+    setup_commands: []
+    files:
+      "Dockerfile": |
+        FROM node:18-alpine
+
+        WORKDIR /app
+
+        COPY package*.json ./
+        RUN npm ci --only=production
+
+        COPY . .
+
+        EXPOSE 3000
+
+        CMD ["npm", "start"]
+      "docker-compose.yml": |
+        version: '3.8'
+        services:
+          app:
+            build: .
+            ports:
+              - "3000:3000"
+            environment:
+              - NODE_ENV=development
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      This is a Dockerized application for [brief description].
+
+      ## Setup Instructions
+      ```bash
+      docker-compose up --build
+      ```
+
+      ## Development Commands
+      - `docker-compose up` - Start containers
+      - `docker-compose down` - Stop containers
+      - `docker-compose logs` - View logs
+      - `docker build -t {project_name} .` - Build image
+
+# Detection rules for auto-type selection
+detection_rules:
+  # Name pattern matching (case-insensitive)
+  name_patterns:
+    - pattern: ".*-?rails?-?.*"
+      type: "rails"
+    - pattern: ".*-?django-?.*"
+      type: "django"
+    - pattern: ".*-?spring-?.*"
+      type: "spring"
+    - pattern: ".*-?api.*"
+      types: ["node", "go", "python", "dotnet", "spring"]
+    - pattern: ".*-?web.*"
+      types: ["node", "rails", "django", "dotnet"]
+    - pattern: ".*-?infra.*|.*-?infrastructure.*"
+      type: "terraform"
+    - pattern: ".*-?tf.*|.*-?terraform.*"
+      type: "terraform"
+    - pattern: ".*-?docker.*"
+      type: "docker"
+    - pattern: ".*-?service.*|.*-?microservice.*"
+      types: ["go", "node", "spring", "dotnet"]
+
+  # Common framework keywords
+  framework_keywords:
+    rails: ["rails", "ruby"]
+    django: ["django", "python"]
+    spring: ["spring", "java", "kotlin"]
+    dotnet: ["dotnet", "csharp", "blazor", "aspnet"]
+    terraform: ["terraform", "infra", "infrastructure", "iac"]
+    docker: ["docker", "container"]
