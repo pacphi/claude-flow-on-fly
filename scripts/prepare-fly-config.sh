@@ -75,11 +75,11 @@ sed -i "s/{{CPU_KIND}}/$CPU_KIND/g" fly.toml.tmp
 sed -i "s/{{CPU_COUNT}}/$CPU_COUNT/g" fly.toml.tmp
 sed -i "s/{{SSH_EXTERNAL_PORT}}/$SSH_EXTERNAL_PORT/g" fly.toml.tmp
 
-# Handle CI mode - remove external port mapping to prevent conflicts
+# Handle CI mode - remove entire SSH service to prevent conflicts with hallpass
 if [[ "$CI_MODE" == "true" ]]; then
-  echo "  CI Mode: Removing external port mapping to prevent conflicts"
-  # Remove the [[services.ports]] section entirely for CI
-  sed -i '/# Port mapping for SSH access/,+2d' fly.toml.tmp
+  echo "  CI Mode: Removing SSH service configuration to prevent hallpass conflicts"
+  # Remove the entire SSH service section to avoid port 22 conflicts with Fly.io's hallpass
+  sed -i '/# SSH service configuration (primary access method)/,/restart_limit = 0/d' fly.toml.tmp
 fi
 
 # Replace the original file
