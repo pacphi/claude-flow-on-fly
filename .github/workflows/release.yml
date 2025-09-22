@@ -110,11 +110,11 @@ jobs:
           others=""
 
           while IFS= read -r commit; do
-            if [[ $commit =~ ^.*feat(\([^)]*\))?:.*$ ]]; then
+            if [[ $commit == *"feat"*":"* ]] || [[ $commit == *"feat("*")"*":"* ]]; then
               features+="$commit"$'\n'
-            elif [[ $commit =~ ^.*fix(\([^)]*\))?:.*$ ]]; then
+            elif [[ $commit == *"fix"*":"* ]] || [[ $commit == *"fix("*")"*":"* ]]; then
               fixes+="$commit"$'\n'
-            elif [[ $commit =~ ^.*docs?(\([^)]*\))?:.*$ ]]; then
+            elif [[ $commit == *"doc"*":"* ]] || [[ $commit == *"docs"*":"* ]] || [[ $commit == *"doc("*")"*":"* ]] || [[ $commit == *"docs("*")"*":"* ]]; then
               docs+="$commit"$'\n'
             else
               others+="$commit"$'\n'
