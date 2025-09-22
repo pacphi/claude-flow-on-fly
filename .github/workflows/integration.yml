@@ -54,20 +54,16 @@ jobs:
           chmod 644 test_key.pub
 
       - name: Prepare fly.toml for testing
+        env:
+          APP_NAME: ${{ steps.app-name.outputs.app_name }}
+          VOLUME_NAME: "test_data"
+          VOLUME_SIZE: "5"
+          VM_MEMORY: "1024"
+          CPU_KIND: "shared"
+          CPU_COUNT: "1"
         run: |
-          # Create a test-specific fly.toml
-          cp fly.toml fly.test.toml
-
-          # Replace placeholders with test values
-          sed -i "s/{{APP_NAME}}/${{ steps.app-name.outputs.app_name }}/g" fly.test.toml
-          sed -i "s/{{REGION}}/${REGION}/g" fly.test.toml
-          sed -i "s/{{VOLUME_NAME}}/test_data/g" fly.test.toml
-          sed -i "s/{{VOLUME_SIZE}}/5/g" fly.test.toml
-          sed -i "s/{{VM_MEMORY}}/1024/g" fly.test.toml
-          sed -i "s/{{CPU_KIND}}/shared/g" fly.test.toml
-          sed -i "s/{{CPU_COUNT}}/1/g" fly.test.toml
-
-          mv fly.test.toml fly.toml
+          # Use the configuration script in CI mode to prevent port conflicts
+          ./scripts/prepare-fly-config.sh --ci-mode
 
       - name: Deploy test environment
         env:

@@ -257,30 +257,9 @@ configure_secrets() {
 update_fly_toml() {
     print_status "Updating fly.toml with app name and configuration"
 
-    # Backup original fly.toml
-    cp fly.toml fly.toml.backup
-
-    # Replace all placeholder values with actual configuration
-    sed -i.tmp "s/{{APP_NAME}}/$APP_NAME/g" fly.toml
-    rm fly.toml.tmp
-
-    sed -i.tmp "s/{{REGION}}/$REGION/g" fly.toml
-    rm fly.toml.tmp
-
-    sed -i.tmp "s/{{VOLUME_NAME}}/$VOLUME_NAME/g" fly.toml
-    rm fly.toml.tmp
-
-    sed -i.tmp "s/{{VOLUME_SIZE}}/$VOLUME_SIZE/g" fly.toml
-    rm fly.toml.tmp
-
-    sed -i.tmp "s/{{VM_MEMORY}}/$VM_MEMORY/g" fly.toml
-    rm fly.toml.tmp
-
-    sed -i.tmp "s/{{CPU_KIND}}/$CPU_KIND/g" fly.toml
-    rm fly.toml.tmp
-
-    sed -i.tmp "s/{{CPU_COUNT}}/$CPU_COUNT/g" fly.toml
-    rm fly.toml.tmp
+    # Use the configuration script to prepare fly.toml
+    export SSH_EXTERNAL_PORT="10022"
+    ./scripts/prepare-fly-config.sh
 
     print_success "fly.toml updated"
 }
