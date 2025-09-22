@@ -521,7 +521,7 @@ claude-flow-on-fly/
 - `/workspace/developer/.gitconfig` - Git configuration
 - `/workspace/developer/.claude/settings.json` - Claude Code settings
 - `/workspace/.swarm/` - Claude Flow configuration
-- `/etc/ssh/sshd_config` - SSH daemon configuration
+- `/etc/ssh/sshd_config` - SSH daemon configuration (runs on port 2222)
 - `fly.toml` - Fly.io deployment configuration
 
 ### Environment Variables

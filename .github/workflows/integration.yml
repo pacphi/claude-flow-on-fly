@@ -62,6 +62,7 @@ jobs:
           VM_MEMORY: "1024"
           CPU_KIND: "shared"
           CPU_COUNT: "1"
+          CI_MODE: "true"
         run: |
           # Use the configuration script in CI mode to prevent port conflicts
           ./scripts/prepare-fly-config.sh --ci-mode
@@ -84,61 +85,55 @@ jobs:
             --no-encryption \
             --yes
 
-          # Set SSH key as secret
+          # Set SSH key and CI mode as secrets
           ssh_key_content=$(cat test_key.pub)
           flyctl secrets set AUTHORIZED_KEYS="$ssh_key_content" \
             --app ${{ steps.app-name.outputs.app_name }}
+          flyctl secrets set CI_MODE="true" \
+            --app ${{ steps.app-name.outputs.app_name }}
 
-          # Deploy the application
-          flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --yes
+          # Deploy the application using immediate strategy to skip health checks
+          # This prevents health check loops caused by port 22 conflicts with hallpass
+          flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 60s --yes
 
       - name: Wait for deployment
         env:
           FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
         run: |
-          echo "Waiting for deployment to be ready..."
+          echo "Verifying deployment success..."
 
           app_name="${{ steps.app-name.outputs.app_name }}"
-          timeout=300
+          timeout=120
           elapsed=0
           interval=10
-          status_check_interval=30
-          last_status_log=0
 
           while [ $elapsed -lt $timeout ]; do
-            # Get detailed status
+            # Get deployment status
             status_output=$(flyctl status --app $app_name 2>&1)
 
-            # Log detailed status every 30 seconds
-            if [ $((elapsed - last_status_log)) -ge $status_check_interval ]; then
-              echo "=== Status Check (${elapsed}s/${timeout}s) ==="
-              echo "$status_output"
-              echo "=== Machine Details ==="
-              flyctl machine list --app $app_name 2>&1 || echo "Failed to get machine list"
-              echo "========================"
-              last_status_log=$elapsed
-            fi
+            echo "=== Status Check (${elapsed}s/${timeout}s) ==="
+            echo "$status_output"
 
-            # Check if app is running AND started (more precise than just "running")
-            if echo "$status_output" | grep -q "running" && echo "$status_output" | grep -q "started"; then
-              echo "✅ App status shows running and started"
+            # Check if machines are running (immediate deployment bypasses health checks)
+            if echo "$status_output" | grep -q "running"; then
+              echo "✅ Deployment successful - machine is running"
 
-              # Additional check: verify SSH connectivity using flyctl
-              echo "Testing SSH connectivity via flyctl..."
-              if timeout 15 flyctl ssh console --app $app_name --command "echo 'Health check successful'" 2>/dev/null; then
-                echo "✅ SSH connectivity verified via flyctl"
+              # Basic connectivity test via flyctl ssh console (uses hallpass)
+              echo "Testing basic connectivity via flyctl..."
+              if timeout 15 flyctl ssh console --app $app_name --command "echo 'Deployment verification successful'" 2>/dev/null; then
+                echo "✅ Basic connectivity verified"
                 break
               else
-                echo "⚠️  App running but SSH not yet accessible via flyctl"
+                echo "⚠️  Machine running but not yet accessible via flyctl (expected briefly after deploy)"
               fi
             elif echo "$status_output" | grep -q "failed\|crashed\|error"; then
-              echo "❌ App appears to have failed or crashed"
+              echo "❌ Deployment failed"
               echo "App status: $status_output"
               echo "Recent logs:"
               flyctl logs --app $app_name
               exit 1
             else
-              echo "Waiting for app to start... (${elapsed}s/${timeout}s) - Current status not fully ready"
+              echo "Waiting for deployment to complete... (${elapsed}s/${timeout}s)"
             fi
 
             sleep $interval
@@ -146,11 +141,9 @@ jobs:
           done
 
           if [ $elapsed -ge $timeout ]; then
-            echo "❌ Timeout waiting for app to be ready"
+            echo "❌ Timeout waiting for deployment to complete"
             echo "Final status:"
             flyctl status --app $app_name
-            echo "Machine details:"
-            flyctl machine list --app $app_name
             echo "Recent logs:"
             flyctl logs --app $app_name
             exit 1

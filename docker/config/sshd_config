@@ -13,8 +13,8 @@ PubkeyAuthentication yes
 ClientAliveInterval 60
 ClientAliveCountMax 3
 
-# Use default SSH port (will be mapped to 10022 by Fly.io)
-Port 22
+# Use port 2222 to avoid conflicts with Fly.io's hallpass service on port 22
+Port 2222
 
 # Logging
 SyslogFacility AUTH

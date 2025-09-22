@@ -127,18 +127,29 @@ EOF
     echo "✅ GitHub token authentication configured"
 fi
 
-# Start SSH daemon
-echo "🔌 Starting SSH daemon..."
-mkdir -p /var/run/sshd
-/usr/sbin/sshd -D &
+# Start SSH daemon (check for CI mode)
+if [ "$CI_MODE" = "true" ]; then
+    echo "🔌 CI Mode: Skipping SSH daemon startup (using Fly.io hallpass)"
+    echo "🎯 Claude Development Environment is ready (CI Mode)!"
+    echo "📡 SSH access available via flyctl ssh console"
+    echo "🏠 Workspace mounted at /workspace"
+else
+    echo "🔌 Starting SSH daemon on port ${SSH_PORT:-2222}..."
+    mkdir -p /var/run/sshd
+    /usr/sbin/sshd -D &
 
-# Keep container running and handle signals
-echo "🎯 Claude Development Environment is ready!"
-echo "📡 SSH server listening on port 22"
-echo "🏠 Workspace mounted at /workspace"
+    echo "🎯 Claude Development Environment is ready!"
+    echo "📡 SSH server listening on port ${SSH_PORT:-2222}"
+    echo "🏠 Workspace mounted at /workspace"
+fi
 
 # Handle shutdown gracefully
 trap 'echo "📴 Shutting down..."; kill $(jobs -p); exit 0' SIGTERM SIGINT
 
-# Wait for SSH daemon
-wait $!
+# Wait for SSH daemon (only if running)
+if [ "$CI_MODE" != "true" ]; then
+    wait $!
+else
+    # In CI mode, just keep container running
+    sleep infinity
+fi

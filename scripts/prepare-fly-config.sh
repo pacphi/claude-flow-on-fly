@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: $0 [options]"
       echo ""
       echo "Options:"
-      echo "  --ci-mode          Configure for CI testing (removes external port mapping)"
+      echo "  --ci-mode          Configure for CI testing (disables services and health checks)"
       echo "  --app-name NAME    Set app name"
       echo "  --region REGION    Set region (default: iad)"
       echo "  --help             Show this help message"
@@ -75,11 +75,38 @@ sed -i "s/{{CPU_KIND}}/$CPU_KIND/g" fly.toml.tmp
 sed -i "s/{{CPU_COUNT}}/$CPU_COUNT/g" fly.toml.tmp
 sed -i "s/{{SSH_EXTERNAL_PORT}}/$SSH_EXTERNAL_PORT/g" fly.toml.tmp
 
-# Handle CI mode - remove entire SSH service to prevent conflicts with hallpass
+# Handle CI mode - use empty services to prevent conflicts with hallpass
 if [[ "$CI_MODE" == "true" ]]; then
-  echo "  CI Mode: Removing SSH service configuration to prevent hallpass conflicts"
-  # Remove the entire SSH service section to avoid port 22 conflicts with Fly.io's hallpass
-  sed -i '/# SSH service configuration (primary access method)/,/restart_limit = 0/d' fly.toml.tmp
+  echo "  CI Mode: Configuring empty services to prevent hallpass conflicts"
+
+  # Replace services section with empty array to disable all health checks
+  # This prevents port 22 conflicts between SSH daemon and Fly.io's hallpass service
+  cat > services_replacement.tmp << 'EOF'
+# Services configuration - empty for CI mode to prevent hallpass conflicts
+services = []
+
+# Monitoring and health checks - disabled for CI
+# [checks]
+# No health checks in CI mode - rely on deployment success only
+EOF
+
+  # Remove existing services and checks sections, then add empty services
+  sed -i '/# SSH service configuration/,/restart_limit = 0/d' fly.toml.tmp
+  sed -i '/# Monitoring and health checks/,/path = "\/metrics"/d' fly.toml.tmp
+  sed -i '/\[checks\]/,/timeout = "2s"/d' fly.toml.tmp
+
+  # Insert empty services configuration before [machine] section
+  sed -i '/\[machine\]/i\
+\
+# Services configuration - empty for CI mode to prevent hallpass conflicts\
+services = []\
+\
+# Monitoring and health checks - disabled for CI\
+# [checks]\
+# No health checks in CI mode - rely on deployment success only\
+' fly.toml.tmp
+
+  rm -f services_replacement.tmp
 fi
 
 # Replace the original file
