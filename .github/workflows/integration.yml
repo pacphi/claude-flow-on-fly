@@ -84,7 +84,8 @@ jobs:
             --app ${{ steps.app-name.outputs.app_name }} \
             --region ${REGION} \
             --size 5 \
-            --no-encryption
+            --no-encryption \
+            --yes
 
           # Set SSH key as secret
           ssh_key_content=$(cat test_key.pub)

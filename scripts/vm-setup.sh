@@ -202,7 +202,8 @@ create_volume() {
             --app "$APP_NAME" \
             --region "$REGION" \
             --size "$VOLUME_SIZE" \
-            --no-encryption
+            --no-encryption \
+            --yes
         print_success "Created volume: $VOLUME_NAME ($VOLUME_SIZE GB)"
     fi
 }
@@ -289,7 +290,7 @@ deploy_app() {
     print_status "Deploying application to Fly.io"
 
     # Deploy the application
-    flyctl deploy -a "$APP_NAME"
+    flyctl deploy --app "$APP_NAME" --yes
 
     print_success "Application deployed successfully"
 }
