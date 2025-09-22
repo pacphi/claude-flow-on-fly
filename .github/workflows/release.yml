@@ -340,7 +340,7 @@ jobs:
           EOF
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ needs.validate-tag.outputs.is_prerelease == 'true' && format('Pre-release {0}', needs.validate-tag.outputs.version) || format('Release {0}', needs.validate-tag.outputs.version) }}
