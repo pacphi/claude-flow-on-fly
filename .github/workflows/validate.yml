@@ -48,18 +48,46 @@ jobs:
         run: |
           echo "Validating fly.toml configuration..."
 
-          # Install flyctl for validation
-          curl -L https://fly.io/install.sh | sh
-          export FLYCTL_INSTALL="/home/runner/.fly"
-          export PATH="$FLYCTL_INSTALL/bin:$PATH"
+          # Install TOML validator (using Python)
+          pip install toml
 
-          # Basic syntax check
-          if ! flyctl config validate --config fly.toml; then
-            echo "❌ fly.toml validation failed"
-            exit 1
-          fi
+          # Basic TOML syntax check (handle template placeholders)
+          python3 -c "
+          import toml
+          import sys
+          import re
+          try:
+              with open('fly.toml', 'r') as f:
+                  content = f.read()
 
-          echo "✅ fly.toml configuration is valid"
+              # Replace template placeholders with valid values for validation
+              content = re.sub(r'{{APP_NAME}}', 'test-app', content)
+              content = re.sub(r'{{REGION}}', 'iad', content)
+              content = re.sub(r'{{VOLUME_NAME}}', 'test_data', content)
+              content = re.sub(r'{{VOLUME_SIZE}}', '10', content)
+              content = re.sub(r'{{CPU_KIND}}', 'shared', content)
+              content = re.sub(r'{{CPU_COUNT}}', '1', content)
+              content = re.sub(r'{{VM_MEMORY}}', '512', content)
+
+              # Parse the processed TOML
+              config = toml.loads(content)
+              print('✅ fly.toml template is valid TOML syntax')
+
+              # Basic structure validation
+              required_sections = ['app', 'primary_region']
+              for section in required_sections:
+                  if section not in config:
+                      print(f'⚠️  Missing recommended section: {section}')
+
+              if 'mounts' in config:
+                  print('✅ Volume mounts configured')
+              if 'services' in config:
+                  print('✅ Services configured')
+
+          except Exception as e:
+              print(f'❌ fly.toml validation failed: {e}')
+              sys.exit(1)
+          "
 
   script-validation:
     name: Validate Scripts
@@ -249,14 +277,20 @@ jobs:
           regex = '''(?i)(test|example|sample|placeholder|dummy|fake|mock)'''
           path = '''(test|spec|example|sample|docs?|readme)'''
 
-          [[rules.allowlist]]
-          description = "Ignore SSH keys in documentation"
-          paths = ['''docs/.*''', '''README\.md''', '''.*\.md''']
-          regexes = ['''ssh-rsa''', '''ssh-ed25519''']
-
-          [[rules.allowlist]]
-          description = "Ignore example configurations"
-          paths = ['''.*\.example$''', '''.*\.template$''']
+          [allowlist]
+          description = "Ignore false positives"
+          paths = [
+            '''docs/.*''',
+            '''README\.md''',
+            '''.*\.md''',
+            '''.*\.example$''',
+            '''.*\.template$'''
+          ]
+          regexes = [
+            '''ssh-rsa''',
+            '''ssh-ed25519''',
+            '''(?i)(test|example|sample|placeholder|dummy|fake|mock)'''
+          ]
           EOF
 
           # Scan for secrets

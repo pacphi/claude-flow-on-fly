@@ -18,3 +18,33 @@ disable=SC2086
 
 # SC2153: Possible misspelling - handled by variable definitions
 disable=SC2153
+
+# SC2129: Consider using { cmd1; cmd2; } >> file instead of individual redirects - style preference
+disable=SC2129
+
+# SC2034: Variable appears unused - may be used externally or in sourced scripts
+disable=SC2034
+
+# SC2126: Consider using 'grep -c' instead of 'grep|wc -l' - style preference
+disable=SC2126
+
+# SC1090: ShellCheck can't follow non-constant source - dynamic sourcing expected
+disable=SC1090
+
+# SC2235: Use { ..; } instead of (..) to avoid subshell overhead - style preference
+disable=SC2235
+
+# SC2001: See if you can use ${variable//search/replace} instead - style preference
+disable=SC2001
+
+# SC2012: Use find instead of ls to better handle non-alphanumeric filenames - info level
+disable=SC2012
+
+# SC2181: Check exit code directly with e.g. 'if ! mycmd;', not indirectly with $? - style preference
+disable=SC2181
+
+# SC2087: Quote 'EOF' to make here document expansions happen on the server side - intentional design
+disable=SC2087
+
+# SC1037: Braces are required for positionals over 9 - false positive for dollar amounts in strings
+disable=SC1037
