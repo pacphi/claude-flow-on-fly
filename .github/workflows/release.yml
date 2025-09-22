@@ -212,20 +212,34 @@ jobs:
           if ! grep -q "## \[$version\]" CHANGELOG.md; then
             # Insert new version after the header
             changelog_temp=$(mktemp)
-            awk '
+            changelog_content_file=$(mktemp)
+
+            # Write the changelog content to a temporary file to avoid string escaping issues
+            cat > "$changelog_content_file" << 'CHANGELOG_EOF'
+          ${{ needs.generate-changelog.outputs.full_changelog }}
+          CHANGELOG_EOF
+
+            awk -v changelog_file="$changelog_content_file" '
               /^# Changelog/ { print; in_header=1; next }
               in_header && /^$/ { print; getline; print; print ""; in_header=0 }
               in_header { print; next }
               !inserted && /^## \[/ {
-                print "'"${{ needs.generate-changelog.outputs.full_changelog }}"'"
+                while ((getline line < changelog_file) > 0) print line
+                close(changelog_file)
                 print ""
                 inserted=1
               }
               { print }
-              END { if (!inserted) print "'"${{ needs.generate-changelog.outputs.full_changelog }}"'" }
+              END {
+                if (!inserted) {
+                  while ((getline line < changelog_file) > 0) print line
+                  close(changelog_file)
+                }
+              }
             ' CHANGELOG.md > "$changelog_temp"
 
             mv "$changelog_temp" CHANGELOG.md
+            rm -f "$changelog_content_file"
             echo "✅ Updated CHANGELOG.md with version $version"
           else
             echo "ℹ️  Version $version already exists in CHANGELOG.md"
