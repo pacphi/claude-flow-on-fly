@@ -1,7 +1,6 @@
 # Claude Code and Claude Flow on Fly.io
 
-[![Latest Release](https://img.shields.io/github/v/release/pacphi/claude-flow-on-fly)](https://github.com/pacphi/claude-flow-on-fly/releases/latest)
-[![Latest Pre-release](https://img.shields.io/github/v/release/pacphi/claude-flow-on-fly?include_prereleases&label=pre-release)](https://github.com/pacphi/claude-flow-on-fly/releases)
+[![Version](https://img.shields.io/github/v/release/pacphi/claude-flow-on-fly?include_prereleases)](https://github.com/pacphi/claude-flow-on-fly/releases)
 [![License](https://img.shields.io/github/license/pacphi/claude-flow-on-fly)](LICENSE)
 [![Integration Tests](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml/badge.svg)](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml)
 

@@ -343,7 +343,7 @@ jobs:
           ## Setup
           ```bash
           ./scripts/vm-setup.sh --app-name my-claude-dev
-          ssh developer@my-claude-dev.fly.dev -p 10022
+          flyctl ssh console --app my-claude-dev
           /workspace/scripts/vm-configure.sh
           claude
           ```

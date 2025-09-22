@@ -101,25 +101,61 @@ jobs:
         run: |
           echo "Waiting for deployment to be ready..."
 
-          # Wait up to 5 minutes for deployment
+          app_name="${{ steps.app-name.outputs.app_name }}"
           timeout=300
           elapsed=0
           interval=10
+          status_check_interval=30
+          last_status_log=0
 
           while [ $elapsed -lt $timeout ]; do
-            if flyctl status --app ${{ steps.app-name.outputs.app_name }} | grep -q "running"; then
-              echo "✅ App is running"
-              break
+            # Get detailed status
+            status_output=$(flyctl status --app $app_name 2>&1)
+
+            # Log detailed status every 30 seconds
+            if [ $((elapsed - last_status_log)) -ge $status_check_interval ]; then
+              echo "=== Status Check (${elapsed}s/${timeout}s) ==="
+              echo "$status_output"
+              echo "=== Machine Details ==="
+              flyctl machine list --app $app_name 2>&1 || echo "Failed to get machine list"
+              echo "========================"
+              last_status_log=$elapsed
             fi
 
-            echo "Waiting for app to start... (${elapsed}s/${timeout}s)"
+            # Check if app is running AND started (more precise than just "running")
+            if echo "$status_output" | grep -q "running" && echo "$status_output" | grep -q "started"; then
+              echo "✅ App status shows running and started"
+
+              # Additional check: verify SSH connectivity using flyctl
+              echo "Testing SSH connectivity via flyctl..."
+              if timeout 15 flyctl ssh console --app $app_name --command "echo 'Health check successful'" 2>/dev/null; then
+                echo "✅ SSH connectivity verified via flyctl"
+                break
+              else
+                echo "⚠️  App running but SSH not yet accessible via flyctl"
+              fi
+            elif echo "$status_output" | grep -q "failed\|crashed\|error"; then
+              echo "❌ App appears to have failed or crashed"
+              echo "App status: $status_output"
+              echo "Recent logs:"
+              flyctl logs --app $app_name
+              exit 1
+            else
+              echo "Waiting for app to start... (${elapsed}s/${timeout}s) - Current status not fully ready"
+            fi
+
             sleep $interval
             elapsed=$((elapsed + interval))
           done
 
           if [ $elapsed -ge $timeout ]; then
-            echo "❌ Timeout waiting for app to start"
-            flyctl logs --app ${{ steps.app-name.outputs.app_name }}
+            echo "❌ Timeout waiting for app to be ready"
+            echo "Final status:"
+            flyctl status --app $app_name
+            echo "Machine details:"
+            flyctl machine list --app $app_name
+            echo "Recent logs:"
+            flyctl logs --app $app_name
             exit 1
           fi
 
@@ -136,15 +172,8 @@ jobs:
           while [ $attempt -le $max_attempts ]; do
             echo "SSH attempt $attempt/$max_attempts..."
 
-            # Test SSH connection with timeout
-            if timeout 30 ssh -i test_key \
-                -o StrictHostKeyChecking=no \
-                -o ConnectTimeout=10 \
-                -o ServerAliveInterval=5 \
-                -o ServerAliveCountMax=3 \
-                -p 10022 \
-                developer@${app_name}.fly.dev \
-                "echo 'SSH connection successful' && whoami && pwd"; then
+            # Test SSH connection with timeout using flyctl
+            if timeout 30 flyctl ssh console --app $app_name --command "echo 'SSH connection successful' && whoami && pwd" 2>/dev/null; then
               echo "✅ SSH connection successful"
               break
             else
@@ -173,12 +202,7 @@ jobs:
           app_name="${{ steps.app-name.outputs.app_name }}"
 
           # Test that configuration script exists and tools are available
-          ssh -i test_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=30 \
-            -p 10022 \
-            developer@${app_name}.fly.dev \
-            '
+          flyctl ssh console --app $app_name --command '
             echo "Testing VM environment..."
 
             # Check if configuration script exists
@@ -211,12 +235,7 @@ jobs:
           test_content="integration-test-$(date +%s)"
 
           # Create test file
-          ssh -i test_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=30 \
-            -p 10022 \
-            developer@${app_name}.fly.dev \
-            "echo '$test_content' > $test_file && cat $test_file"
+          flyctl ssh console --app $app_name --command "echo '$test_content' > $test_file && cat $test_file"
 
           # Restart the machine to test persistence
           machine_id=$(flyctl machine list --app $app_name --json | jq -r '.[0].id')
@@ -226,12 +245,7 @@ jobs:
           sleep 30
 
           # Check file still exists
-          ssh -i test_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=30 \
-            -p 10022 \
-            developer@${app_name}.fly.dev \
-            "
+          flyctl ssh console --app $app_name --command "
             if [ -f '$test_file' ]; then
               content=\$(cat $test_file)
               if [ '\$content' = '$test_content' ]; then
