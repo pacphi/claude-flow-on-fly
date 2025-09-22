@@ -1,26 +1,58 @@
-# Dependabot configuration for claude-flow-on-fly
-# This configuration monitors Docker dependencies for the remote development environment
-
 version: 2
 updates:
-  # Docker base images and system dependencies
-  - package-ecosystem: "docker"
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "06:00"
-      timezone: "America/Vancouver"
-    # Focus on security updates for infrastructure
     open-pull-requests-limit: 5
-    reviewers:
-      - "cphillipson"
-    assignees:
-      - "cphillipson"
-    labels:
-      - "dependencies"
-      - "docker"
-      - "security"
+    commit-message:
+      prefix: "ci"
+      prefix-development: "ci"
+      include: "scope"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "06:00"
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "docker"
+      prefix-development: "docker"
+      include: "scope"
+
+  # Node.js dependencies (if package.json exists)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "06:00"
+    open-pull-requests-limit: 10
+    versioning-strategy: "auto"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps"
+      include: "scope"
+    ignore:
+      # Ignore major version updates for core dependencies
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+
+  # Python dependencies (if requirements files exist)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "06:00"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps"
       include: "scope"

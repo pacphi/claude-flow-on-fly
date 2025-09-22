@@ -1,6 +1,7 @@
 # Agent System Guide
 
-Agents extend Claude's capabilities for specialized tasks. The environment includes comprehensive agent management through shell aliases.
+Agents extend Claude's capabilities for specialized tasks. The environment includes comprehensive agent management
+through shell aliases.
 
 ## Quick Start
 

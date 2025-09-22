@@ -2,7 +2,8 @@
 
 ## System Overview
 
-This project provides a complete remote development environment running on Fly.io infrastructure with persistent storage, auto-scaling, and AI-assisted development tools.
+This project provides a complete remote development environment running on Fly.io infrastructure with persistent
+storage, auto-scaling, and AI-assisted development tools.
 
 ## Infrastructure Components
 
@@ -206,4 +207,5 @@ Claude Code/Flow ←→ API Keys (Fly secrets) ←→ Project Files
 - **Regional Choice**: Select cost-effective regions
 - **Volume Management**: Monitor and optimize storage usage
 
-This architecture provides a secure, scalable, and cost-effective remote development environment optimized for AI-assisted development workflows.
+This architecture provides a secure, scalable, and cost-effective remote development environment optimized for
+AI-assisted development workflows.

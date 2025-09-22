@@ -503,4 +503,5 @@ cat > /workspace/docs/security-recovery.md << 'EOF'
 EOF
 ```
 
-By implementing these security measures, your remote development environment maintains strong protection against common threats while providing the flexibility needed for productive AI-assisted development.
+By implementing these security measures, your remote development environment maintains strong protection against
+common threats while providing the flexibility needed for productive AI-assisted development.

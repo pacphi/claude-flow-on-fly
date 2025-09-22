@@ -1,0 +1,143 @@
+name: ✨ Feature Request
+description: Suggest an idea for this project
+title: "[Feature]: "
+labels: ["enhancement", "feature-request"]
+assignees:
+  - pacphi
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in improving Claude Flow on Fly.io! Please provide as much detail as possible about your feature request.
+
+  - type: checkboxes
+    id: pre-flight
+    attributes:
+      label: Pre-flight Checklist
+      description: Please confirm you've completed these steps
+      options:
+        - label: I have searched existing issues to ensure this feature hasn't been requested
+          required: true
+        - label: I have reviewed the documentation and this feature doesn't already exist
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What type of feature is this?
+      options:
+        - VM Management
+        - Cost Optimization
+        - IDE Integration
+        - Claude Tools Enhancement
+        - Security/Authentication
+        - Documentation
+        - Monitoring/Observability
+        - Developer Experience
+        - Scripts/Automation
+        - Configuration Management
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What's the motivation?
+      placeholder: |
+        Is your feature request related to a problem? Please describe.
+        Example: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like
+      placeholder: |
+        A clear and concise description of what you want to happen.
+        Include any specific implementation details if you have them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered
+      placeholder: |
+        What other approaches could solve this problem?
+        Why is your proposed solution better?
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Describe specific use cases where this feature would be beneficial
+      placeholder: |
+        1. As a developer, I want to...
+        2. When working on large projects, I need to...
+        3. During cost optimization, it would help to...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve my workflow
+        - High - Significantly impacts my productivity
+        - Critical - Blocking my ability to use the project
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What would need to be implemented for this feature to be considered complete?
+      placeholder: |
+        - [ ] Feature does X
+        - [ ] Feature handles Y edge case
+        - [ ] Documentation is updated
+        - [ ] Tests are added
+
+  - type: checkboxes
+    id: implementation
+    attributes:
+      label: Implementation
+      description: Are you willing to help implement this feature?
+      options:
+        - label: I'm willing to submit a pull request for this feature
+        - label: I can help with testing once implemented
+        - label: I can help with documentation
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, examples, or references
+      placeholder: |
+        - Screenshots or mockups
+        - Examples from other projects
+        - Links to relevant documentation
+        - Code snippets or examples
+
+  - type: dropdown
+    id: affects-cost
+    attributes:
+      label: Cost Impact
+      description: Could this feature affect Fly.io costs?
+      options:
+        - No impact on costs
+        - Might reduce costs
+        - Might increase costs
+        - Uncertain about cost impact
+    validations:
+      required: true

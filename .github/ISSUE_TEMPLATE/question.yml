@@ -1,0 +1,82 @@
+name: ❓ Question
+description: Ask a question about the project
+title: "[Question]: "
+labels: ["question"]
+assignees:
+  - pacphi
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about Claude Flow on Fly.io? We're here to help!
+
+  - type: checkboxes
+    id: pre-flight
+    attributes:
+      label: Pre-flight Checklist
+      description: Please check these first
+      options:
+        - label: I have read the documentation and couldn't find the answer
+          required: true
+        - label: I have searched existing issues and discussions
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What is your question about?
+      options:
+        - Getting Started/Setup
+        - Configuration
+        - Troubleshooting
+        - Cost Management
+        - IDE Integration
+        - Claude Tools Usage
+        - Security/Best Practices
+        - Performance
+        - Customization
+        - Architecture/Design
+        - Contributing
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: Please be as specific as possible...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context that might help us answer your question
+      placeholder: |
+        - What are you trying to accomplish?
+        - What have you tried so far?
+        - Any relevant configuration or setup details
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment (if relevant)
+      description: Please provide environment details if they might be relevant
+      value: |
+        - OS: [e.g., macOS 14.0, Ubuntu 22.04, Windows 11]
+        - Fly.io CLI version: [run `flyctl version`]
+        - App name: [your Fly.io app name]
+        - Region: [e.g., iad, lax, fra]
+
+  - type: checkboxes
+    id: documentation
+    attributes:
+      label: Documentation
+      description: Would the answer to this question be helpful as documentation?
+      options:
+        - label: This question and its answer would be valuable in the documentation
+        - label: I'd be willing to help write documentation for this topic

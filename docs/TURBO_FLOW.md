@@ -2,18 +2,22 @@
 
 ## Overview
 
-This guide covers integrating [turbo-flow-claude](https://github.com/marcuspat/turbo-flow-claude)-like capabilities within the claude-flow-on-fly environment. The integration brings enterprise-grade AI development features including flexible agent management, multi-tier context systems, tmux workspaces, and verification-first development.
+This guide covers integrating [turbo-flow-claude](https://github.com/marcuspat/turbo-flow-claude)-like capabilities
+within the claude-flow-on-fly environment. The integration brings enterprise-grade AI development features
+including flexible agent management, multi-tier context systems, tmux workspaces, and verification-first development.
 
 Thanks for the inspiration [Marcus Patman](https://github.com/marcuspat)!
 
 > [!Note]
-> As of 2025-08-28 no [commercial](https://devpod.sh/docs/managing-providers/add-provider) or [community](https://devpod.sh/docs/managing-providers/add-provider#community-providers) DevPod provider exists targeting fly.io
+> As of 2025-08-28 no [commercial](https://devpod.sh/docs/managing-providers/add-provider) or
+> [community](https://devpod.sh/docs/managing-providers/add-provider#community-providers) DevPod provider exists
+> targeting fly.io
 
 ## What's New
 
 ### 🤖 Flexible Agent Management
 
-- **100+ Agents**: Access to VoltAgent's awesome-claude-code-subagents
+- **600+ Agents**: Default install of [Chris Royse's subagents](https://github.com/ChrisRoyse/610ClaudeSubAgents)
 - **YAML Configuration**: Easily add/remove agent sources
 - **Smart Discovery**: Search agents by name and functionality
 - **Automatic Updates**: Keep agents current with upstream sources
@@ -321,7 +325,7 @@ export TMUX_SESSION_NAME=claude-workspace
 
 ### Alias Reference
 
-#### Agent Management
+#### Agent Management Aliases
 
 ```bash
 agent-install              # Install all agents
@@ -333,13 +337,12 @@ agent-find <term>          # Search for agents
 agent-sample               # Sample random agents
 ```
 
-#### Context Management
+#### Context Management Aliases
 
 ```bash
 load-context               # View all context
 validate-context           # Validate context system
 context-hierarchy          # Show loading hierarchy
-cf-l <command>             # Claude Flow with context
 ```
 
 #### Tmux Management
@@ -486,7 +489,7 @@ nano /workspace/context/global/CLAUDE.md
 - Configure only needed sources in agents-config.yaml
 - Regular cleanup with agent update cycles
 
-### Context Management
+### Context Performance
 
 - Keep project context files small and focused
 - Use session overrides for temporary changes

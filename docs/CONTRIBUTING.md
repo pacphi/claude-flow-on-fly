@@ -1,6 +1,7 @@
 # Contributing
 
-We welcome contributions to improve this remote AI-assisted development environment! Whether you're fixing bugs, adding features, improving documentation, or sharing extensions, your contributions help the entire community.
+We welcome contributions to improve this remote AI-assisted development environment! Whether you're fixing bugs,
+adding features, improving documentation, or sharing extensions, your contributions help the entire community.
 
 ## Ways to Contribute
 
@@ -65,7 +66,7 @@ We welcome contributions to improve this remote AI-assisted development environm
 
 Understanding the codebase organization:
 
-```
+```text
 claude-flow-on-fly/
 ├── docker/                     # Container configuration
 │   ├── config/                 # Configuration files

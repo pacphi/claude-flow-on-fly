@@ -2,7 +2,8 @@
 
 ## Connect JetBrains IDEs to your Claude development environment on Fly.io
 
-> **📋 Complete the common setup first:** See [IDE Setup Guide](IDE_SETUP.md) for prerequisites, SSH configuration, and VM setup before proceeding.
+> **📋 Complete the common setup first:** See [IDE Setup Guide](IDE_SETUP.md) for prerequisites, SSH
+> configuration, and VM setup before proceeding.
 
 This guide covers JetBrains IDE-specific setup using Gateway and remote development features.
 
@@ -33,7 +34,8 @@ If you have IntelliJ IDEA, PyCharm, or other JetBrains IDE:
 
 ## Connect to Remote VM
 
-> **📋 Prerequisites:** Complete the [IDE Setup Guide](IDE_SETUP.md) first to configure SSH and run the VM configuration script.
+> **📋 Prerequisites:** Complete the [IDE Setup Guide](IDE_SETUP.md) first to configure SSH and run the VM
+> configuration script.
 
 ### Gateway Connection
 
@@ -186,7 +188,8 @@ mkdir src public
 
 ## IntelliJ Troubleshooting
 
-> **📋 General Issues:** See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) and [Troubleshooting Guide](TROUBLESHOOTING.md) for SSH and VM issues.
+> **📋 General Issues:** See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) and
+> [Troubleshooting Guide](TROUBLESHOOTING.md) for SSH and VM issues.
 
 ### IntelliJ-Specific Issues
 

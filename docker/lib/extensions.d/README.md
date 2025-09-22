@@ -1,6 +1,7 @@
 # Extension System
 
-This directory contains example extension scripts for customizing your development environment. Extensions are automatically executed during the `vm-configure.sh` process.
+This directory contains example extension scripts for customizing your development environment. Extensions are
+automatically executed during the `vm-configure.sh` process.
 
 ## How Extensions Work
 

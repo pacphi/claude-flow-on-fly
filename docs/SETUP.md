@@ -4,7 +4,9 @@ Advanced setup topics not covered in [Quick Start](QUICKSTART.md).
 
 ## Cost Overview
 
-The environment is designed to minimize costs through auto-suspend capabilities. See the [Cost Management Guide](COST_MANAGEMENT.md) for detailed pricing information, configuration options, and optimization strategies.
+The environment is designed to minimize costs through auto-suspend capabilities. See the
+[Cost Management Guide](COST_MANAGEMENT.md) for detailed pricing information, configuration options, and optimization
+strategies.
 
 **Key cost-saving features:**
 

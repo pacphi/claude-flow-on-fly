@@ -6,14 +6,14 @@ Understanding Fly.io's billing model helps optimize your development environment
 
 ### Billing Components
 
-**Compute Resources**
+#### Compute Resources
 
 - **Per-second billing** when VM is running
 - **Scale-to-zero**: No compute charges when suspended
 - **CPU Types**: Shared (cheaper) vs Performance (dedicated)
 - **Memory**: Billed per GB allocated
 
-**Storage**
+#### Storage
 
 - **Persistent Volumes**: Monthly charge regardless of VM state
 - **Snapshots**: Additional charge for backup retention
@@ -64,14 +64,14 @@ enabled = true
 enabled = true
 ```
 
-**Idle Detection**
+#### Idle Detection
 
 - SSH connection monitoring
 - HTTP request detection
 - Configurable timeout periods
 - Graceful shutdown process
 
-**Resume Triggers**
+#### Resume Triggers
 
 - SSH connection attempts
 - HTTP requests
@@ -342,4 +342,5 @@ flyctl scale count 1 -a my-claude-dev
 ./scripts/cost-monitor.sh
 ```
 
-By following these cost management strategies, you can maintain a powerful AI-assisted development environment while keeping expenses predictable and optimized.
+By following these cost management strategies, you can maintain a powerful AI-assisted development environment
+while keeping expenses predictable and optimized.

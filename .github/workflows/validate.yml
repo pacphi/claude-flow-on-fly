@@ -1,0 +1,311 @@
+name: Project Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  setup-validation:
+    name: Validate Setup Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Check required files exist
+        run: |
+          echo "Checking for required files..."
+
+          required_files=(
+            "Dockerfile"
+            "fly.toml"
+            "scripts/vm-setup.sh"
+            "scripts/vm-suspend.sh"
+            "scripts/vm-resume.sh"
+            "scripts/vm-teardown.sh"
+            "docker/scripts/entrypoint.sh"
+            "docker/scripts/vm-configure.sh"
+          )
+
+          missing_files=()
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              missing_files+=("$file")
+            fi
+          done
+
+          if [[ ${#missing_files[@]} -gt 0 ]]; then
+            echo "❌ Missing required files:"
+            printf '%s\n' "${missing_files[@]}"
+            exit 1
+          fi
+
+          echo "✅ All required files present"
+
+      - name: Validate fly.toml syntax
+        run: |
+          echo "Validating fly.toml configuration..."
+
+          # Install flyctl for validation
+          curl -L https://fly.io/install.sh | sh
+          export FLYCTL_INSTALL="/home/runner/.fly"
+          export PATH="$FLYCTL_INSTALL/bin:$PATH"
+
+          # Basic syntax check
+          if ! flyctl config validate fly.toml; then
+            echo "❌ fly.toml validation failed"
+            exit 1
+          fi
+
+          echo "✅ fly.toml configuration is valid"
+
+  script-validation:
+    name: Validate Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Lint shell scripts
+        run: |
+          echo "Running shellcheck on all shell scripts..."
+
+          # Find all shell scripts
+          scripts=$(find . -name "*.sh" -type f)
+
+          failed_scripts=()
+          for script in $scripts; do
+            echo "Checking $script..."
+            if ! shellcheck "$script"; then
+              failed_scripts+=("$script")
+            fi
+          done
+
+          if [[ ${#failed_scripts[@]} -gt 0 ]]; then
+            echo "❌ Shellcheck failed for:"
+            printf '%s\n' "${failed_scripts[@]}"
+            exit 1
+          fi
+
+          echo "✅ All shell scripts pass shellcheck"
+
+      - name: Check script permissions
+        run: |
+          echo "Checking script permissions..."
+
+          scripts=(
+            "scripts/vm-setup.sh"
+            "scripts/vm-suspend.sh"
+            "scripts/vm-resume.sh"
+            "scripts/vm-teardown.sh"
+            "scripts/cost-monitor.sh"
+            "scripts/volume-backup.sh"
+            "scripts/volume-restore.sh"
+          )
+
+          for script in "${scripts[@]}"; do
+            if [[ -f "$script" ]]; then
+              perms=$(stat -c "%a" "$script")
+              if [[ "$perms" != "755" && "$perms" != "775" ]]; then
+                echo "⚠️  Script $script has permissions $perms (should be 755 or 775)"
+              else
+                echo "✅ Script $script has correct permissions ($perms)"
+              fi
+            fi
+          done
+
+  docker-validation:
+    name: Validate Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image..."
+          docker build -t claude-dev-env:test .
+
+      - name: Test Docker image basic functionality
+        run: |
+          echo "Testing basic Docker image functionality..."
+
+          # Run container and check if entrypoint exists
+          docker run --rm claude-dev-env:test ls -la /docker/scripts/entrypoint.sh
+
+          # Check if a minium subset of tools are installed
+          docker run --rm claude-dev-env:test which ssh
+          docker run --rm claude-dev-env:test which curl
+          docker run --rm claude-dev-env:test which git
+
+          echo "✅ Docker image built successfully with required tools"
+
+  documentation-validation:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Check markdown files
+        run: |
+          echo "Checking markdown files..."
+
+          # Install markdown lint
+          npm install -g markdownlint-cli
+
+          # Lint markdown files (ignore line length for now)
+          markdownlint --config .markdownlint.json --ignore node_modules --ignore .git . || echo "Markdown linting completed with warnings"
+
+      - name: Check for broken links in README
+        run: |
+          echo "Checking for broken internal links in documentation..."
+
+          # Check that referenced documentation files exist
+          docs=(
+            "docs/AGENTS.md"
+            "docs/ARCHITECTURE.md"
+            "docs/CONTRIBUTING.md"
+            "docs/COST_MANAGEMENT.md"
+            "docs/CUSTOMIZATION.md"
+            "docs/IDE_SETUP.md"
+            "docs/INTELLIJ.md"
+            "docs/QUICKSTART.md"
+            "docs/REFERENCE.md"
+            "docs/SECURITY.md"
+            "docs/SETUP.md"
+            "docs/TROUBLESHOOTING.md"
+            "docs/TURBO_FLOW.md"
+            "docs/VSCODE.md"
+          )
+
+          missing_docs=()
+          for doc in "${docs[@]}"; do
+            if [[ ! -f "$doc" ]]; then
+              missing_docs+=("$doc")
+            fi
+          done
+
+          if [[ ${#missing_docs[@]} -gt 0 ]]; then
+            echo "⚠️  Referenced documentation files not found:"
+            printf '%s\n' "${missing_docs[@]}"
+          else
+            echo "✅ All referenced documentation files exist"
+          fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets with GitLeaks
+        run: |
+          echo "Scanning for potential secrets with GitLeaks..."
+
+          # Install GitLeaks
+          wget https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz
+          tar xzf gitleaks_8.28.0_linux_x64.tar.gz
+          sudo mv gitleaks /usr/local/bin/
+
+          # Create GitLeaks configuration to reduce false positives
+          cat > .gitleaks.toml << 'EOF'
+          [extend]
+          # Extend default ruleset
+          useDefault = true
+
+          [[rules]]
+          description = "Ignore test and example secrets"
+          id = "test-secrets"
+          regex = '''(?i)(test|example|sample|placeholder|dummy|fake|mock)'''
+          path = '''(test|spec|example|sample|docs?|readme)'''
+
+          [[rules.allowlist]]
+          description = "Ignore SSH keys in documentation"
+          paths = ['''docs/.*''', '''README\.md''', '''.*\.md''']
+          regexes = ['''ssh-rsa''', '''ssh-ed25519''']
+
+          [[rules.allowlist]]
+          description = "Ignore example configurations"
+          paths = ['''.*\.example$''', '''.*\.template$''']
+          EOF
+
+          # Scan for secrets
+          if gitleaks detect --config .gitleaks.toml --verbose --no-git --source . --report-format json --report-path gitleaks-report.json; then
+            echo "✅ No secrets detected by GitLeaks"
+          else
+            echo "❌ Potential secrets found in repository"
+            if [ -f gitleaks-report.json ]; then
+              echo "GitLeaks findings:"
+              cat gitleaks-report.json
+            fi
+            exit 1
+          fi
+
+  configuration-validation:
+    name: Validate Configuration Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Validate YAML files
+        run: |
+          echo "Validating YAML configuration files..."
+
+          # Install yq for YAML validation
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+          yaml_files=$(find . -name "*.yml" -o -name "*.yaml" | grep -v .git | grep -v node_modules)
+
+          failed_files=()
+          for file in $yaml_files; do
+            echo "Validating $file..."
+            if ! yq eval '.' "$file" > /dev/null 2>&1; then
+              failed_files+=("$file")
+            fi
+          done
+
+          if [[ ${#failed_files[@]} -gt 0 ]]; then
+            echo "❌ Invalid YAML files:"
+            printf '%s\n' "${failed_files[@]}"
+            exit 1
+          fi
+
+          echo "✅ All YAML files are valid"
+
+      - name: Check agent configuration
+        run: |
+          if [[ -f "docker/config/agents-config.yaml" ]]; then
+            echo "Validating agents configuration..."
+            yq eval '.agents' docker/config/agents-config.yaml > /dev/null
+            echo "✅ Agents configuration is valid"
+          else
+            echo "⚠️  Agents configuration file not found"
+          fi

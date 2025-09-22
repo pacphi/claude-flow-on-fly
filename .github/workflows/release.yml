@@ -1,0 +1,529 @@
+name: Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  validate-tag:
+    name: Validate Release Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Validate and parse version
+        id: version
+        run: |
+          tag_name="${{ github.ref_name }}"
+          echo "Processing tag: $tag_name"
+
+          # Validate semantic version format
+          if [[ ! $tag_name =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "❌ Invalid tag format. Expected: v1.0.0 or v1.0.0-alpha.1"
+            exit 1
+          fi
+
+          # Extract version without 'v' prefix
+          version=${tag_name#v}
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+          # Check if this is a prerelease
+          if [[ $version =~ -[a-zA-Z] ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "This is a prerelease: $version"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "This is a stable release: $version"
+          fi
+
+      - name: Check if tag exists in CHANGELOG
+        run: |
+          if [[ -f "CHANGELOG.md" ]]; then
+            version="${{ steps.version.outputs.version }}"
+            if grep -q "## \[${version}\]" CHANGELOG.md; then
+              echo "✅ Version $version found in CHANGELOG.md"
+            else
+              echo "⚠️  Version $version not found in CHANGELOG.md - will generate changelog"
+            fi
+          else
+            echo "⚠️  CHANGELOG.md not found - will generate changelog"
+          fi
+
+  generate-changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      full_changelog: ${{ steps.changelog.outputs.full_changelog }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Get full history for changelog generation
+
+      - name: Get previous tag
+        id: previous-tag
+        run: |
+          # Get the second most recent tag
+          previous_tag=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' | sed -n '2p')
+          if [[ -z "$previous_tag" ]]; then
+            echo "No previous tag found, using initial commit"
+            previous_tag=$(git rev-list --max-parents=0 HEAD)
+          fi
+          echo "previous_tag=$previous_tag" >> $GITHUB_OUTPUT
+          echo "Previous tag: $previous_tag"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          current_tag="${{ github.ref_name }}"
+          previous_tag="${{ steps.previous-tag.outputs.previous_tag }}"
+          version="${{ needs.validate-tag.outputs.version }}"
+
+          echo "Generating changelog from $previous_tag to $current_tag"
+
+          # Create changelog content
+          changelog_file=$(mktemp)
+
+          echo "# Changelog" > $changelog_file
+          echo "" >> $changelog_file
+          echo "## [$version] - $(date +%Y-%m-%d)" >> $changelog_file
+          echo "" >> $changelog_file
+
+          # Get commits since last tag
+          commits=$(git log --pretty=format:"* %s (%h)" $previous_tag..$current_tag --no-merges 2>/dev/null || git log --pretty=format:"* %s (%h)" --no-merges)
+
+          # Categorize commits
+          features=""
+          fixes=""
+          docs=""
+          others=""
+
+          while IFS= read -r commit; do
+            if [[ $commit =~ ^.*feat(\([^)]*\))?:.*$ ]]; then
+              features+="$commit"$'\n'
+            elif [[ $commit =~ ^.*fix(\([^)]*\))?:.*$ ]]; then
+              fixes+="$commit"$'\n'
+            elif [[ $commit =~ ^.*docs?(\([^)]*\))?:.*$ ]]; then
+              docs+="$commit"$'\n'
+            else
+              others+="$commit"$'\n'
+            fi
+          done <<< "$commits"
+
+          # Add categorized changes
+          if [[ -n "$features" ]]; then
+            echo "### ✨ Features" >> $changelog_file
+            echo "" >> $changelog_file
+            echo "$features" >> $changelog_file
+          fi
+
+          if [[ -n "$fixes" ]]; then
+            echo "### 🐛 Bug Fixes" >> $changelog_file
+            echo "" >> $changelog_file
+            echo "$fixes" >> $changelog_file
+          fi
+
+          if [[ -n "$docs" ]]; then
+            echo "### 📚 Documentation" >> $changelog_file
+            echo "" >> $changelog_file
+            echo "$docs" >> $changelog_file
+          fi
+
+          if [[ -n "$others" ]]; then
+            echo "### 🔧 Other Changes" >> $changelog_file
+            echo "" >> $changelog_file
+            echo "$others" >> $changelog_file
+          fi
+
+          # Add installation instructions
+          echo "" >> $changelog_file
+          echo "### 📦 Installation" >> $changelog_file
+          echo "" >> $changelog_file
+          echo "To use this version:" >> $changelog_file
+          echo "" >> $changelog_file
+          echo '```bash' >> $changelog_file
+          echo "git clone https://github.com/${{ github.repository }}.git" >> $changelog_file
+          echo "cd $(basename ${{ github.repository }})" >> $changelog_file
+          echo "git checkout $current_tag" >> $changelog_file
+          echo "./scripts/vm-setup.sh --app-name my-claude-dev" >> $changelog_file
+          echo '```' >> $changelog_file
+          echo "" >> $changelog_file
+
+          # Add what's changed link
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${previous_tag}...${current_tag}" >> $changelog_file
+
+          # Store changelog for release notes
+          changelog_content=$(cat $changelog_file)
+
+          # Escape content for GitHub output
+          {
+            echo "changelog<<EOF"
+            cat $changelog_file
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          # Store just the version section for updating CHANGELOG.md
+          version_section=$(sed -n "/## \[$version\]/,/## \[/p" $changelog_file | sed '$ { /## \[/d; }')
+          {
+            echo "full_changelog<<EOF"
+            echo "$version_section"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "✅ Changelog generated successfully"
+
+  update-changelog:
+    name: Update CHANGELOG.md
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CHANGELOG.md
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+
+          # Create CHANGELOG.md if it doesn't exist
+          if [[ ! -f "CHANGELOG.md" ]]; then
+            echo "# Changelog" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)," >> CHANGELOG.md
+            echo "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)." >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # Check if version already exists in changelog
+          if ! grep -q "## \[$version\]" CHANGELOG.md; then
+            # Insert new version after the header
+            changelog_temp=$(mktemp)
+            awk '
+              /^# Changelog/ { print; in_header=1; next }
+              in_header && /^$/ { print; getline; print; print ""; in_header=0 }
+              in_header { print; next }
+              !inserted && /^## \[/ {
+                print "'"${{ needs.generate-changelog.outputs.full_changelog }}"'"
+                print ""
+                inserted=1
+              }
+              { print }
+              END { if (!inserted) print "'"${{ needs.generate-changelog.outputs.full_changelog }}"'" }
+            ' CHANGELOG.md > "$changelog_temp"
+
+            mv "$changelog_temp" CHANGELOG.md
+            echo "✅ Updated CHANGELOG.md with version $version"
+          else
+            echo "ℹ️  Version $version already exists in CHANGELOG.md"
+          fi
+
+      - name: Commit changelog updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changes to commit"
+          else
+            git add CHANGELOG.md
+            git commit -m "docs: update CHANGELOG.md for v${{ needs.validate-tag.outputs.version }}"
+            git push origin HEAD:main
+            echo "✅ Committed changelog updates"
+          fi
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog, update-changelog]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Create release assets
+        run: |
+          mkdir -p release-assets
+
+          # Create installation script
+          version="${{ needs.validate-tag.outputs.version }}"
+          is_prerelease="${{ needs.validate-tag.outputs.is_prerelease }}"
+
+          cat > release-assets/install.sh << EOF
+          #!/bin/bash
+          # Quick installation script for Claude Flow on Fly.io
+
+          set -e
+
+          VERSION="$version"
+          TAG="v\${VERSION}"
+          IS_PRERELEASE="$is_prerelease"
+
+          if [[ "\$IS_PRERELEASE" == "true" ]]; then
+            echo "🚧 Installing Claude Flow on Fly.io \$VERSION (Pre-release)"
+            echo "⚠️  This is a pre-release version. Use with caution in production."
+          else
+            echo "🚀 Installing Claude Flow on Fly.io \$VERSION (Stable)"
+          fi
+
+          if ! command -v git &> /dev/null; then
+            echo "❌ Git is required but not installed"
+            exit 1
+          fi
+
+          if ! command -v flyctl &> /dev/null; then
+            echo "❌ Fly.io CLI is required but not installed"
+            echo "Install from: https://fly.io/docs/flyctl/install/"
+            exit 1
+          fi
+
+          # Clone the repository
+          git clone https://github.com/${{ github.repository }}.git claude-flow-on-fly
+          cd claude-flow-on-fly
+          git checkout \$TAG
+
+          echo "✅ Downloaded Claude Flow on Fly.io \$VERSION"
+
+          if [[ "\$IS_PRERELEASE" == "true" ]]; then
+            echo "📋 Pre-release Notes:"
+            echo "  • This version may have experimental features"
+            echo "  • Report issues at: https://github.com/${{ github.repository }}/issues"
+          fi
+
+          echo ""
+          echo "Next steps:"
+          echo "  cd claude-flow-on-fly"
+          echo "  ./scripts/vm-setup.sh --app-name my-claude-dev"
+          EOF
+
+          chmod +x release-assets/install.sh
+
+          # Create example configuration
+          cp fly.toml release-assets/fly.toml.example
+
+          # Create quick reference
+          cat > release-assets/QUICK_REFERENCE.md << 'EOF'
+          # Quick Reference
+
+          ## Setup
+          ```bash
+          ./scripts/vm-setup.sh --app-name my-claude-dev
+          ssh developer@my-claude-dev.fly.dev -p 10022
+          /workspace/scripts/vm-configure.sh
+          claude
+          ```
+
+          ## Management
+          ```bash
+          ./scripts/vm-suspend.sh     # Save costs
+          ./scripts/vm-resume.sh      # Resume work
+          ./scripts/cost-monitor.sh   # Check usage
+          ./scripts/vm-teardown.sh    # Delete everything
+          ```
+
+          ## Documentation
+          - [Quick Start](docs/QUICKSTART.md)
+          - [Cost Management](docs/COST_MANAGEMENT.md)
+          - [Troubleshooting](docs/TROUBLESHOOTING.md)
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ needs.validate-tag.outputs.is_prerelease == 'true' && format('Pre-release {0}', needs.validate-tag.outputs.version) || format('Release {0}', needs.validate-tag.outputs.version) }}
+          body: ${{ needs.generate-changelog.outputs.changelog }}
+          draft: false
+          prerelease: ${{ needs.validate-tag.outputs.is_prerelease }}
+          files: "release-assets/*"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update latest release pointer
+        if: needs.validate-tag.outputs.is_prerelease == 'false'
+        run: |
+          echo "✅ Created stable release ${{ needs.validate-tag.outputs.version }}"
+          echo "This release is now marked as the latest stable version."
+
+  update-documentation:
+    name: Update Documentation
+    runs-on: ubuntu-latest
+    needs: [validate-tag, create-release]
+    if: needs.validate-tag.outputs.is_prerelease == 'false'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update version references
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+
+          # Update version references in README.md based on release type
+          version="${{ needs.validate-tag.outputs.version }}"
+          is_prerelease="${{ needs.validate-tag.outputs.is_prerelease }}"
+          updated=false
+
+          if [[ "$is_prerelease" == "true" ]]; then
+            echo "📋 Updating pre-release information for v$version"
+
+            # Update pre-release version
+            if grep -q "Latest Pre-release.*: v[0-9]" README.md; then
+              sed -i "s/Latest Pre-release.*: v[0-9][^[:space:]]*/Latest Pre-release**: v$version/g" README.md
+              echo "✅ Updated pre-release version in README.md"
+              updated=true
+            fi
+
+            # Update status to show active pre-release development
+            if grep -q "Current Status.*Pre-release Development" README.md; then
+              # Status is already correct for pre-release
+              echo "ℹ️  Status already shows pre-release development"
+            fi
+
+          else
+            echo "🎉 Updating stable release information for v$version"
+
+            # Update stable release version
+            if grep -q "Latest Stable.*No stable releases yet" README.md; then
+              sed -i "s/Latest Stable.*No stable releases yet.*/Latest Stable**: v$version - [View Release Notes](https:\/\/github.com\/pacphi\/claude-flow-on-fly\/releases\/tag\/v$version)/g" README.md
+              echo "✅ Updated stable release version in README.md"
+              updated=true
+            elif grep -q "Latest Stable.*: v[0-9]" README.md; then
+              sed -i "s/Latest Stable.*: v[0-9][^[:space:]]*.*/Latest Stable**: v$version - [View Release Notes](https:\/\/github.com\/pacphi\/claude-flow-on-fly\/releases\/tag\/v$version)/g" README.md
+              echo "✅ Updated stable release version in README.md"
+              updated=true
+            fi
+
+            # Update status to show stable release
+            if grep -q "Current Status.*Pre-release Development" README.md; then
+              sed -i "s/Current Status.*: 🚧 \\*\\*Pre-release Development\\*\\*.*/Current Status**: ✅ **Stable Release** - Production ready/g" README.md
+              echo "✅ Updated status to show stable release"
+              updated=true
+            fi
+          fi
+
+          # Update any other "Release vX.X.X" references
+          if grep -q "Release v[0-9]" README.md; then
+            sed -i "s/Release v[0-9]\+\.[0-9]\+\.[0-9]\+[^[:space:]]*/Release v$version/g" README.md
+            echo "✅ Updated other release version references in README.md"
+            updated=true
+          fi
+
+          if [[ "$updated" == "false" ]]; then
+            echo "ℹ️  No version references found in README.md to update"
+          fi
+
+          # Note about automatic badge updates
+          if grep -q "https://img.shields.io/github/v/release" README.md; then
+            echo "ℹ️  Version badges will be automatically updated by shields.io"
+          fi
+
+          echo "✅ Documentation version check completed"
+
+      - name: Commit documentation updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          if git diff --quiet; then
+            echo "No documentation changes to commit"
+          else
+            git add .
+            git commit -m "docs: update version references to ${{ needs.validate-tag.outputs.version }}"
+            git push origin HEAD:main
+            echo "✅ Committed documentation updates"
+          fi
+
+  notify-release:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [validate-tag, create-release]
+    if: always() && needs.create-release.result == 'success'
+    steps:
+      - name: Create success notification
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          is_prerelease="${{ needs.validate-tag.outputs.is_prerelease }}"
+
+          if [[ "$is_prerelease" == "true" ]]; then
+            echo "🚀 Successfully created prerelease v$version"
+          else
+            echo "🎉 Successfully created stable release v$version"
+          fi
+
+          echo "Release available at: https://github.com/${{ github.repository }}/releases/tag/v$version"
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = `${{ needs.validate-tag.outputs.version }}`;
+            const title = `Release Failed - v${version}`;
+            const body = `
+            🚨 **Release Process Failed**
+
+            The release process for v${version} has failed.
+
+            **Details:**
+            - Tag: ${{ github.ref_name }}
+            - Run ID: ${{ github.run_id }}
+            - Failure occurred in: ${{ github.job }}
+
+            Please check the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+
+            This issue was automatically created by the release workflow.
+            `;
+
+            // Check if a release failure issue already exists for this version
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'release-failure'
+            });
+
+            const existingIssue = issues.data.find(issue =>
+              issue.title.includes(`v${version}`) && issue.title.includes('Release Failed')
+            );
+
+            if (!existingIssue) {
+              console.log(`Creating new release failure issue for v${version}`);
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['bug', 'release-failure', 'high-priority']
+              });
+            } else {
+              console.log(`Release failure issue already exists for v${version}: #${existingIssue.number}`);
+              // Add a comment to the existing issue with new failure details
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `
+                🔄 **Additional Release Failure**
+
+                Another release attempt for v${version} has failed.
+
+                **Details:**
+                - Run ID: ${{ github.run_id }}
+                - Time: ${new Date().toISOString()}
+                - Workflow: [View Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+                `
+              });
+            }

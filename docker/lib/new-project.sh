@@ -14,7 +14,6 @@ AUTO_DETECT=true
 GIT_NAME=""
 GIT_EMAIL=""
 INTERACTIVE=false
-LIST_TYPES=false
 
 # YAML parsing helper (simple key extraction)
 get_yaml_value() {
@@ -54,12 +53,10 @@ detect_project_type() {
         *terraform*) echo "terraform" ;;
         *tf*) echo "terraform" ;;
         *infra*) echo "terraform" ;;
-        *infrastructure*) echo "terraform" ;;
         *docker*) echo "docker" ;;
         *container*) echo "docker" ;;
         *api*) echo "api" ;;
         *service*) echo "api" ;;
-        *microservice*) echo "api" ;;
         *web*) echo "web" ;;
         *frontend*) echo "web" ;;
         *ui*) echo "web" ;;

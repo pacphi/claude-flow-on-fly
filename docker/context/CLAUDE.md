@@ -20,7 +20,7 @@ npx claude-flow@alpha truth                  # View current truth scores
 
 ## 🚨 ABSOLUTE EXECUTION RULES
 
-**GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"**
+### GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
 
 ### Mandatory Concurrent Patterns
 
@@ -49,9 +49,11 @@ cat /workspace/agents/doc-planner.md
 cat /workspace/agents/microtask-breakdown.md
 ```
 
-1. **Doc-Planner Agent**: Creates comprehensive documentation plans following SPARC workflow, implements London School TDD methodology, ensures atomic testable tasks
+1. **Doc-Planner Agent**: Creates comprehensive documentation plans following SPARC workflow, implements London School
+   TDD methodology, ensures atomic testable tasks
 
-2. **Microtask-Breakdown Agent**: Decomposes phases into atomic 10-minute tasks, follows strict CLAUDE.md principles, creates tasks scoring 100/100 production readiness
+2. **Microtask-Breakdown Agent**: Decomposes phases into atomic 10-minute tasks, follows strict CLAUDE.md principles,
+   creates tasks scoring 100/100 production readiness
 
 ## 🤖 Agent Discovery & Selection Protocol
 
@@ -178,7 +180,7 @@ npx claude-flow@alpha pair --start --monitor &
 
 ## 🔄 MCP Tools vs Claude Code Division
 
-### Claude Code Handles ALL EXECUTION:
+### Claude Code Handles ALL EXECUTION
 
 - **Task tool**: Spawn and run agents concurrently for actual work
 - File operations (Read, Write, Edit, MultiEdit, Glob, Grep)
@@ -188,7 +190,7 @@ npx claude-flow@alpha pair --start --monitor &
 - TodoWrite and task management
 - Git operations and testing
 
-### MCP Tools ONLY COORDINATE:
+### MCP Tools ONLY COORDINATE
 
 - Swarm initialization (topology setup)
 - Agent type definitions (coordination patterns)
@@ -254,21 +256,21 @@ Feature-based agile with CI integration:
 
 ### Phase 2: GitHub Structure
 
-5. **Create Sub-Issues** with GitHub CLI
-6. **EPIC Template** with verification requirements
-7. **Link Dependencies** and success criteria
+1. **Create Sub-Issues** with GitHub CLI
+2. **EPIC Template** with verification requirements
+3. **Link Dependencies** and success criteria
 
 ### Phase 3: Execution with Verification
 
-8. **One Feature at a Time**: Complete with 100% CI before next
-9. **Swarm Deployment**: For complex features (2+ issues)
-10. **Truth Verification**: All changes must pass 0.95 threshold
+1. **One Feature at a Time**: Complete with 100% CI before next
+2. **Swarm Deployment**: For complex features (2+ issues)
+3. **Truth Verification**: All changes must pass 0.95 threshold
 
 ### Phase 4: CI Integration
 
-11. **Mandatory CI**: 100% success required before progression
-12. **Playwright Integration**: Visual verification for frontend work
-13. **Monitor with ML**: Predictive monitoring and auto-rollback
+1. **Mandatory CI**: 100% success required before progression
+2. **Playwright Integration**: Visual verification for frontend work
+3. **Monitor with ML**: Predictive monitoring and auto-rollback
 
 ## 🛡️ Continuous Integration Protocol
 
@@ -282,15 +284,15 @@ Fix→Test→Commit→Push→Monitor→Repeat until 100%:
 
 ### Implementation Phase
 
-4. **Implementation-First**: Fix logic not test expectations
-5. **Iterate Until Success**: Keep trying different approaches, never give up
-6. **Swarm Execution**: Systematic TDD with coordination
+1. **Implementation-First**: Fix logic not test expectations
+2. **Iterate Until Success**: Keep trying different approaches, never give up
+3. **Swarm Execution**: Systematic TDD with coordination
 
 ### Monitoring Phase
 
-7. **Active Monitoring**: Always check after pushing
-8. **Intelligent Monitoring**: Smart backoff, auto-merge, swarm coordination
-9. **Integration**: Regular commits, PR on milestones
+1. **Active Monitoring**: Always check after pushing
+2. **Intelligent Monitoring**: Smart backoff, auto-merge, swarm coordination
+3. **Integration**: Regular commits, PR on milestones
 
 ## 🎯 Ultimate Hive Project Launch Command
 
@@ -343,7 +345,8 @@ alias cf-pair="npx claude-flow@alpha pair --start"
 ## 🎯 Master Prompting Pattern
 
 **ALWAYS include in prompts:**
-"Identify all subagents useful for this task, utilize claude-flow hivemind to maximize ability to accomplish the task, start with doc-planner and microtask-breakdown, ensure truth verification above 0.95 threshold."
+"Identify all subagents useful for this task, utilize claude-flow hivemind to maximize ability to accomplish the
+task, start with doc-planner and microtask-breakdown, ensure truth verification above 0.95 threshold."
 
 ## 🔧 Development Principles
 
@@ -368,4 +371,4 @@ alias cf-pair="npx claude-flow@alpha pair --start"
 
 ---
 
-**Success = Verification-First + Doc-First + GitHub-Centric + Concurrent Execution + Persistent Iteration**
+### Success = Verification-First + Doc-First + GitHub-Centric + Concurrent Execution + Persistent Iteration

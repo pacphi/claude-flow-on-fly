@@ -2,7 +2,8 @@
 
 ## Extension System
 
-The environment supports extensive customization through a modular extension system that allows you to add tools, configure environments, and automate setup tasks.
+The environment supports extensive customization through a modular extension system that allows you to add tools,
+configure environments, and automate setup tasks.
 
 ## Adding Custom Tools
 
@@ -66,7 +67,8 @@ chmod +x /workspace/scripts/extensions.d/50-mycustomtool.sh
 
 ### Extension Manager Utility
 
-The `extension-manager.sh` utility in `/workspace/docker/lib/` provides comprehensive management for activating and deactivating extensions:
+The `extension-manager.sh` utility in `/workspace/docker/lib/` provides comprehensive management for activating
+and deactivating extensions:
 
 **List all available extensions:**
 
@@ -146,10 +148,11 @@ The `extension-manager.sh` utility in `/workspace/docker/lib/` provides comprehe
 ```
 
 > [!TIP]
-> Use `--extension <name>` to run just one activated extension without re-running all others. If the extension isn't activated, you'll receive instructions on how to activate it using the extension-manager.
-
+> Use `--extension <name>` to run just one activated extension without re-running all others. If the extension
+> isn't activated, you'll receive instructions on how to activate it using the extension-manager.
 > [!NOTE]
-> Extensions 01-04 are core system components (marked as `[PROTECTED]`) and cannot be deactivated. Modified extensions automatically create backups when deactivated.
+> Extensions 01-04 are core system components (marked as `[PROTECTED]`) and cannot be deactivated. Modified
+> extensions automatically create backups when deactivated.
 
 ## Using Common Libraries
 
@@ -649,4 +652,5 @@ EOF
 print_success "Monitoring stack ready"
 ```
 
-This comprehensive customization system allows you to tailor the development environment to your specific needs while maintaining consistency and automation.
+This comprehensive customization system allows you to tailor the development environment to your specific needs
+while maintaining consistency and automation.

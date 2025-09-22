@@ -36,7 +36,7 @@ sources:
         patterns: ["CCFOREVER.md", "CLAUDE.md"]
 
   - name: awesome-claude-code-subagents
-    enabled: true
+    enabled: false
     type: github
     repository: VoltAgent/awesome-claude-code-subagents
     branch: main
@@ -64,7 +64,7 @@ sources:
         patterns: ["README.md"]
 
   - name: 610-claude-subagents
-    enabled: false
+    enabled: true
     type: github
     repository: ChrisRoyse/610ClaudeSubAgents
     branch: main

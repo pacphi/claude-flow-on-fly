@@ -2,7 +2,8 @@
 
 ## Connect VS Code to your Claude development environment on Fly.io
 
-> **📋 Complete the common setup first:** See [IDE Setup Guide](IDE_SETUP.md) for prerequisites, SSH configuration, and VM setup before proceeding.
+> **📋 Complete the common setup first:** See [IDE Setup Guide](IDE_SETUP.md) for prerequisites, SSH configuration,
+> and VM setup before proceeding.
 
 This guide covers VS Code-specific setup using the Remote-SSH extension.
 
@@ -27,23 +28,24 @@ This guide covers VS Code-specific setup using the Remote-SSH extension.
 
 ## Connect to Remote VM
 
-> **📋 Prerequisites:** Complete the [IDE Setup Guide](IDE_SETUP.md) first to configure SSH and run the VM configuration script.
+> **📋 Prerequisites:** Complete the [IDE Setup Guide](IDE_SETUP.md) first to configure SSH and run the
+> VM configuration script.
 
 ### Connection Methods
 
-**Method 1: Command Palette**
+#### Method 1: Command Palette
 
 1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
 2. Type "Remote-SSH: Connect to Host"
 3. Select your configured host (`claude-dev`)
 
-**Method 2: Remote Explorer**
+#### Method 2: Remote Explorer
 
 1. Click Remote Explorer icon in sidebar
 2. Find your host under "SSH TARGETS"
 3. Click the folder icon next to your host
 
-**Method 3: Status Bar**
+#### Method 3: Status Bar
 
 1. Click remote indicator (`><`) in bottom-left
 2. Select "Connect to Host..."
@@ -118,7 +120,8 @@ Add to VS Code's `settings.json`:
 
 ## VS Code Troubleshooting
 
-> **📋 General Issues:** See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) and [Troubleshooting Guide](TROUBLESHOOTING.md) for SSH and VM issues.
+> **📋 General Issues:** See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) and
+> [Troubleshooting Guide](TROUBLESHOOTING.md) for SSH and VM issues.
 
 ### VS Code-Specific Issues
 

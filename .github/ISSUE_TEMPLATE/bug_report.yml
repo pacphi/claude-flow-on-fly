@@ -1,0 +1,139 @@
+name: 🐛 Bug Report
+description: File a bug report to help us improve
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees:
+  - pacphi
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! Please provide as much detail as possible.
+
+  - type: checkboxes
+    id: pre-flight
+    attributes:
+      label: Pre-flight Checklist
+      description: Please confirm you've completed these steps before filing the bug report
+      options:
+        - label: I have read the [troubleshooting guide](../../docs/TROUBLESHOOTING.md)
+          required: true
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I am using the latest version or have tested with the latest version
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component is affected?
+      options:
+        - VM Setup/Deployment
+        - SSH Connection
+        - Claude Code/Flow
+        - Docker Container
+        - Scripts/Configuration
+        - Documentation
+        - IDE Integration
+        - Cost Management
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Describe what happened vs what you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Run command '...'
+        2. Connect to '...'
+        3. Execute '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Information
+      description: Please provide environment details
+      value: |
+        - OS: [e.g., macOS 14.0, Ubuntu 22.04, Windows 11]
+        - Fly.io CLI version: [run `flyctl version`]
+        - App name: [your Fly.io app name]
+        - Region: [e.g., iad, lax, fra]
+        - VM size: [e.g., shared-cpu-1x, performance-2x]
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Please share relevant configuration (remove any secrets)
+      render: toml
+      placeholder: |
+        # Relevant parts of your fly.toml
+        [vm]
+        cpu_kind = "shared"
+        cpus = 2
+        memory = "8192mb"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and Error Messages
+      description: Please include relevant logs and error messages
+      render: shell
+      placeholder: |
+        # Include output from:
+        # flyctl logs -a your-app-name
+        # flyctl status -a your-app-name
+        # Any error messages from SSH, scripts, etc.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: Screenshots, additional logs, related issues, etc.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this issue?
+      options:
+        - Low - Minor inconvenience
+        - Medium - Affects functionality but has workarounds
+        - High - Blocks major functionality
+        - Critical - Completely broken, no workarounds
+    validations:
+      required: true

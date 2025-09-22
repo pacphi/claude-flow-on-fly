@@ -37,7 +37,8 @@ ssh-keygen -R "[2a09:8280:1::8c:fcda:0]:10022"
 ssh developer@my-claude-dev.fly.dev -p 10022
 ```
 
-**Why this happens:** SSH stores host keys to prevent man-in-the-middle attacks. When you recreate a VM, it gets a new host key, causing a mismatch with the stored key.
+**Why this happens:** SSH stores host keys to prevent man-in-the-middle attacks. When you recreate a VM,
+it gets a new host key, causing a mismatch with the stored key.
 
 ### Connection Refused
 
@@ -122,13 +123,13 @@ If you don't have SSH keys yet, follow these steps:
 
 ### Creating New SSH Keys
 
-**Option 1: Ed25519 (Recommended - more secure and faster)**
+#### Option 1: Ed25519 (Recommended - more secure and faster)
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -C "your-email@example.com"
 ```
 
-**Option 2: RSA (broader compatibility)**
+#### Option 2: RSA (broader compatibility)
 
 ```bash
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -C "your-email@example.com"
@@ -304,7 +305,8 @@ git config --global user.email "your-email@example.com"
 
 ### VSCode Remote-SSH Issues
 
-See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) for general issues and [VSCode Setup Guide](VSCODE.md#vs-code-troubleshooting) for VS Code-specific troubleshooting.
+See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) for general issues and
+[VSCode Setup Guide](VSCODE.md#vs-code-troubleshooting) for VS Code-specific troubleshooting.
 
 Common quick fixes:
 
@@ -318,7 +320,8 @@ Common quick fixes:
 
 ### IntelliJ Gateway Issues
 
-See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) for general issues and [IntelliJ Setup Guide](INTELLIJ.md#intellij-troubleshooting) for IntelliJ-specific troubleshooting.
+See [IDE Setup Guide](IDE_SETUP.md#common-troubleshooting) for general issues and
+[IntelliJ Setup Guide](INTELLIJ.md#intellij-troubleshooting) for IntelliJ-specific troubleshooting.
 
 Common quick fixes:
 
@@ -400,7 +403,7 @@ Common quick fixes:
 
 4. Review Fly.io dashboard:
 
-   - Check at https://fly.io/dashboard
+   - Check at [Fly.io Dashboard](https://fly.io/dashboard)
    - Look for running machines you forgot about
 
 ### Reducing Costs
@@ -497,8 +500,8 @@ If your issue isn't covered here:
 
 4. **Contact support**:
 
-   - Fly.io: https://fly.io/docs/about/support/
-   - Anthropic: https://support.anthropic.com
+   - [Fly.io Support](https://fly.io/docs/about/support/)
+   - [Anthropic Support](https://support.anthropic.com)
 
 Remember to include:
 

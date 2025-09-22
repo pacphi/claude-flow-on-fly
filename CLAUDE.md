@@ -4,7 +4,9 @@ Project-specific guidance for Claude Code when working with this repository.
 
 ## Project Overview
 
-Complete remote AI-assisted development environment running Claude Code and Claude Flow on Fly.io infrastructure. Provides cost-optimized, secure virtual machines with persistent storage for AI-assisted development without requiring local installation.
+Complete remote AI-assisted development environment running Claude Code and Claude Flow on Fly.io infrastructure.
+Provides cost-optimized, secure virtual machines with persistent storage for AI-assisted development without
+requiring local installation.
 
 ## Development Commands
 

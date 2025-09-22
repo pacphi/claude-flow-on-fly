@@ -2,9 +2,11 @@
 
 ## Common setup guide for connecting any IDE to your Claude development environment on Fly.io
 
-> **⚡ Need to set up your Fly.io environment first?** Use our automated setup script: `./scripts/vm-setup.sh --app-name my-claude-dev`. See the [Quick Start Guide](QUICKSTART.md) for details.
+> **⚡ Need to set up your Fly.io environment first?** Use our automated setup script:
+> `./scripts/vm-setup.sh --app-name my-claude-dev`. See the [Quick Start Guide](QUICKSTART.md) for details.
 
-This guide covers the common setup steps for connecting any IDE to your Fly.io-hosted Claude development environment. For IDE-specific instructions, see:
+This guide covers the common setup steps for connecting any IDE to your Fly.io-hosted Claude development
+environment. For IDE-specific instructions, see:
 
 - **[VS Code Setup](VSCODE.md)** - Visual Studio Code with Remote-SSH
 - **[IntelliJ Setup](INTELLIJ.md)** - JetBrains IDEs with Gateway
@@ -109,7 +111,8 @@ After configuration, your workspace will be organized as:
 
 ## Common Troubleshooting
 
-For comprehensive troubleshooting including SSH issues, VM management, and performance optimization, see our dedicated [Troubleshooting Guide](TROUBLESHOOTING.md).
+For comprehensive troubleshooting including SSH issues, VM management, and performance optimization, see our
+dedicated [Troubleshooting Guide](TROUBLESHOOTING.md).
 
 ### SSH Connection Issues
 
@@ -254,6 +257,7 @@ create_project_templates
 ```
 
 **Git Utilities:**
+
 ```bash
 # Source Git utilities
 source /workspace/scripts/lib/git.sh

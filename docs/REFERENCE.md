@@ -561,4 +561,5 @@ flyctl machine update <machine-id> --vm-size shared-cpu-2x -a <app-name>
   enabled = true
 ```
 
-This comprehensive command reference provides all the essential commands for managing your AI-assisted remote development environment effectively.
+This comprehensive command reference provides all the essential commands for managing your AI-assisted remote
+development environment effectively.

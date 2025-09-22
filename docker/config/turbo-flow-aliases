@@ -6,5 +6,5 @@ alias clone-project="/workspace/scripts/lib/clone-project.sh"
 alias project-status="/workspace/scripts/lib/system-status.sh"
 
 # Monitoring
-alias claude-usage="claude-usage-cli"
-alias monitor-claude="claude-monitor"
+alias cf-usage="claude-usage-cli"
+alias cf-monitor="claude-monitor"
