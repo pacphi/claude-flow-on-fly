@@ -10,6 +10,8 @@ jobs:
   setup-validation:
     name: Validate Setup Files
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -92,6 +94,8 @@ jobs:
   script-validation:
     name: Validate Scripts
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -152,6 +156,8 @@ jobs:
   docker-validation:
     name: Validate Docker Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -181,6 +187,8 @@ jobs:
   documentation-validation:
     name: Validate Documentation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -284,7 +292,8 @@ jobs:
             '''README\.md''',
             '''.*\.md''',
             '''.*\.example$''',
-            '''.*\.template$'''
+            '''.*\.template$''',
+            '''\.cache/.*'''
           ]
           regexes = [
             '''ssh-rsa''',
@@ -308,6 +317,8 @@ jobs:
   configuration-validation:
     name: Validate Configuration Files
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v5

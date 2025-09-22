@@ -36,7 +36,7 @@ sudo -u developer mkdir -p /workspace/scripts
 sudo -u developer mkdir -p /workspace/backups
 
 # Configure SSH keys from environment variable
-if [ ! -z "$AUTHORIZED_KEYS" ]; then
+if [ -n "$AUTHORIZED_KEYS" ]; then
     echo "🔑 Configuring SSH keys..."
     mkdir -p /workspace/developer/.ssh
     echo "$AUTHORIZED_KEYS" > /workspace/developer/.ssh/authorized_keys
@@ -63,12 +63,12 @@ if [ ! -f "/workspace/scripts/vm-configure.sh" ]; then
 fi
 
 # Set up environment variables for developer user
-if [ ! -z "$ANTHROPIC_API_KEY" ]; then
+if [ -n "$ANTHROPIC_API_KEY" ]; then
     echo "export ANTHROPIC_API_KEY='$ANTHROPIC_API_KEY'" >> /workspace/developer/.bashrc
 fi
 
 # Configure GitHub token if provided
-if [ ! -z "$GITHUB_TOKEN" ]; then
+if [ -n "$GITHUB_TOKEN" ]; then
     echo "🔐 Configuring GitHub authentication..."
     echo "export GITHUB_TOKEN='$GITHUB_TOKEN'" >> /workspace/developer/.bashrc
 
@@ -83,18 +83,18 @@ if [ ! -z "$GITHUB_TOKEN" ]; then
 fi
 
 # Configure Git credentials if provided
-if [ ! -z "$GIT_USER_NAME" ]; then
+if [ -n "$GIT_USER_NAME" ]; then
     sudo -u developer git config --global user.name "$GIT_USER_NAME"
     echo "✅ Git user name configured: $GIT_USER_NAME"
 fi
 
-if [ ! -z "$GIT_USER_EMAIL" ]; then
+if [ -n "$GIT_USER_EMAIL" ]; then
     sudo -u developer git config --global user.email "$GIT_USER_EMAIL"
     echo "✅ Git user email configured: $GIT_USER_EMAIL"
 fi
 
 # Setup Git credential helper for GitHub token
-if [ ! -z "$GITHUB_TOKEN" ]; then
+if [ -n "$GITHUB_TOKEN" ]; then
     # Create credential helper script
     cat > /workspace/developer/.git-credential-helper.sh << 'EOF'
 #!/bin/bash

@@ -325,7 +325,7 @@ export_data() {
         "csv")
             echo "timestamp,state" > "$output_file"
             if [[ -f "$HISTORY_FILE" ]]; then
-                cat "$HISTORY_FILE" | sed 's/ /,/' >> "$output_file"
+                sed 's/ /,/' "$HISTORY_FILE" >> "$output_file"
             fi
             ;;
         "json")
