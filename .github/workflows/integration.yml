@@ -55,6 +55,7 @@ jobs:
 
       - name: Prepare fly.toml for testing
         env:
+          FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
           APP_NAME: ${{ steps.app-name.outputs.app_name }}
           VOLUME_NAME: "test_data"
           VOLUME_SIZE: "5"
