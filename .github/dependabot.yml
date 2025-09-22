@@ -26,33 +26,3 @@ updates:
       prefix-development: "docker"
       include: "scope"
 
-  # Node.js dependencies (if package.json exists)
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "wednesday"
-      time: "06:00"
-    open-pull-requests-limit: 10
-    versioning-strategy: "auto"
-    commit-message:
-      prefix: "deps"
-      prefix-development: "deps"
-      include: "scope"
-    ignore:
-      # Ignore major version updates for core dependencies
-      - dependency-name: "node"
-        update-types: ["version-update:semver-major"]
-
-  # Python dependencies (if requirements files exist)
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "thursday"
-      time: "06:00"
-    open-pull-requests-limit: 10
-    commit-message:
-      prefix: "deps"
-      prefix-development: "deps"
-      include: "scope"

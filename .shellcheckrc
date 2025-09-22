@@ -1,0 +1,20 @@
+# Shellcheck configuration
+# Disable specific checks that are not relevant for this project
+
+# SC1091: Not following sourced files - expected in CI environment
+disable=SC1091
+
+# SC2155: Declare and assign separately - style preference, not critical
+disable=SC2155
+
+# SC2162: read without -r - minor issue, read behavior is acceptable
+disable=SC2162
+
+# SC2016: Expressions don't expand in single quotes - by design for git aliases
+disable=SC2016
+
+# SC2086: Double quote to prevent globbing - intentional word splitting in some contexts
+disable=SC2086
+
+# SC2153: Possible misspelling - handled by variable definitions
+disable=SC2153

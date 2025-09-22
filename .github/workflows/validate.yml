@@ -54,7 +54,7 @@ jobs:
           export PATH="$FLYCTL_INSTALL/bin:$PATH"
 
           # Basic syntax check
-          if ! flyctl config validate fly.toml; then
+          if ! flyctl config validate --config fly.toml; then
             echo "❌ fly.toml validation failed"
             exit 1
           fi
@@ -206,6 +206,10 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
