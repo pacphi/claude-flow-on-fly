@@ -107,13 +107,16 @@ jobs:
           features=""
           fixes=""
           docs=""
+          deps=""
           others=""
 
           while IFS= read -r commit; do
             if [[ $commit == *"feat"*":"* ]] || [[ $commit == *"feat("*")"*":"* ]]; then
               features+="$commit"$'\n'
-            elif [[ $commit == *"fix"*":"* ]] || [[ $commit == *"fix("*")"*":"* ]]; then
+            elif [[ $commit == *"fix"*":"* ]] || [[ $commit == *"fix("*")"*":"* ]] || [[ $commit == *"(fix)"* ]]; then
               fixes+="$commit"$'\n'
+            elif [[ $commit == *"(deps)"*":"* ]]; then
+              deps+="$commit"$'\n'
             elif [[ $commit == *"doc"*":"* ]] || [[ $commit == *"docs"*":"* ]] || [[ $commit == *"doc("*")"*":"* ]] || [[ $commit == *"docs("*")"*":"* ]]; then
               docs+="$commit"$'\n'
             else
@@ -138,6 +141,12 @@ jobs:
             echo "### 📚 Documentation" >> $changelog_file
             echo "" >> $changelog_file
             echo "$docs" >> $changelog_file
+          fi
+
+          if [[ -n "$deps" ]]; then
+            echo "### 📦 Dependencies" >> $changelog_file
+            echo "" >> $changelog_file
+            echo "$deps" >> $changelog_file
           fi
 
           if [[ -n "$others" ]]; then

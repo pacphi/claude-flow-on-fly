@@ -92,7 +92,7 @@ jobs:
             --app ${{ steps.app-name.outputs.app_name }}
 
           # Deploy the application
-          flyctl deploy --app ${{ steps.app-name.outputs.app_name }}
+          flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --yes
 
       - name: Wait for deployment
         run: |
