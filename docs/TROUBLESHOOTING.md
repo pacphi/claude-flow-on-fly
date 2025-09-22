@@ -8,10 +8,11 @@ This comprehensive guide helps resolve common issues with your Claude developmen
 2. [Creating and Managing SSH Keys](#creating-and-managing-ssh-keys)
 3. [VM Management Issues](#vm-management-issues)
 4. [Configuration Problems](#configuration-problems)
-5. [IDE Connection Issues](#ide-connection-issues)
-6. [Performance Issues](#performance-issues)
-7. [Cost and Billing Issues](#cost-and-billing-issues)
-8. [Claude Tools Issues](#claude-tools-issues)
+5. [SSH Service Architecture](#ssh-service-architecture)
+6. [IDE Connection Issues](#ide-connection-issues)
+7. [Performance Issues](#performance-issues)
+8. [Cost and Billing Issues](#cost-and-billing-issues)
+9. [Claude Tools Issues](#claude-tools-issues)
 
 ## SSH Connection Issues
 
@@ -300,6 +301,78 @@ source ~/.bashrc
 git config --global user.name "Your Name"
 git config --global user.email "your-email@example.com"
 ```
+
+## SSH Service Architecture
+
+### Understanding Dual SSH Access
+
+Your Claude environment provides two SSH access methods:
+
+#### 1. **Custom SSH Daemon** (Primary for Development)
+- **External Port**: 10022 (what you connect to)
+- **Internal Port**: 2222 (where SSH daemon runs)
+- **Usage**: `ssh developer@<app-name>.fly.dev -p 10022`
+- **Purpose**: IDE connections, file transfers, persistent sessions
+
+#### 2. **Fly.io Hallpass Service** (Built-in)
+- **Internal Port**: 22 (Fly.io's built-in service)
+- **Usage**: `flyctl ssh console -a <app-name>`
+- **Purpose**: Quick access, debugging, CI/CD operations
+
+### Common SSH Architecture Issues
+
+#### Port Conflicts in CI/CD
+
+**Problem:** Integration tests fail with health check loops or port binding errors.
+
+**Cause:** Custom SSH daemon trying to bind to port 22 conflicts with Fly.io's hallpass service.
+
+**Solution:** The system automatically resolves this:
+- **Production**: SSH daemon runs on port 2222, no conflicts
+- **CI Mode**: SSH daemon disabled entirely, only hallpass available
+
+#### When to Use Which SSH Method
+
+**Use Custom SSH (`ssh -p 10022`)** for:
+- IDE remote development (VSCode, IntelliJ)
+- File transfers (rsync, scp)
+- Long-running sessions
+- Port forwarding
+
+**Use Flyctl SSH (`flyctl ssh console`)** for:
+- Quick debugging and inspection
+- CI/CD pipeline access
+- When custom SSH is unavailable
+- Emergency access
+
+#### Troubleshooting SSH Service Issues
+
+**Check which SSH services are running:**
+
+```bash
+# Via flyctl
+flyctl ssh console -a <app-name> --command "ps aux | grep ssh"
+
+# Expected output:
+# root   123  sshd: hallpass (Fly.io service on port 22)
+# root   456  sshd: custom daemon (your service on port 2222)
+```
+
+**Test both access methods:**
+
+```bash
+# Test custom SSH
+ssh developer@<app-name>.fly.dev -p 10022 'echo "Custom SSH working"'
+
+# Test flyctl SSH
+flyctl ssh console -a <app-name> --command 'echo "Hallpass SSH working"'
+```
+
+**Common fixes:**
+
+1. **Custom SSH not responding**: Check VM status and restart if needed
+2. **Flyctl SSH not working**: Check Fly.io authentication and app status
+3. **Port 10022 blocked**: Check local firewall or try flyctl SSH as alternative
 
 ## IDE Connection Issues
 

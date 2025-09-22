@@ -50,26 +50,33 @@ jobs:
         run: |
           echo "Validating fly.toml configuration..."
 
-          # Install TOML validator (using Python)
+          # Use the existing prepare-fly-config.sh script to handle template substitution
+          # Set test values for validation
+          export APP_NAME="test-app"
+          export REGION="iad"
+          export VOLUME_NAME="test_data"
+          export VOLUME_SIZE="10"
+          export CPU_KIND="shared"
+          export CPU_COUNT="1"
+          export VM_MEMORY="512"
+          export SSH_EXTERNAL_PORT="10022"
+
+          # Create a backup of the original fly.toml
+          cp fly.toml fly.toml.backup
+
+          # Prepare the configuration (this will replace fly.toml with processed version)
+          ./scripts/prepare-fly-config.sh --ci-mode
+
+          # Install TOML validator for additional validation
           pip install toml
 
-          # Basic TOML syntax check (handle template placeholders)
+          # Validate the processed TOML syntax
           python3 -c "
           import toml
           import sys
-          import re
           try:
               with open('fly.toml', 'r') as f:
                   content = f.read()
-
-              # Replace template placeholders with valid values for validation
-              content = re.sub(r'{{APP_NAME}}', 'test-app', content)
-              content = re.sub(r'{{REGION}}', 'iad', content)
-              content = re.sub(r'{{VOLUME_NAME}}', 'test_data', content)
-              content = re.sub(r'{{VOLUME_SIZE}}', '10', content)
-              content = re.sub(r'{{CPU_KIND}}', 'shared', content)
-              content = re.sub(r'{{CPU_COUNT}}', '1', content)
-              content = re.sub(r'{{VM_MEMORY}}', '512', content)
 
               # Parse the processed TOML
               config = toml.loads(content)
@@ -90,6 +97,9 @@ jobs:
               print(f'❌ fly.toml validation failed: {e}')
               sys.exit(1)
           "
+
+          # Restore the original template file
+          mv fly.toml.backup fly.toml
 
   script-validation:
     name: Validate Scripts

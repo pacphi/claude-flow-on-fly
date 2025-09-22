@@ -18,6 +18,10 @@ requiring local installation.
 ./scripts/vm-resume.sh                   # Resume VM
 ./scripts/vm-teardown.sh                 # Remove VM and volumes
 flyctl status -a <app-name>             # Check VM status
+
+# CI/Testing deployment (disables SSH daemon, health checks)
+CI_MODE=true ./scripts/vm-setup.sh --app-name <test-name>
+flyctl deploy --strategy immediate --wait-timeout 60s  # Skip health checks
 ```
 
 ### On-VM Commands
@@ -43,6 +47,7 @@ clone-project <url> [options]            # Clone and enhance repository
 ### Daily Tasks
 
 1. Connect via SSH: `ssh developer@<app-name>.fly.dev -p 10022`
+   - Alternative: `flyctl ssh console -a <app-name>` (uses Fly.io's hallpass service)
 2. Work in `/workspace/` (all data persists)
 3. VM auto-suspends when idle
 4. VM auto-resumes on next connection
@@ -132,6 +137,14 @@ ssh -vvv developer@<app>.fly.dev -p 10022  # Debug SSH
 ```
 
 See [Cost Management Guide](docs/COST_MANAGEMENT.md) for detailed pricing.
+
+## SSH Architecture Notes
+
+The environment provides dual SSH access:
+- **Production SSH**: External port 10022 → Internal port 2222 (custom daemon)
+- **Hallpass SSH**: `flyctl ssh console` via Fly.io's built-in service (port 22)
+
+In CI mode (`CI_MODE=true`), the custom SSH daemon is disabled to prevent port conflicts with Fly.io's hallpass service, ensuring reliable automated deployments.
 
 ## Important Instructions
 

@@ -15,8 +15,8 @@ primary_region = "{{REGION}}"
 [env]
   # User configuration
   DEV_USER = "developer"
-  # SSH port (internal)
-  SSH_PORT = "22"
+  # SSH port (internal) - use 2222 to avoid conflicts with Fly.io's hallpass service on port 22
+  SSH_PORT = "2222"
   # Timezone
   TZ = "UTC"
 
@@ -39,7 +39,7 @@ primary_region = "{{REGION}}"
 # SSH service configuration (primary access method)
 [[services]]
   protocol = "tcp"
-  internal_port = 22
+  internal_port = 2222  # Use port 2222 to avoid conflicts with Fly.io's hallpass service on port 22
 
   # Cost optimization settings
   auto_stop_machines = "suspend"
@@ -48,7 +48,7 @@ primary_region = "{{REGION}}"
 
   # Port mapping for SSH access
   [[services.ports]]
-    port = 10022  # External port for SSH
+    port = {{SSH_EXTERNAL_PORT}}  # External port for SSH - configurable for testing
 
   # Health check for SSH service
   [[services.tcp_checks]]
@@ -88,7 +88,7 @@ primary_region = "{{REGION}}"
   # SSH service health check
   [checks.ssh]
     type = "tcp"
-    port = 22
+    port = 2222  # Updated to match SSH daemon port
     interval = "15s"
     timeout = "2s"
 
@@ -140,6 +140,8 @@ primary_region = "{{REGION}}"
 #    flyctl secrets set GIT_USER_NAME="Your Name" -a <app-name>
 #    flyctl secrets set GIT_USER_EMAIL="you@example.com" -a <app-name>
 # 3. Connect: ssh developer@<app-name>.fly.dev -p 10022
+#    (External port 10022 maps to internal SSH daemon on port 2222)
+#    Alternative: flyctl ssh console -a <app-name> (uses Fly.io's hallpass service)
 # 4. Work: All files in /workspace are persistent
 # 5. Idle: VM automatically suspends after inactivity
 # 6. Resume: VM starts automatically on next connection

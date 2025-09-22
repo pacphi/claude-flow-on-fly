@@ -23,7 +23,9 @@ storage, auto-scaling, and AI-assisted development tools.
 
 ### SSH Access
 
-- **Port**: 10022 (non-standard for security)
+- **External Port**: 10022 (non-standard for security)
+- **Internal Port**: 2222 (SSH daemon, avoids Fly.io hallpass conflicts)
+- **Hallpass Service**: Port 22 (Fly.io's built-in SSH via `flyctl ssh console`)
 - **Authentication**: Key-based only (passwords disabled)
 - **Root Login**: Disabled for security
 - **User**: `developer` with sudo access
@@ -93,7 +95,8 @@ File locations after deployment to the VM:
 
 ### External Access
 
-- **SSH**: Port 10022 for secure remote access
+- **SSH**: Port 10022 for secure remote access (maps to internal port 2222)
+- **Flyctl SSH**: Built-in `flyctl ssh console` via hallpass service (port 22)
 - **Domains**: `<app-name>.fly.dev` automatically assigned
 - **SSL**: Automatic HTTPS certificates
 - **Regions**: Deploy in any Fly.io region
@@ -133,9 +136,9 @@ File locations after deployment to the VM:
 ### Data Flow
 
 ```text
-Local IDE ←→ SSH (port 10022) ←→ Fly.io VM ←→ Persistent Volume
-    ↑                                              ↓
-Claude Code/Flow ←→ API Keys (Fly secrets) ←→ Project Files
+Local IDE ←→ SSH (port 10022) ←→ Fly.io VM (SSH daemon on 2222) ←→ Persistent Volume
+    ↑              ↓                    ↓ (hallpass on 22)                    ↓
+Claude Code/Flow   flyctl ssh console   API Keys (Fly secrets) ←→ Project Files
 ```
 
 ## Auto-scaling Configuration
@@ -172,7 +175,8 @@ Claude Code/Flow ←→ API Keys (Fly secrets) ←→ Project Files
 
 ### Network Security
 
-- **Firewall**: Only SSH port 10022 exposed
+- **Firewall**: Only SSH port 10022 exposed externally
+- **Dual SSH Access**: Custom SSH daemon (port 2222) + Fly.io hallpass (port 22)
 - **Network Isolation**: Fly.io private networking
 - **DDoS Protection**: Built-in Fly.io protection
 - **Regional Isolation**: Deploy in specific regions

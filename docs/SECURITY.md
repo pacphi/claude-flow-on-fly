@@ -32,9 +32,9 @@ PubkeyAuthentication yes
 AuthenticationMethods publickey
 
 # Network
-Port 10022
-Protocol 2
-AllowUsers developer
+Port 2222                    # Internal SSH daemon port (avoids Fly.io hallpass conflicts)
+Protocol 2                   # External access via port 10022 -> internal port 2222
+AllowUsers developer         # Fly.io also provides hallpass service on port 22 for flyctl ssh console
 
 # Security
 ClientAliveInterval 300
@@ -244,6 +244,8 @@ chmod 600 /workspace/backups/*.tar.gz.gpg
 chown developer:developer /workspace/backups/*
 
 # Remote backup with authentication
+# Note: -p 2222 is for the external backup server's SSH port, not the Fly.io VM
+# For Fly.io VM SSH access, use -p 10022 (external) or flyctl ssh console
 rsync -avz --delete \
     -e "ssh -i ~/.ssh/backup_key -p 2222" \
     /workspace/backups/ \

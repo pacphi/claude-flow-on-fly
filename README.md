@@ -1,19 +1,11 @@
 # Claude Code and Claude Flow on Fly.io
 
-[![Latest Release](https://img.shields.io/github/v/release/pacphi/claude-flow-on-fly)](https://github.com/pacphi/claude-flow-on-fly/releases/latest)
-[![Latest Pre-release](https://img.shields.io/github/v/release/pacphi/claude-flow-on-fly?include_prereleases&label=pre-release)](https://github.com/pacphi/claude-flow-on-fly/releases)
+[![Version](https://img.shields.io/github/v/release/pacphi/claude-flow-on-fly?include_prereleases)](https://github.com/pacphi/claude-flow-on-fly/releases)
 [![License](https://img.shields.io/github/license/pacphi/claude-flow-on-fly)](LICENSE)
 [![Integration Tests](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml/badge.svg)](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml)
 
 A complete remote AI-assisted development environment running Claude Code and Claude Flow on Fly.io infrastructure
 with zero local installation, auto-suspend VMs, and persistent storage.
-
-## 📋 Status
-
-> **Current Status**: 🚧 **Pre-release Development** - This project is under active development
->
-> **Latest Stable**: *No stable releases yet* - [View All Releases](https://github.com/pacphi/claude-flow-on-fly/releases)
-> **Latest Pre-release**: v1.0.0-alpha.1 - [View Pre-releases](https://github.com/pacphi/claude-flow-on-fly/releases)
 
 ## ⚡ Quick Start
 
@@ -31,7 +23,7 @@ ssh developer@my-claude-dev.fly.dev -p 10022
 claude
 ```
 
-**Prerequisites**: [Fly.io CLI](https://fly.io/docs/flyctl/install/) + SSH keys +
+> **Prerequisites**: [Fly.io CLI](https://fly.io/docs/flyctl/install/) + SSH keys +
 [Claude Max](https://www.anthropic.com/max) or [API key](https://console.anthropic.com/settings/keys)
 
 ## 📚 Documentation
@@ -70,7 +62,7 @@ claude
 3. **Configure**: One-time environment setup
 4. **Develop**: Start coding with AI assistance
 
-See [Quick Start Guide](docs/QUICKSTART.md) for detailed walkthrough.
+> See [Quick Start Guide](docs/QUICKSTART.md) for detailed walkthrough.
 
 ## 💰 Cost Management
 
@@ -84,7 +76,6 @@ Manual controls:
 ./scripts/cost-monitor.sh  # Track usage
 ```
 
-> [!TIP]
 > See the [cost management guide](docs/COST_MANAGEMENT.md) for optimization strategies.
 
 ## 🔧 Essential Commands
@@ -99,7 +90,7 @@ ssh developer@my-claude-dev.fly.dev -p 10022
 claude
 ```
 
-Full [command reference](docs/REFERENCE.md).
+> Full [command reference](docs/REFERENCE.md).
 
 ## 📄 License
 
