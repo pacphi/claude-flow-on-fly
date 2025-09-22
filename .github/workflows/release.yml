@@ -400,41 +400,10 @@ jobs:
           updated=false
 
           if [[ "$is_prerelease" == "true" ]]; then
-            echo "📋 Updating pre-release information for v$version"
-
-            # Update pre-release version
-            if grep -q "Latest Pre-release.*: v[0-9]" README.md; then
-              sed -i "s/Latest Pre-release.*: v[0-9][^[:space:]]*/Latest Pre-release**: v$version/g" README.md
-              echo "✅ Updated pre-release version in README.md"
-              updated=true
-            fi
-
-            # Update status to show active pre-release development
-            if grep -q "Current Status.*Pre-release Development" README.md; then
-              # Status is already correct for pre-release
-              echo "ℹ️  Status already shows pre-release development"
-            fi
+            echo "📋 Pre-release version v$version - no documentation updates needed"
 
           else
-            echo "🎉 Updating stable release information for v$version"
-
-            # Update stable release version
-            if grep -q "Latest Stable.*No stable releases yet" README.md; then
-              sed -i "s/Latest Stable.*No stable releases yet.*/Latest Stable**: v$version - [View Release Notes](https:\/\/github.com\/pacphi\/claude-flow-on-fly\/releases\/tag\/v$version)/g" README.md
-              echo "✅ Updated stable release version in README.md"
-              updated=true
-            elif grep -q "Latest Stable.*: v[0-9]" README.md; then
-              sed -i "s/Latest Stable.*: v[0-9][^[:space:]]*.*/Latest Stable**: v$version - [View Release Notes](https:\/\/github.com\/pacphi\/claude-flow-on-fly\/releases\/tag\/v$version)/g" README.md
-              echo "✅ Updated stable release version in README.md"
-              updated=true
-            fi
-
-            # Update status to show stable release
-            if grep -q "Current Status.*Pre-release Development" README.md; then
-              sed -i "s/Current Status.*: 🚧 \\*\\*Pre-release Development\\*\\*.*/Current Status**: ✅ **Stable Release** - Production ready/g" README.md
-              echo "✅ Updated status to show stable release"
-              updated=true
-            fi
+            echo "🎉 Stable release version v$version - no documentation updates needed"
           fi
 
           # Update any other "Release vX.X.X" references
