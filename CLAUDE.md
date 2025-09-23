@@ -141,10 +141,40 @@ See [Cost Management Guide](docs/COST_MANAGEMENT.md) for detailed pricing.
 ## SSH Architecture Notes
 
 The environment provides dual SSH access:
+
 - **Production SSH**: External port 10022 → Internal port 2222 (custom daemon)
 - **Hallpass SSH**: `flyctl ssh console` via Fly.io's built-in service (port 22)
 
-In CI mode (`CI_MODE=true`), the custom SSH daemon is disabled to prevent port conflicts with Fly.io's hallpass service, ensuring reliable automated deployments.
+In CI mode (`CI_MODE=true`), the custom SSH daemon is disabled to prevent port conflicts with Fly.io's hallpass service,
+ensuring reliable automated deployments.
+
+### CI Mode Limitations and Troubleshooting
+
+**SSH Command Execution in CI Mode:**
+
+- Complex multi-line shell commands may fail after machine restarts
+- Always use explicit shell invocation: `/bin/bash -c 'command'`
+- Avoid nested quotes and complex variable substitution
+- Use retry logic for commands executed immediately after restart
+
+**Volume Persistence Verification:**
+
+- Volumes persist correctly, but SSH environment may need time to initialize after restart
+- Add machine readiness checks before testing persistence
+- Use simple commands to verify mount points and permissions
+
+**Common Issues:**
+
+- `exec: "if": executable file not found in $PATH` - Use explicit bash invocation
+- SSH connection timeouts after restart - Add retry logic with delays
+- Environment variables not available - Check shell environment setup
+
+**Best Practices for CI Testing:**
+
+- Always verify machine status before running tests
+- Use explicit error handling and debugging output
+- Split complex operations into simple, atomic commands
+- Add volume mount verification before persistence tests
 
 ## Important Instructions
 

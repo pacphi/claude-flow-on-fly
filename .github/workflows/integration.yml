@@ -17,6 +17,7 @@ on:
 env:
   TEST_APP_PREFIX: "claude-ci-test"
   REGION: ${{ inputs.test_region || 'sea' }}
+  FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
 
 jobs:
   integration-test:
@@ -55,7 +56,6 @@ jobs:
 
       - name: Prepare fly.toml for testing
         env:
-          FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
           APP_NAME: ${{ steps.app-name.outputs.app_name }}
           VOLUME_NAME: "test_data"
           VOLUME_SIZE: "5"
@@ -68,9 +68,6 @@ jobs:
           ./scripts/prepare-fly-config.sh --ci-mode
 
       - name: Deploy test environment
-        env:
-          # Required: FLYIO_AUTH_TOKEN secret must be configured in repository settings
-          FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
         run: |
           echo "Creating Fly.io app for testing..."
 
@@ -97,8 +94,6 @@ jobs:
           flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 60s --yes
 
       - name: Wait for deployment
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
         run: |
           echo "Verifying deployment success..."
 
@@ -114,18 +109,10 @@ jobs:
             echo "=== Status Check (${elapsed}s/${timeout}s) ==="
             echo "$status_output"
 
-            # Check if machines are running (immediate deployment bypasses health checks)
-            if echo "$status_output" | grep -q "running"; then
-              echo "✅ Deployment successful - machine is running"
-
-              # Basic connectivity test via flyctl ssh console (uses hallpass)
-              echo "Testing basic connectivity via flyctl..."
-              if timeout 15 flyctl ssh console --app $app_name --command "echo 'Deployment verification successful'" 2>/dev/null; then
-                echo "✅ Basic connectivity verified"
-                break
-              else
-                echo "⚠️  Machine running but not yet accessible via flyctl (expected briefly after deploy)"
-              fi
+            # Check if machines are started (immediate deployment bypasses health checks)
+            if echo "$status_output" | grep -q "started"; then
+              echo "✅ Deployment successful - machine is started"
+              break
             elif echo "$status_output" | grep -q "failed\|crashed\|error"; then
               echo "❌ Deployment failed"
               echo "App status: $status_output"
@@ -150,8 +137,6 @@ jobs:
           fi
 
       - name: Test SSH connectivity
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
         run: |
           echo "Testing SSH connectivity..."
 
@@ -214,9 +199,33 @@ jobs:
             echo "✅ Basic VM tests passed"
             '
 
+      - name: Verify volume mount
+        run: |
+          echo "Verifying volume mount..."
+
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          # Check volume mount and permissions
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            echo \"=== Volume Mount Verification ===\"
+            echo \"Checking /workspace mount:\"
+            df -h /workspace || echo \"WARNING: df command failed\"
+            echo \"\"
+            echo \"Workspace directory contents:\"
+            ls -la /workspace/ || echo \"WARNING: ls command failed\"
+            echo \"\"
+            echo \"Mount information:\"
+            mount | grep workspace || echo \"WARNING: No workspace mount found in mount output\"
+            echo \"\"
+            echo \"Workspace permissions:\"
+            stat /workspace/ || echo \"WARNING: stat command failed\"
+            echo \"\"
+            echo \"Testing write permissions:\"
+            touch /workspace/mount-test-$(date +%s).tmp && echo \"✅ Write permission confirmed\" || echo \"❌ Write permission failed\"
+            echo \"=== End Volume Mount Verification ===\"
+            '"
+
       - name: Test volume persistence
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
         run: |
           echo "Testing volume persistence..."
 
@@ -225,35 +234,75 @@ jobs:
           test_content="integration-test-$(date +%s)"
 
           # Create test file
-          flyctl ssh console --app $app_name --command "echo '$test_content' > $test_file && cat $test_file"
+          echo "Creating test file with content: $test_content"
+          flyctl ssh console --app $app_name --command "/bin/bash -c 'echo \"$test_content\" > $test_file && cat $test_file'"
 
           # Restart the machine to test persistence
+          echo "Restarting machine to test persistence..."
           machine_id=$(flyctl machine list --app $app_name --json | jq -r '.[0].id')
           flyctl machine restart $machine_id --app $app_name
 
-          # Wait for restart
+          # Wait for restart and ensure machine is ready
+          echo "Waiting for machine to restart and become ready..."
           sleep 30
 
-          # Check file still exists
-          flyctl ssh console --app $app_name --command "
-            if [ -f '$test_file' ]; then
-              content=\$(cat $test_file)
-              if [ '\$content' = '$test_content' ]; then
-                echo '✅ Volume persistence test passed'
+          # Verify machine is running
+          max_attempts=5
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Checking machine status (attempt $attempt/$max_attempts)..."
+            if flyctl status --app $app_name | grep -q "started"; then
+              echo "✅ Machine is running"
+              break
+            else
+              echo "⚠️  Machine not ready, waiting..."
+              sleep 10
+              attempt=$((attempt + 1))
+            fi
+          done
+
+          if [ $attempt -gt $max_attempts ]; then
+            echo "❌ Machine failed to start after restart"
+            exit 1
+          fi
+
+          # Test volume persistence with retry logic
+          echo "Testing file persistence after restart..."
+          max_attempts=3
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Persistence test attempt $attempt/$max_attempts..."
+
+            # Check if file exists with explicit shell invocation
+            if flyctl ssh console --app $app_name --command "/bin/bash -c 'test -f $test_file && echo \"File exists\" || echo \"File missing\"'" | grep -q "File exists"; then
+              echo "✅ Test file still exists after restart"
+
+              # Verify file content
+              actual_content=$(flyctl ssh console --app $app_name --command "/bin/bash -c 'cat $test_file 2>/dev/null || echo ERROR_READING_FILE'")
+
+              if [ "$actual_content" = "$test_content" ]; then
+                echo "✅ Volume persistence test passed - content matches"
+                break
               else
-                echo '❌ File content changed'
+                echo "❌ File content changed. Expected: '$test_content', Got: '$actual_content'"
                 exit 1
               fi
             else
-              echo '❌ Test file disappeared after restart'
-              exit 1
+              echo "⚠️  Test file not found (attempt $attempt/$max_attempts)"
+              if [ $attempt -eq $max_attempts ]; then
+                echo "❌ Test file disappeared after restart"
+                echo "Debugging - listing workspace contents:"
+                flyctl ssh console --app $app_name --command "/bin/bash -c 'ls -la /workspace/ || echo ERROR_LISTING_WORKSPACE'"
+                exit 1
+              fi
+              sleep 10
+              attempt=$((attempt + 1))
             fi
-            "
+          done
 
       - name: Test auto-suspend functionality
         if: success()
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
         run: |
           echo "Testing auto-suspend functionality..."
 
@@ -278,9 +327,6 @@ jobs:
 
       - name: Cleanup test resources
         if: always() && !inputs.skip_cleanup
-        env:
-          # Required: FLYIO_AUTH_TOKEN secret must be configured in repository settings
-          FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
         run: |
           echo "Cleaning up test resources..."
 
