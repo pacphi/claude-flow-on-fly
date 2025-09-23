@@ -4,8 +4,39 @@ All notable changes to this project will be documented in this file.
 
 All notable changes to this project will be documented in this file.
 
+All notable changes to this project will be documented in this file.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0-beta.1] - 2025-09-23
+
+### 🐛 Bug Fixes
+
+* fix: resolve volume persistence file content loss during machine restart (6cf371e)
+
+### 📚 Documentation
+
+* docs: update CHANGELOG.md for v1.0.0-alpha.1 (2315ac3)
+
+### 🔧 Other Changes
+
+* ci: improve integration workflow robustness and add CI troubleshooting docs (5e60c81)
+* Beta features (#6) (f871f79)
+
+
+### 📦 Installation
+
+To use this version:
+
+```bash
+git clone https://github.com/pacphi/claude-flow-on-fly.git
+cd claude-flow-on-fly
+git checkout v1.0.0-beta.1
+./scripts/vm-setup.sh --app-name my-claude-dev
+```
+
+**Full Changelog**: https://github.com/pacphi/claude-flow-on-fly/compare/v1.0.0-alpha.1...v1.0.0-beta.1
 
 ## [1.0.0-alpha.1] - 2025-09-22
 
