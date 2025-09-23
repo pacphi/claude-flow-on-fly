@@ -233,9 +233,40 @@ jobs:
           test_file="/workspace/test-persistence-$(date +%s).txt"
           test_content="integration-test-$(date +%s)"
 
-          # Create test file
+          # Create test file with explicit sync operations
           echo "Creating test file with content: $test_content"
-          flyctl ssh console --app $app_name --command "/bin/bash -c 'echo \"$test_content\" > $test_file && cat $test_file'"
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            echo \"Creating and syncing test file...\"
+            echo \"$test_content\" > $test_file
+            sync
+            sleep 2
+            echo \"Verifying file was written correctly...\"
+            if [ -f \"$test_file\" ]; then
+              file_size=\$(wc -c < \"$test_file\")
+              echo \"File created with size: \$file_size bytes\"
+              cat \"$test_file\"
+            else
+              echo \"ERROR: File was not created\"
+              exit 1
+            fi
+          '"
+
+          # Force filesystem sync before restart
+          echo "Forcing filesystem sync before restart..."
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            echo \"Syncing filesystem before restart...\"
+            sync
+            echo \"Sync completed\"
+            sleep 3
+            echo \"Final file verification before restart:\"
+            ls -la \"$test_file\" 2>/dev/null || echo \"File not found\"
+            wc -c \"$test_file\" 2>/dev/null || echo \"Cannot get file size\"
+            cat \"$test_file\" 2>/dev/null || echo \"Cannot read file\"
+          '"
+
+          # Wait additional time for any remaining buffer flushes
+          echo "Waiting for buffer flush before restart..."
+          sleep 10
 
           # Restart the machine to test persistence
           echo "Restarting machine to test persistence..."
@@ -244,7 +275,7 @@ jobs:
 
           # Wait for restart and ensure machine is ready
           echo "Waiting for machine to restart and become ready..."
-          sleep 30
+          sleep 45
 
           # Verify machine is running
           max_attempts=5
@@ -274,31 +305,72 @@ jobs:
           while [ $attempt -le $max_attempts ]; do
             echo "Persistence test attempt $attempt/$max_attempts..."
 
-            # Check if file exists with explicit shell invocation
-            if flyctl ssh console --app $app_name --command "/bin/bash -c 'test -f $test_file && echo \"File exists\" || echo \"File missing\"'" | grep -q "File exists"; then
-              echo "✅ Test file still exists after restart"
+            # Enhanced file verification with metadata
+            echo "Performing comprehensive file verification..."
 
-              # Verify file content
-              actual_content=$(flyctl ssh console --app $app_name --command "/bin/bash -c 'cat $test_file 2>/dev/null || echo ERROR_READING_FILE'")
+            verification_result=$(flyctl ssh console --app $app_name --command "/bin/bash -c '
+              echo \"=== Post-Restart File Verification ===\"
+              if [ -f \"$test_file\" ]; then
+                echo \"✅ File exists\"
+                echo \"File metadata:\"
+                ls -la \"$test_file\"
+                echo \"File size: \$(wc -c < \"$test_file\") bytes\"
+                echo \"File content:\"
+                content=\$(cat \"$test_file\" 2>/dev/null)
+                if [ -n \"\$content\" ]; then
+                  echo \"\$content\"
+                  echo \"VERIFICATION_STATUS=SUCCESS\"
+                else
+                  echo \"[EMPTY FILE]\"
+                  echo \"VERIFICATION_STATUS=EMPTY\"
+                fi
+              else
+                echo \"❌ File missing\"
+                echo \"VERIFICATION_STATUS=MISSING\"
+              fi
+              echo \"=== End Verification ===\"
+            '")
+
+            echo "$verification_result"
+
+            if echo "$verification_result" | grep -q "VERIFICATION_STATUS=SUCCESS"; then
+              echo "✅ Test file exists with content after restart"
+
+              # Extract and verify content
+              actual_content=$(echo "$verification_result" | grep -A 1 "File content:" | tail -1)
 
               if [ "$actual_content" = "$test_content" ]; then
-                echo "✅ Volume persistence test passed - content matches"
+                echo "✅ Volume persistence test passed - content matches perfectly"
                 break
               else
-                echo "❌ File content changed. Expected: '$test_content', Got: '$actual_content'"
+                echo "❌ File content mismatch:"
+                echo "  Expected: '$test_content'"
+                echo "  Actual:   '$actual_content'"
+                echo "  Expected length: ${#test_content}"
+                echo "  Actual length:   ${#actual_content}"
+                exit 1
+              fi
+            elif echo "$verification_result" | grep -q "VERIFICATION_STATUS=EMPTY"; then
+              echo "⚠️  File exists but is empty (attempt $attempt/$max_attempts)"
+              echo "This indicates a filesystem sync issue during restart"
+              if [ $attempt -eq $max_attempts ]; then
+                echo "❌ File content lost after restart - filesystem sync failure"
+                echo "Debugging information:"
+                echo "$verification_result"
                 exit 1
               fi
             else
               echo "⚠️  Test file not found (attempt $attempt/$max_attempts)"
               if [ $attempt -eq $max_attempts ]; then
                 echo "❌ Test file disappeared after restart"
-                echo "Debugging - listing workspace contents:"
-                flyctl ssh console --app $app_name --command "/bin/bash -c 'ls -la /workspace/ || echo ERROR_LISTING_WORKSPACE'"
+                echo "Debugging - workspace contents:"
+                flyctl ssh console --app $app_name --command "/bin/bash -c 'ls -la /workspace/ | head -20'"
                 exit 1
               fi
-              sleep 10
-              attempt=$((attempt + 1))
             fi
+
+            sleep 10
+            attempt=$((attempt + 1))
           done
 
       - name: Test auto-suspend functionality
