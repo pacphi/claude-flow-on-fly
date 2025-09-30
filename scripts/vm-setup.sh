@@ -251,6 +251,16 @@ configure_secrets() {
         flyctl secrets set GITHUB_USER="$GITHUB_USER" -a "$APP_NAME"
         print_success "GitHub username configured: $GITHUB_USER"
     fi
+
+    # Optionally set Perplexity API key for Goalie
+    if [[ -n "${PERPLEXITY_API_KEY:-}" ]]; then
+        flyctl secrets set PERPLEXITY_API_KEY="$PERPLEXITY_API_KEY" -a "$APP_NAME"
+        print_success "Perplexity API key configured"
+    else
+        print_status "No PERPLEXITY_API_KEY found. You can set it later with:"
+        print_status "  flyctl secrets set PERPLEXITY_API_KEY=<your-key> -a $APP_NAME"
+        print_status "  Get your API key from: https://www.perplexity.ai/settings/api"
+    fi
 }
 
 # Function to update fly.toml with correct app name
@@ -380,6 +390,7 @@ Environment Variables:
   GIT_USER_NAME       Git config user.name (optional)
   GIT_USER_EMAIL      Git config user.email (optional)
   GITHUB_USER         GitHub username for gh CLI (optional)
+  PERPLEXITY_API_KEY  Perplexity API key for Goalie research assistant (optional)
 
 Examples:
   $0
@@ -387,6 +398,7 @@ Examples:
   $0 --cpu-kind performance --cpu-count 2 --memory 2048
   ANTHROPIC_API_KEY=sk-ant-... $0 --app-name claude-dev
   GITHUB_TOKEN=ghp_... GIT_USER_NAME="John Doe" GIT_USER_EMAIL="john@example.com" $0
+  PERPLEXITY_API_KEY=pplx-... $0 --app-name claude-dev
 
 EOF
                 exit 0

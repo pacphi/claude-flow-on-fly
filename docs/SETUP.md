@@ -36,6 +36,7 @@ strategies.
 # Set during or after deployment
 flyctl secrets set ANTHROPIC_API_KEY="sk-ant-..." -a <app-name>
 flyctl secrets set GITHUB_TOKEN="ghp_..." -a <app-name>
+flyctl secrets set PERPLEXITY_API_KEY="pplx-..." -a <app-name>
 ```
 
 ## Team Setup

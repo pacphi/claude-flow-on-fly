@@ -106,6 +106,7 @@ install_dev_tools() {
         "eslint"
         "@typescript-eslint/parser"
         "@typescript-eslint/eslint-plugin"
+        "goalie"
     )
 
     # Install npm packages if Node.js is available

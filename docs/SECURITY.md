@@ -129,6 +129,7 @@ find /workspace/projects -type f -exec chmod 644 {} \;
 flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-claude-dev
 flyctl secrets set GITHUB_TOKEN=ghp_... -a my-claude-dev
 flyctl secrets set OPENAI_API_KEY=sk-... -a my-claude-dev
+flyctl secrets set PERPLEXITY_API_KEY=pplx-... -a my-claude-dev
 
 # Database credentials
 flyctl secrets set DATABASE_PASSWORD=secure_password -a my-claude-dev
@@ -170,6 +171,7 @@ git config --global init.templateDir ~/.git-templates/git-secrets
 git secrets --add --global 'sk-[a-zA-Z0-9]{48}'  # Anthropic keys
 git secrets --add --global 'ghp_[a-zA-Z0-9]{36}' # GitHub tokens
 git secrets --add --global 'xoxb-[a-zA-Z0-9-]+'  # Slack tokens
+git secrets --add --global 'pplx-[a-zA-Z0-9]+'   # Perplexity API keys
 
 # Scan existing repositories
 git secrets --scan

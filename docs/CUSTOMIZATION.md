@@ -378,6 +378,7 @@ EOF
 # Set secrets at deployment time
 flyctl secrets set OPENAI_API_KEY=sk-... -a my-claude-dev
 flyctl secrets set GITHUB_TOKEN=ghp_... -a my-claude-dev
+flyctl secrets set PERPLEXITY_API_KEY=pplx-... -a my-claude-dev
 flyctl secrets set DATABASE_PASSWORD=secret123 -a my-claude-dev
 
 # Access in scripts

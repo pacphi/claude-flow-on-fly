@@ -532,6 +532,7 @@ claude-flow-on-fly/
 - `REDIS_URL` - Redis connection string (if attached)
 - `ANTHROPIC_API_KEY` - Claude API key
 - `GITHUB_TOKEN` - GitHub authentication token
+- `PERPLEXITY_API_KEY` - Perplexity API key for Goalie research assistant
 - `GIT_USER_NAME` - Git user name
 - `GIT_USER_EMAIL` - Git user email
 

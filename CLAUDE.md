@@ -136,6 +136,18 @@ ssh -vvv developer@<app>.fly.dev -p 10022  # Debug SSH
 ./scripts/vm-suspend.sh              # Manual suspend
 ```
 
+### AI Research Tools
+
+```bash
+# Goalie - AI-powered research assistant with GOAP planning
+goalie "research question"           # Perform research with Perplexity API
+goalie --help                        # View available options
+
+# Requires PERPLEXITY_API_KEY environment variable
+# Set via: flyctl secrets set PERPLEXITY_API_KEY=pplx-... -a <app-name>
+# Get API key from: https://www.perplexity.ai/settings/api
+```
+
 See [Cost Management Guide](docs/COST_MANAGEMENT.md) for detailed pricing.
 
 ## SSH Architecture Notes
