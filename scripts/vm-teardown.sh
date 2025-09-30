@@ -347,7 +347,22 @@ cleanup_local_files() {
     if [[ -f "fly.toml.backup" ]]; then
         print_status "Restoring original fly.toml from backup"
         mv fly.toml.backup fly.toml
-        print_success "fly.toml restored"
+        print_success "fly.toml restored from backup"
+    elif command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+        # If no backup exists, try to restore from git
+        if git diff --quiet fly.toml 2>/dev/null; then
+            print_status "fly.toml already matches git repository"
+        else
+            print_status "Restoring fly.toml from git repository"
+            if git restore fly.toml 2>/dev/null || git checkout -- fly.toml 2>/dev/null; then
+                print_success "fly.toml restored from git"
+            else
+                print_warning "Could not restore fly.toml from git"
+            fi
+        fi
+    else
+        print_warning "No backup found and not in a git repository"
+        print_status "fly.toml may contain deployment-specific values"
     fi
 
     # Remove app-specific SSH config if it exists

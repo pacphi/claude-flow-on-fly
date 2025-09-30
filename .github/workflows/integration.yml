@@ -6,7 +6,7 @@ on:
       test_region:
         description: 'Fly.io region for test deployment'
         required: false
-        default: 'sea'
+        default: 'iad'
         type: string
       skip_cleanup:
         description: 'Skip cleanup (for debugging)'
@@ -16,7 +16,7 @@ on:
 
 env:
   TEST_APP_PREFIX: "claude-ci-test"
-  REGION: ${{ inputs.test_region || 'sea' }}
+  REGION: ${{ inputs.test_region || 'iad' }}
   FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
 
 jobs:

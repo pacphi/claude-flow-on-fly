@@ -268,7 +268,13 @@ update_fly_toml() {
     print_status "Updating fly.toml with app name and configuration"
 
     # Use the configuration script to prepare fly.toml
+    export APP_NAME
+    export REGION
     export SSH_EXTERNAL_PORT="10022"
+    export CPU_KIND
+    export CPU_COUNT
+    export VM_MEMORY
+    export VOLUME_SIZE
     ./scripts/prepare-fly-config.sh
 
     print_success "fly.toml updated"

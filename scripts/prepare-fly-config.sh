@@ -62,18 +62,24 @@ echo "  App name: $APP_NAME"
 echo "  Region: $REGION"
 echo "  CI Mode: $CI_MODE"
 
+# Create backup of original fly.toml if not already backed up
+if [[ ! -f fly.toml.backup ]]; then
+  echo "  Creating backup: fly.toml.backup"
+  cp fly.toml fly.toml.backup
+fi
+
 # Create working copy
 cp fly.toml fly.toml.tmp
 
 # Replace template variables
-sed -i "s/{{APP_NAME}}/$APP_NAME/g" fly.toml.tmp
-sed -i "s/{{REGION}}/$REGION/g" fly.toml.tmp
-sed -i "s/{{VOLUME_NAME}}/$VOLUME_NAME/g" fly.toml.tmp
-sed -i "s/{{VOLUME_SIZE}}/$VOLUME_SIZE/g" fly.toml.tmp
-sed -i "s/{{VM_MEMORY}}/$VM_MEMORY/g" fly.toml.tmp
-sed -i "s/{{CPU_KIND}}/$CPU_KIND/g" fly.toml.tmp
-sed -i "s/{{CPU_COUNT}}/$CPU_COUNT/g" fly.toml.tmp
-sed -i "s/{{SSH_EXTERNAL_PORT}}/$SSH_EXTERNAL_PORT/g" fly.toml.tmp
+sed -i '' "s/{{APP_NAME}}/$APP_NAME/g" fly.toml.tmp
+sed -i '' "s/{{REGION}}/$REGION/g" fly.toml.tmp
+sed -i '' "s/{{VOLUME_NAME}}/$VOLUME_NAME/g" fly.toml.tmp
+sed -i '' "s/{{VOLUME_SIZE}}/$VOLUME_SIZE/g" fly.toml.tmp
+sed -i '' "s/{{VM_MEMORY}}/$VM_MEMORY/g" fly.toml.tmp
+sed -i '' "s/{{CPU_KIND}}/$CPU_KIND/g" fly.toml.tmp
+sed -i '' "s/{{CPU_COUNT}}/$CPU_COUNT/g" fly.toml.tmp
+sed -i '' "s/{{SSH_EXTERNAL_PORT}}/$SSH_EXTERNAL_PORT/g" fly.toml.tmp
 
 # Handle CI mode - use empty services to prevent conflicts with hallpass
 if [[ "$CI_MODE" == "true" ]]; then
@@ -91,12 +97,12 @@ services = []
 EOF
 
   # Remove existing services and checks sections, then add empty services
-  sed -i '/# SSH service configuration/,/restart_limit = 0/d' fly.toml.tmp
-  sed -i '/# Monitoring and health checks/,/path = "\/metrics"/d' fly.toml.tmp
-  sed -i '/\[checks\]/,/timeout = "2s"/d' fly.toml.tmp
+  sed -i '' '/# SSH service configuration/,/restart_limit = 0/d' fly.toml.tmp
+  sed -i '' '/# Monitoring and health checks/,/path = "\/metrics"/d' fly.toml.tmp
+  sed -i '' '/\[checks\]/,/timeout = "2s"/d' fly.toml.tmp
 
   # Insert empty services configuration before [machine] section
-  sed -i '/\[machine\]/i\
+  sed -i '' '/\[machine\]/i\
 \
 # Services configuration - empty for CI mode to prevent hallpass conflicts\
 services = []\
