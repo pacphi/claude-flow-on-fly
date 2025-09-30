@@ -6,6 +6,15 @@
 
 set -euo pipefail
 
+# Detect OS for sed compatibility
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # macOS requires empty string after -i
+  SED_INPLACE="sed -i ''"
+else
+  # Linux (GitHub Actions) doesn't use empty string
+  SED_INPLACE="sed -i"
+fi
+
 # Default values
 APP_NAME="${APP_NAME:-}"
 REGION="${REGION:-iad}"
@@ -72,14 +81,14 @@ fi
 cp fly.toml fly.toml.tmp
 
 # Replace template variables
-sed -i '' "s/{{APP_NAME}}/$APP_NAME/g" fly.toml.tmp
-sed -i '' "s/{{REGION}}/$REGION/g" fly.toml.tmp
-sed -i '' "s/{{VOLUME_NAME}}/$VOLUME_NAME/g" fly.toml.tmp
-sed -i '' "s/{{VOLUME_SIZE}}/$VOLUME_SIZE/g" fly.toml.tmp
-sed -i '' "s/{{VM_MEMORY}}/$VM_MEMORY/g" fly.toml.tmp
-sed -i '' "s/{{CPU_KIND}}/$CPU_KIND/g" fly.toml.tmp
-sed -i '' "s/{{CPU_COUNT}}/$CPU_COUNT/g" fly.toml.tmp
-sed -i '' "s/{{SSH_EXTERNAL_PORT}}/$SSH_EXTERNAL_PORT/g" fly.toml.tmp
+$SED_INPLACE "s/{{APP_NAME}}/$APP_NAME/g" fly.toml.tmp
+$SED_INPLACE "s/{{REGION}}/$REGION/g" fly.toml.tmp
+$SED_INPLACE "s/{{VOLUME_NAME}}/$VOLUME_NAME/g" fly.toml.tmp
+$SED_INPLACE "s/{{VOLUME_SIZE}}/$VOLUME_SIZE/g" fly.toml.tmp
+$SED_INPLACE "s/{{VM_MEMORY}}/$VM_MEMORY/g" fly.toml.tmp
+$SED_INPLACE "s/{{CPU_KIND}}/$CPU_KIND/g" fly.toml.tmp
+$SED_INPLACE "s/{{CPU_COUNT}}/$CPU_COUNT/g" fly.toml.tmp
+$SED_INPLACE "s/{{SSH_EXTERNAL_PORT}}/$SSH_EXTERNAL_PORT/g" fly.toml.tmp
 
 # Handle CI mode - use empty services to prevent conflicts with hallpass
 if [[ "$CI_MODE" == "true" ]]; then
@@ -97,12 +106,14 @@ services = []
 EOF
 
   # Remove existing services and checks sections, then add empty services
-  sed -i '' '/# SSH service configuration/,/restart_limit = 0/d' fly.toml.tmp
-  sed -i '' '/# Monitoring and health checks/,/path = "\/metrics"/d' fly.toml.tmp
-  sed -i '' '/\[checks\]/,/timeout = "2s"/d' fly.toml.tmp
+  $SED_INPLACE '/# SSH service configuration/,/restart_limit = 0/d' fly.toml.tmp
+  $SED_INPLACE '/# Monitoring and health checks/,/path = "\/metrics"/d' fly.toml.tmp
+  $SED_INPLACE '/\[checks\]/,/timeout = "2s"/d' fly.toml.tmp
 
   # Insert empty services configuration before [machine] section
-  sed -i '' '/\[machine\]/i\
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS sed syntax
+    sed -i '' '/\[machine\]/i\
 \
 # Services configuration - empty for CI mode to prevent hallpass conflicts\
 services = []\
@@ -111,6 +122,18 @@ services = []\
 # [checks]\
 # No health checks in CI mode - rely on deployment success only\
 ' fly.toml.tmp
+  else
+    # Linux sed syntax - requires different quoting
+    sed -i '/\[machine\]/i\
+\
+# Services configuration - empty for CI mode to prevent hallpass conflicts\
+services = []\
+\
+# Monitoring and health checks - disabled for CI\
+# [checks]\
+# No health checks in CI mode - rely on deployment success only\
+' fly.toml.tmp
+  fi
 
   rm -f services_replacement.tmp
 fi
