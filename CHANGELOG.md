@@ -6,8 +6,39 @@ All notable changes to this project will be documented in this file.
 
 All notable changes to this project will be documented in this file.
 
+All notable changes to this project will be documented in this file.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0-beta.2] - 2025-09-30
+
+### ✨ Features
+
+* feat: add Goalie research assistant integration (c281b3b)
+
+### 🐛 Bug Fixes
+
+* fix: resolve sed compatibility issue in prepare-fly-config.sh for Linux/macOS (e4718d1)
+* fix: improve fly.toml management and cross-platform compatibility (751ff67)
+
+### 📚 Documentation
+
+* docs: update CHANGELOG.md for v1.0.0-beta.1 (d286242)
+
+
+### 📦 Installation
+
+To use this version:
+
+```bash
+git clone https://github.com/pacphi/claude-flow-on-fly.git
+cd claude-flow-on-fly
+git checkout v1.0.0-beta.2
+./scripts/vm-setup.sh --app-name my-claude-dev
+```
+
+**Full Changelog**: https://github.com/pacphi/claude-flow-on-fly/compare/v1.0.0-beta.1...v1.0.0-beta.2
 
 ## [1.0.0-beta.1] - 2025-09-23
 
