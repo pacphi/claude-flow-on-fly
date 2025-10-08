@@ -174,6 +174,58 @@ flyctl volumes create <name> --region <region> --size <gb> -a <app-name>
 flyctl volumes extend <volume-id> --size <gb> -a <app-name>
 ```
 
+## AI Model Management Commands
+
+### agent-flow (Multi-Model AI)
+
+Cost-optimized AI routing across 100+ models from multiple providers.
+
+**Core commands:**
+
+```bash
+# Basic usage
+af "task description"                  # Auto-select optimal model
+af-help                                # Show all commands
+
+# Agent-specific tasks
+af-coder "Create REST API"             # Development tasks
+af-reviewer "Review security"          # Code review
+af-researcher "Research patterns"      # Research tasks
+
+# Provider selection
+af-claude "task"                       # Use Anthropic Claude
+af-openrouter "task"                   # Use OpenRouter
+af-gemini "task"                       # Use Google Gemini
+
+# Optimization modes
+af-cost "task"                         # Minimize cost
+af-quality "task"                      # Maximize quality
+af-speed "task"                        # Fastest response
+af-llama "task"                        # Specific model (Llama 3.1)
+
+# Utility functions
+af-task <agent> "task"                 # Balanced optimization
+af-provider <provider> "task"          # Provider wrapper
+```
+
+**Configuration:**
+
+```bash
+# Required for agent-flow
+export ANTHROPIC_API_KEY=sk-ant-...   # Already configured
+
+# Optional providers (cost optimization)
+flyctl secrets set OPENROUTER_API_KEY=sk-or-... -a <app-name>
+flyctl secrets set GOOGLE_GEMINI_API_KEY=... -a <app-name>
+```
+
+**Get API keys:**
+
+- OpenRouter: <https://openrouter.ai/keys> (pay-per-use, no subscription)
+- Gemini: <https://makersuite.google.com/app/apikey> (free tier available)
+
+See [Cost Management](COST_MANAGEMENT.md#ai-model-cost-optimization-with-agent-flow) for optimization strategies.
+
 ## Development Commands
 
 ### SSH Connection

@@ -277,6 +277,106 @@ Monitor and optimize resource allocation:
 3. **Optimize Configuration**: Right-size CPU and memory
 4. **Continuous Monitoring**: Adjust based on workload changes
 
+### AI Model Cost Optimization with agent-flow
+
+agent-flow enables dramatic cost reduction by intelligently routing tasks to optimal models across multiple providers.
+
+#### Cost Comparison
+
+**Traditional approach** (Claude Sonnet 4 only):
+
+- $3.00 per million input tokens
+- $15.00 per million output tokens
+- Average task: ~$0.50
+
+**agent-flow approach** (intelligent routing):
+
+- Route simple tasks to Llama 3.1 8B: $0.06/$0.06 per million tokens
+- Route complex tasks to Claude: $3.00/$15.00 per million tokens
+- **Cost savings: 85-99%** depending on task mix
+
+#### Available Providers
+
+1. **OpenRouter** - 100+ models with flexible pricing
+   - Ultra-low-cost models (Llama, Mistral): ~$0.06-0.20 per million tokens
+   - Mid-tier models: ~$0.50-2.00 per million tokens
+   - Premium models: Available when quality matters
+
+2. **Google Gemini** - Free tier available
+   - Gemini 1.5 Flash: Free tier with rate limits
+   - Gemini 1.5 Pro: Paid tier for production
+
+3. **Anthropic Claude** - Default high-quality option
+   - Use for complex reasoning and critical tasks
+   - agent-flow automatically selects when quality justifies cost
+
+#### Setup for Cost Optimization
+
+```bash
+# Set up OpenRouter for cost savings
+flyctl secrets set OPENROUTER_API_KEY=sk-or-... -a <app-name>
+
+# Optional: Gemini free tier
+flyctl secrets set GOOGLE_GEMINI_API_KEY=... -a <app-name>
+
+# On VM, use cost-optimized commands
+af-cost "Simple task"                    # Use cheapest suitable model
+af-openrouter "Build feature"            # Use OpenRouter
+af-llama "Generate documentation"        # Specific low-cost model
+```
+
+#### Optimization Strategy
+
+**Task-based routing:**
+
+- **Documentation/boilerplate**: Use ultra-low-cost models (~95% savings)
+- **Code review/analysis**: Use mid-tier models (~70% savings)
+- **Complex refactoring**: Use Claude (quality priority)
+
+**Example workflow:**
+
+```bash
+# Generate docs with low-cost model
+af-cost "Generate API documentation from code comments"
+
+# Review with mid-tier model
+af-reviewer "Check for security issues"
+
+# Complex task with Claude
+af-claude "Refactor authentication system with OAuth2"
+```
+
+#### Monitoring AI Costs
+
+Track model usage and costs:
+
+```bash
+# Check current provider configuration
+af-help
+
+# Review available models and pricing
+# Visit https://openrouter.ai/models for real-time pricing
+```
+
+#### Best Practices
+
+1. **Start cheap**: Use `af-cost` by default, escalate when needed
+2. **Batch tasks**: Group similar operations to one model/provider
+3. **Mix providers**: Don't lock into single vendor
+4. **Monitor quality**: Validate output quality vs. cost savings
+5. **Free tier first**: Exhaust Gemini free tier before paid options
+
+#### Cost Example
+
+**Monthly AI usage scenario:**
+
+- 100 documentation tasks: $0.50 (was $50 with Claude only)
+- 50 code reviews: $5.00 (was $25)
+- 20 complex refactorings: $10.00 (Claude, quality matters)
+- **Total: $15.50/month** (was $75/month) = **79% savings**
+
+Combined with VM auto-suspend, total environment cost < $25/month for full AI-assisted development.
+
 ## Budget Planning
 
 ### Monthly Budget Calculation

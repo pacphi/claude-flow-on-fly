@@ -148,6 +148,59 @@ goalie --help                        # View available options
 # Get API key from: https://www.perplexity.ai/settings/api
 ```
 
+### AI Model Management with agent-flow
+
+Agent-flow provides cost-optimized multi-model AI routing for development tasks:
+
+#### Available Providers
+
+- **Anthropic Claude** (default, requires ANTHROPIC_API_KEY)
+- **OpenRouter** (100+ models, requires OPENROUTER_API_KEY)
+- **Gemini** (free tier, requires GOOGLE_GEMINI_API_KEY)
+
+#### Common Commands
+
+```bash
+# Agent-specific tasks
+af-coder "Create REST API with OAuth2"       # Use coder agent
+af-reviewer "Review code for vulnerabilities" # Use reviewer agent
+af-researcher "Research best practices"      # Use researcher agent
+
+# Provider selection
+af-openrouter "Build feature"                # OpenRouter provider
+af-gemini "Analyze code"                     # Free Gemini tier
+af-claude "Write tests"                      # Anthropic Claude
+
+# Optimization modes
+af-cost "Simple task"                        # Cost-optimized model
+af-quality "Complex refactoring"             # Quality-optimized model
+af-speed "Quick analysis"                    # Speed-optimized model
+
+# Utility functions
+af-task coder "Create API endpoint"          # Balanced optimization
+af-provider openrouter "Generate docs"       # Provider wrapper
+```
+
+#### Setting API Keys
+
+```bash
+# On host machine (before deployment)
+flyctl secrets set OPENROUTER_API_KEY=sk-or-... -a <app-name>
+flyctl secrets set GOOGLE_GEMINI_API_KEY=... -a <app-name>
+```
+
+**Get API keys:**
+
+- OpenRouter: <https://openrouter.ai/keys>
+- Gemini: <https://makersuite.google.com/app/apikey>
+
+**Benefits:**
+
+- **Cost savings**: 85-99% reduction using OpenRouter's low-cost models
+- **Flexibility**: Switch between 100+ models based on task complexity
+- **Free tier**: Use Gemini for development/testing
+- **Seamless integration**: Works alongside existing Claude Flow setup
+
 See [Cost Management Guide](docs/COST_MANAGEMENT.md) for detailed pricing.
 
 ## SSH Architecture Notes

@@ -525,6 +525,16 @@ if command_exists claude-flow || command_exists npx; then
     fi
 fi
 
+# Initialize agent-flow if available
+if command_exists npx; then
+    print_status "Initializing agent-flow..."
+    if npx --yes agentic-flow --help >/dev/null 2>&1; then
+        print_success "agent-flow available"
+    else
+        print_debug "agent-flow initialization skipped"
+    fi
+fi
+
 print_success "Project $PROJECT_NAME created successfully"
 echo "📁 Location: $PROJECT_DIR"
 echo "📝 Next steps:"

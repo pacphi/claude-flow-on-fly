@@ -3,6 +3,10 @@
 Agents extend Claude's capabilities for specialized tasks. The environment includes comprehensive agent management
 through shell aliases.
 
+> **Note**: This guide covers Claude Flow's agent system for task coordination. For cost-optimized multi-model AI,
+> see [agent-flow integration](COST_MANAGEMENT.md#ai-model-cost-optimization-with-agent-flow) in the Cost
+> Management guide.
+
 ## Quick Start
 
 ```bash

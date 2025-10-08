@@ -39,7 +39,8 @@ Run once after connecting:
 /workspace/scripts/vm-configure.sh
 ```
 
-This installs Node.js, Claude Code, Claude Flow, and development tools.
+This installs Node.js and Claude Code.
+Claude Flow, Agentic Flow, and curated development tools get installed when you create new or clone existing projects.
 
 ## Start Using Claude
 

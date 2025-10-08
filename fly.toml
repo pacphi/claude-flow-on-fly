@@ -125,6 +125,9 @@ primary_region = "{{REGION}}"
 #    - GIT_USER_NAME: Git config user.name
 #    - GIT_USER_EMAIL: Git config user.email
 #    - GITHUB_USER: GitHub username for gh CLI
+#    - OPENROUTER_API_KEY: OpenRouter API for cost-optimized models (agent-flow)
+#    - GOOGLE_GEMINI_API_KEY: Google Gemini API for free-tier access (agent-flow)
+#    - PERPLEXITY_API_KEY: Perplexity API for Goalie research assistant
 
 # Scaling notes:
 # 1. Machines will automatically start on incoming connections
@@ -139,6 +142,9 @@ primary_region = "{{REGION}}"
 #    flyctl secrets set GITHUB_TOKEN=ghp_... -a <app-name>
 #    flyctl secrets set GIT_USER_NAME="Your Name" -a <app-name>
 #    flyctl secrets set GIT_USER_EMAIL="you@example.com" -a <app-name>
+#    flyctl secrets set OPENROUTER_API_KEY=sk-or-... -a <app-name>
+#    flyctl secrets set GOOGLE_GEMINI_API_KEY=... -a <app-name>
+#    flyctl secrets set PERPLEXITY_API_KEY=pplx-... -a <app-name>
 # 3. Connect: ssh developer@<app-name>.fly.dev -p 10022
 #    (External port 10022 maps to internal SSH daemon on port 2222)
 #    Alternative: flyctl ssh console -a <app-name> (uses Fly.io's hallpass service)

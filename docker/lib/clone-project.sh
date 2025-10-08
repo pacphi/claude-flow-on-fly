@@ -270,6 +270,12 @@ CLAUDE_EOF
         print_status "Initializing Claude Flow..."
         npx claude-flow@alpha init --force 2>/dev/null || true
     fi
+
+    # Initialize agent-flow if available
+    if command_exists npx; then
+        print_status "Initializing agent-flow..."
+        npx --yes agentic-flow --help >/dev/null 2>&1 || true
+    fi
 fi
 
 # Create feature branch if requested

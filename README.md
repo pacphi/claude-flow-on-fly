@@ -50,6 +50,7 @@ claude
 
 - **Zero Local Setup** - All AI tools run on remote VMs
 - **Cost Optimized** - Auto-suspend VMs (see [cost guide](docs/COST_MANAGEMENT.md) for details)
+- **Multi-Model AI** - agent-flow integration for 85-99% cost savings with 100+ models
 - **IDE Integration** - VSCode and IntelliJ remote development
 - **Team Ready** - Shared or individual VMs with persistent volumes
 - **Secure** - SSH access with Fly.io network isolation
@@ -99,5 +100,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 🙏 Acknowledgments
 
 - [Anthropic](https://www.anthropic.com/) for Claude Code and Claude AI
-- [Reuven Cohen](https://www.linkedin.com/in/reuvencohen/) for [Claude Flow](https://github.com/ruvnet/claude-flow)
+- [Reuven Cohen](https://www.linkedin.com/in/reuvencohen/) for [Claude Flow](https://github.com/ruvnet/claude-flow) and
+  [Agentic Flow](https://github.com/ruvnet/agentic-flow)
 - [Fly.io](https://fly.io/) for an excellent container hosting platform
