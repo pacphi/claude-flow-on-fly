@@ -1,10 +1,10 @@
-# Claude Code and Claude Flow on Fly.io
+# Claude Code, Claude Flow, and Agentic Flow on Fly.io
 
 [![Version](https://img.shields.io/github/v/release/pacphi/claude-flow-on-fly?include_prereleases)](https://github.com/pacphi/claude-flow-on-fly/releases)
 [![License](https://img.shields.io/github/license/pacphi/claude-flow-on-fly)](LICENSE)
 [![Integration Tests](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml/badge.svg)](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml)
 
-A complete remote AI-assisted development environment running Claude Code and Claude Flow on Fly.io infrastructure
+A complete remote AI-assisted development environment running Claude Code, Claude Flow, and Agentic Flow on Fly.io infrastructure
 with zero local installation, auto-suspend VMs, and persistent storage.
 
 ## ⚡ Quick Start
