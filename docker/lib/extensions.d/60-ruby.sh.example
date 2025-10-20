@@ -117,6 +117,13 @@ else
     print_warning "Failed to install Bundler or already installed"
 fi
 
+# Create wrapper scripts for non-interactive SSH sessions
+print_status "Creating command wrappers for non-interactive SSH..."
+create_tool_wrapper "ruby" "$HOME/.rbenv/shims/ruby"
+create_tool_wrapper "gem" "$HOME/.rbenv/shims/gem"
+create_tool_wrapper "bundle" "$HOME/.rbenv/shims/bundle"
+create_tool_wrapper "bundler" "$HOME/.rbenv/shims/bundler"
+
 # Install Rails
 print_status "Installing Ruby on Rails..."
 if gem install rails 2>/dev/null; then

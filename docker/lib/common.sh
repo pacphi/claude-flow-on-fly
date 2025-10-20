@@ -442,6 +442,51 @@ setup_tool_path() {
     fi
 }
 
+# Function to create wrapper script for tools that need environment sourcing
+# This ensures tools work in non-interactive SSH sessions
+# Usage: create_tool_wrapper "go" "/usr/local/go/bin/go"
+#        create_tool_wrapper "cargo" "$HOME/.cargo/bin/cargo"
+create_tool_wrapper() {
+    local tool_name="$1"
+    local actual_path="$2"
+    local env_file="${3:-/etc/profile.d/00-ssh-environment.sh}"
+    local wrapper_path="/usr/local/bin/$tool_name"
+
+    print_debug "Creating wrapper for $tool_name"
+
+    # Skip if wrapper already exists
+    if [[ -f "$wrapper_path" ]] && [[ -L "$wrapper_path" || $(head -1 "$wrapper_path" 2>/dev/null | grep -c "Wrapper for") -gt 0 ]]; then
+        print_debug "Wrapper already exists: $wrapper_path"
+        return 0
+    fi
+
+    # Expand actual_path if it contains variables like $HOME
+    actual_path=$(eval echo "$actual_path")
+
+    # Skip if actual command doesn't exist
+    if [[ ! -f "$actual_path" ]] && [[ ! -x "$actual_path" ]]; then
+        print_debug "Skipping wrapper - command not found: $actual_path"
+        return 1
+    fi
+
+    # Create wrapper that sources environment before executing
+    sudo tee "$wrapper_path" > /dev/null << EOF
+#!/bin/bash
+# Wrapper for $tool_name - ensures environment is loaded for non-interactive SSH
+# Created by extension system to support 'flyctl ssh console --command' usage
+
+# Source environment if available (for non-interactive sessions)
+[[ -f "$env_file" ]] && source "$env_file" 2>/dev/null
+
+# Execute actual command with all arguments
+exec "$actual_path" "\$@"
+EOF
+
+    sudo chmod +x "$wrapper_path"
+    print_debug "Created wrapper: $wrapper_path -> $actual_path"
+    return 0
+}
+
 # Export all functions so they're available to subshells
 export -f print_status print_success print_warning print_error print_debug
 export -f command_exists is_in_vm ensure_permissions create_directory
@@ -449,3 +494,4 @@ export -f safe_copy check_env_var confirm run_command check_disk_space
 export -f get_timestamp get_backup_filename load_config save_config
 export -f check_network retry_with_backoff spinner setup_workspace_aliases
 export -f add_to_ssh_environment configure_ssh_daemon_for_env setup_tool_path
+export -f create_tool_wrapper

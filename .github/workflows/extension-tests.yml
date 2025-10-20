@@ -628,6 +628,10 @@ jobs:
             echo \"Starting extension installation...\"
             if timeout $timeout /workspace/scripts/vm-configure.sh --extensions-only 2>&1 | tee /tmp/configure.log; then
               echo \"✅ Configuration completed\"
+
+              # Wait a moment for SSH daemon reload to settle
+              echo \"⏳ Waiting for SSH environment to stabilize...\"
+              sleep 5
             else
               echo \"❌ Configuration failed or timed out\"
               echo \"Last 50 lines of output:\"
@@ -671,6 +675,49 @@ jobs:
 
             echo \"✅ All commands available\"
           '"
+
+      - name: Diagnose environment on failure
+        if: failure() && steps.should-test.outputs.should_test == 'true'
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          echo "🔍 Diagnosing environment for debugging..."
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            echo \"=== Environment Diagnostics ===\"
+            echo \"\"
+            echo \"Current PATH:\"
+            echo \"\$PATH\"
+            echo \"\"
+            echo \"BASH_ENV setting:\"
+            echo \"\$BASH_ENV\"
+            echo \"\"
+            echo \"Profile.d scripts:\"
+            ls -la /etc/profile.d/ 2>/dev/null || echo \"No /etc/profile.d/\"
+            echo \"\"
+            echo \"SSH environment file:\"
+            if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+              echo \"File exists, first 20 lines:\"
+              head -20 /etc/profile.d/00-ssh-environment.sh
+            else
+              echo \"File not found: /etc/profile.d/00-ssh-environment.sh\"
+            fi
+            echo \"\"
+            echo \"SSH daemon config:\"
+            if [ -f /etc/ssh/sshd_config.d/99-bash-env.conf ]; then
+              cat /etc/ssh/sshd_config.d/99-bash-env.conf
+            else
+              echo \"File not found: /etc/ssh/sshd_config.d/99-bash-env.conf\"
+            fi
+            echo \"\"
+            echo \"Wrapper scripts in /usr/local/bin:\"
+            ls -la /usr/local/bin/ 2>/dev/null | grep -E \"(go|cargo|rustc|ruby|java|sdk)\" || echo \"No wrappers found\"
+            echo \"\"
+            echo \"User home directory:\"
+            echo \"\$HOME\"
+            echo \"\"
+            echo \"Current user:\"
+            whoami
+          '" || echo "Failed to retrieve diagnostics"
 
       - name: Test key functionality
         if: steps.should-test.outputs.should_test == 'true'

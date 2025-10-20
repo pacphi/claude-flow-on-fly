@@ -23,6 +23,12 @@ if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
         'export PATH="$HOME/.cargo/bin:$PATH"' \
         'source $HOME/.cargo/env'
 
+    # Create wrapper scripts for non-interactive SSH sessions
+    print_status "Creating command wrappers for non-interactive SSH..."
+    create_tool_wrapper "rustc" "$HOME/.cargo/bin/rustc"
+    create_tool_wrapper "cargo" "$HOME/.cargo/bin/cargo"
+    create_tool_wrapper "rustup" "$HOME/.cargo/bin/rustup"
+
     print_success "Rust installed: $(rustc --version)"
 else
     print_error "Failed to install Rust"

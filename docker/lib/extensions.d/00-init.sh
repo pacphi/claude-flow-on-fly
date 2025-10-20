@@ -682,6 +682,26 @@ main() {
     print_status "🔐 Configuring SSH for non-interactive sessions..."
     configure_ssh_daemon_for_env
 
+    # Reload SSH daemon to apply BASH_ENV configuration immediately
+    # This ensures installed tools work in non-interactive SSH sessions (e.g., CI tests)
+    print_status "🔄 Reloading SSH daemon to apply environment configuration..."
+    if systemctl is-active --quiet ssh 2>/dev/null; then
+        if sudo systemctl reload ssh 2>/dev/null; then
+            print_success "✅ SSH daemon reloaded successfully"
+        else
+            print_warning "⚠️  Failed to reload SSH daemon (may require manual restart)"
+        fi
+    elif systemctl is-active --quiet sshd 2>/dev/null; then
+        if sudo systemctl reload sshd 2>/dev/null; then
+            print_success "✅ SSH daemon (sshd) reloaded successfully"
+        else
+            print_warning "⚠️  Failed to reload SSH daemon (may require manual restart)"
+        fi
+    else
+        print_warning "⚠️  SSH daemon not running or not using systemd"
+        print_status "💡 Environment will be available after next SSH session"
+    fi
+
     print_success "🎉 Core environment initialization completed!"
     echo
     print_status "📋 Installed Systems:"

@@ -165,6 +165,15 @@ if ! command_exists mn; then
     fi
 fi
 
+# Create wrapper scripts for non-interactive SSH sessions
+print_status "Creating command wrappers for non-interactive SSH..."
+# Note: SDKMAN commands are typically installed to $HOME/.sdkman/candidates/{tool}/current/bin/
+create_tool_wrapper "java" "$HOME/.sdkman/candidates/java/current/bin/java"
+create_tool_wrapper "javac" "$HOME/.sdkman/candidates/java/current/bin/javac"
+create_tool_wrapper "sdk" "$HOME/.sdkman/bin/sdk"
+create_tool_wrapper "mvn" "$HOME/.sdkman/candidates/maven/current/bin/mvn"
+create_tool_wrapper "gradle" "$HOME/.sdkman/candidates/gradle/current/bin/gradle"
+
 # Create useful JVM aliases
 print_status "Creating JVM development aliases..."
 

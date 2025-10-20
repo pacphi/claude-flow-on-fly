@@ -31,6 +31,12 @@ if wget -q "https://go.dev/dl/$GO_ARCHIVE"; then
     export GOPATH=$HOME/go
     export PATH=$PATH:$GOPATH/bin
 
+    # Create wrapper scripts for non-interactive SSH sessions
+    print_status "Creating command wrappers for non-interactive SSH..."
+    create_tool_wrapper "go" "/usr/local/go/bin/go"
+    create_tool_wrapper "gofmt" "/usr/local/go/bin/gofmt"
+    create_tool_wrapper "godoc" "/usr/local/go/bin/godoc"
+
     print_success "Go installed: $(go version)"
 else
     print_error "Failed to download Go"
