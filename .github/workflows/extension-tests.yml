@@ -287,7 +287,26 @@ jobs:
           flyctl secrets set CI_MODE="true" \
             --app ${{ steps.app-name.outputs.app_name }}
 
-          flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 90s --yes
+          # Deploy with retry logic
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Deployment attempt $attempt of $max_attempts..."
+            if flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 90s --yes; then
+              echo "✅ Deployment successful"
+              break
+            else
+              if [ $attempt -lt $max_attempts ]; then
+                wait_time=$((30 * attempt))
+                echo "⚠️  Deployment failed, retrying in ${wait_time}s..."
+                sleep $wait_time
+                attempt=$((attempt + 1))
+              else
+                echo "❌ Deployment failed after $max_attempts attempts"
+                exit 1
+              fi
+            fi
+          done
 
       - name: Wait for deployment
         run: |
@@ -317,7 +336,7 @@ jobs:
           app_name="${{ steps.app-name.outputs.app_name }}"
 
           flyctl ssh console --app $app_name --command "/bin/bash -c '
-            if [ -f /workspace/scripts/extensions.d/00-init.sh ]; then
+            if [ -f /workspace/scripts/lib/extensions.d/00-init.sh ]; then
               echo \"✅ Core extension 00-init.sh is present\"
               exit 0
             else
@@ -451,16 +470,16 @@ jobs:
       matrix:
         extension:
           - { name: 'rust', commands: 'rustc,cargo', key_tool: 'rustc', timeout: '30m' }
-          - { name: 'golang', commands: 'go', key_tool: 'go', timeout: '15m' }
-          - { name: 'python', commands: 'python3,pip3', key_tool: 'python3', timeout: '15m' }
-          - { name: 'docker', commands: 'docker', key_tool: 'docker', timeout: '20m' }
-          - { name: 'jvm', commands: 'java,sdk', key_tool: 'java', timeout: '25m' }
-          - { name: 'php', commands: 'php,composer', key_tool: 'php', timeout: '15m' }
-          - { name: 'ruby', commands: 'ruby,gem,bundle', key_tool: 'ruby', timeout: '20m' }
-          - { name: 'dotnet', commands: 'dotnet', key_tool: 'dotnet', timeout: '20m' }
-          - { name: 'infra-tools', commands: 'terraform,ansible', key_tool: 'terraform', timeout: '20m' }
-          - { name: 'cloud-tools', commands: 'aws', key_tool: 'aws', timeout: '15m' }
-          - { name: 'ai-tools', commands: 'ollama,fabric', key_tool: 'ollama', timeout: '20m' }
+          - { name: 'golang', commands: 'go', key_tool: 'go', timeout: '30m' }
+          - { name: 'python', commands: 'python3,pip3', key_tool: 'python3', timeout: '30m' }
+          - { name: 'docker', commands: 'docker', key_tool: 'docker', timeout: '30m' }
+          - { name: 'jvm', commands: 'java,sdk', key_tool: 'java', timeout: '30m' }
+          - { name: 'php', commands: 'php,composer', key_tool: 'php', timeout: '30m' }
+          - { name: 'ruby', commands: 'ruby,gem,bundle', key_tool: 'ruby', timeout: '30m' }
+          - { name: 'dotnet', commands: 'dotnet', key_tool: 'dotnet', timeout: '30m' }
+          - { name: 'infra-tools', commands: 'terraform,ansible', key_tool: 'terraform', timeout: '30m' }
+          - { name: 'cloud-tools', commands: 'aws', key_tool: 'aws', timeout: '30m' }
+          - { name: 'ai-tools', commands: 'ollama,fabric', key_tool: 'ollama', timeout: '30m' }
 
     steps:
       - name: Check if extension should be tested
@@ -534,7 +553,26 @@ jobs:
           flyctl secrets set CI_MODE="true" \
             --app ${{ steps.app-name.outputs.app_name }}
 
-          flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 120s --yes
+          # Deploy with retry logic
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Deployment attempt $attempt of $max_attempts..."
+            if flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 120s --yes; then
+              echo "✅ Deployment successful"
+              break
+            else
+              if [ $attempt -lt $max_attempts ]; then
+                wait_time=$((30 * attempt))
+                echo "⚠️  Deployment failed, retrying in ${wait_time}s..."
+                sleep $wait_time
+                attempt=$((attempt + 1))
+              else
+                echo "❌ Deployment failed after $max_attempts attempts"
+                exit 1
+              fi
+            fi
+          done
 
       - name: Wait for deployment
         if: steps.should-test.outputs.should_test == 'true'
@@ -610,16 +648,16 @@ jobs:
 
           echo "Verifying commands are available: $commands"
 
-          IFS=',' read -ra CMD_ARRAY <<< "$commands"
-
           flyctl ssh console --app $app_name --command "/bin/bash -c '
+            commands=\"$commands\"
+            IFS=\",\" read -ra CMD_ARRAY <<< \"\$commands\"
             failed_commands=()
 
-            for cmd in ${CMD_ARRAY[@]}; do
+            for cmd in \"\${CMD_ARRAY[@]}\"; do
               echo \"Checking command: \$cmd\"
-              if command -v \$cmd >/dev/null 2>&1; then
+              if command -v \"\$cmd\" >/dev/null 2>&1; then
                 echo \"✅ \$cmd available\"
-                \$cmd --version 2>/dev/null || \$cmd version 2>/dev/null || echo \"  (version check not supported)\"
+                \"\$cmd\" --version 2>/dev/null || \"\$cmd\" version 2>/dev/null || echo \"  (version check not supported)\"
               else
                 echo \"❌ \$cmd not found\"
                 failed_commands+=(\"\$cmd\")
@@ -814,7 +852,26 @@ jobs:
           flyctl secrets set CI_MODE="true" \
             --app ${{ steps.app-name.outputs.app_name }}
 
-          flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 180s --yes
+          # Deploy with retry logic
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Deployment attempt $attempt of $max_attempts..."
+            if flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 180s --yes; then
+              echo "✅ Deployment successful"
+              break
+            else
+              if [ $attempt -lt $max_attempts ]; then
+                wait_time=$((30 * attempt))
+                echo "⚠️  Deployment failed, retrying in ${wait_time}s..."
+                sleep $wait_time
+                attempt=$((attempt + 1))
+              else
+                echo "❌ Deployment failed after $max_attempts attempts"
+                exit 1
+              fi
+            fi
+          done
 
       - name: Wait for deployment
         run: |

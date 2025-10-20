@@ -7,6 +7,47 @@ source /workspace/scripts/lib/common.sh
 
 print_status "Installing Docker development tools..."
 
+# Install Docker Engine if not already installed
+if ! command_exists docker; then
+    print_status "Installing Docker Engine..."
+
+    # Add Docker's official GPG key and repository
+    if command_exists apt-get; then
+        if sudo apt-get update; then
+            sudo apt-get install -y ca-certificates curl gnupg || print_warning "Failed to install prerequisites"
+
+            # Add Docker's official GPG key
+            sudo install -m 0755 -d /etc/apt/keyrings
+            if curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null; then
+                sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+                # Set up Docker repository
+                echo \
+                  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+                  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+                  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+                # Install Docker Engine
+                if sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; then
+                    # Add current user to docker group
+                    sudo usermod -aG docker "$USER" || print_warning "Failed to add user to docker group"
+                    print_success "Docker Engine installed successfully"
+                else
+                    print_warning "Failed to install Docker Engine packages"
+                fi
+            else
+                print_warning "Failed to add Docker GPG key"
+            fi
+        else
+            print_warning "Failed to update package lists"
+        fi
+    else
+        print_warning "apt-get not available, cannot install Docker Engine"
+    fi
+else
+    print_debug "Docker Engine already installed"
+fi
+
 # Docker Compose (if not already installed)
 if ! command_exists docker-compose; then
     print_status "Installing Docker Compose..."
