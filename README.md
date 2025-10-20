@@ -3,6 +3,7 @@
 [![Version](https://img.shields.io/github/v/release/pacphi/claude-flow-on-fly?include_prereleases)](https://github.com/pacphi/claude-flow-on-fly/releases)
 [![License](https://img.shields.io/github/license/pacphi/claude-flow-on-fly)](LICENSE)
 [![Integration Tests](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml/badge.svg)](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml)
+[![Changelog](https://img.shields.io/badge/changelog-latest-blue)](CHANGELOG.md)
 
 A complete remote AI-assisted development environment running Claude Code, Claude Flow, and Agentic Flow on Fly.io infrastructure
 with zero local installation, auto-suspend VMs, and persistent storage.
@@ -36,7 +37,6 @@ claude
 - **[Security](docs/SECURITY.md)** - Security features and best practices
 - **[Agents](docs/AGENTS.md)** - Agent management, search, and development
 - **[Turbo Flow](docs/TURBO_FLOW.md)** - Mimic enterprise AI development features from [turbo-flow-claude](https://github.com/marcuspat/turbo-flow-claude)
-- **[Contributing](docs/CONTRIBUTING.md)** - Contribution guidelines and roadmap
 - **[Reference](docs/REFERENCE.md)** - Complete command and configuration reference
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
@@ -45,6 +45,11 @@ claude
 - **[IDE Setup Guide](docs/IDE_SETUP.md)** - Common setup for all IDEs
 - **[VSCode](docs/VSCODE.md)** - VS Code-specific configuration
 - **[IntelliJ](docs/INTELLIJ.md)** - JetBrains IDE-specific configuration
+
+### Developer-focused
+
+- **[Extension Testing](docs/EXTENSION_TESTING.md)** - Testing system for VM extensions
+- **[Contributing](docs/CONTRIBUTING.md)** - Contribution guidelines and roadmap
 
 ## 🌟 Key Features
 

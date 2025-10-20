@@ -99,6 +99,24 @@ else
     print_info "Plandex already installed: $(plandex version 2>/dev/null || echo 'version unknown')"
 fi
 
+# Hector
+print_info "Installing Hector..."
+if ! command -v hector &> /dev/null; then
+    if command -v go &> /dev/null; then
+        go install github.com/kadirpekel/hector/cmd/hector@latest
+        # Add Go bin to PATH if not already there
+        if [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then
+            echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc
+            export PATH=$PATH:$HOME/go/bin
+        fi
+        print_success "Hector installed"
+    else
+        print_warning "Go not found. Install 20-golang.sh extension to use Hector"
+    fi
+else
+    print_info "Hector already installed: $(hector version 2>/dev/null || echo 'version unknown')"
+fi
+
 # Grok CLI
 print_info "Installing Grok CLI..."
 if ! command -v grok &> /dev/null; then
@@ -165,6 +183,35 @@ cat > "$WORKSPACE_DIR/ai-tools/README.md" << 'EOF'
   plandex execute
   plandex status
   ```
+
+#### Hector
+- **Command**: `hector`
+- **Documentation**: https://github.com/kadirpekel/hector
+- **Description**: Pure A2A-Native declarative AI agent platform using YAML configuration
+- **Prerequisites**: Requires Go (install via 20-golang.sh extension)
+- **Setup**: Create YAML config files to define agents and LLMs
+- **Usage**:
+  ```bash
+  # Create a config file (my-agent.yaml) with agent definitions
+
+  # Start the server
+  hector serve --config my-agent.yaml
+
+  # Chat with an agent
+  hector chat assistant
+
+  # Call agent with prompt
+  hector call assistant "help me with this task"
+
+  # List available agents
+  hector list
+  ```
+- **Features**:
+  - 100% A2A protocol native
+  - Zero code required - pure YAML configuration
+  - Multi-agent orchestration support
+  - Language agnostic (Go, Python, Rust, JavaScript, etc.)
+  - Built-in streaming, sessions, and monitoring
 
 ### Major Platform CLIs
 

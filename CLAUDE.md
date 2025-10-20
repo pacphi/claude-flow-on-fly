@@ -167,6 +167,12 @@ claude-squad "implement authentication"
 plandex init                         # Initialize in project
 plandex plan "add user auth"         # Plan task
 plandex execute                      # Execute plan
+
+# Hector - Declarative AI agent platform
+hector serve --config agent.yaml     # Start agent server
+hector chat assistant                # Interactive chat
+hector call assistant "task"         # Execute single task
+hector list                          # List available agents
 ```
 
 #### Platform CLIs

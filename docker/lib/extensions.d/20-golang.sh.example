@@ -21,15 +21,30 @@ if wget -q "https://go.dev/dl/$GO_ARCHIVE"; then
     sudo tar -C /usr/local -xzf "$GO_ARCHIVE"
     rm "$GO_ARCHIVE"
 
-    # Add to PATH
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-    echo 'export GOPATH=$HOME/go' >> ~/.bashrc
-    echo 'export PATH=$PATH:$GOPATH/bin' >> ~/.bashrc
+    # Add to system-wide PATH for non-interactive shells (SSH)
+    sudo tee /etc/profile.d/golang.sh > /dev/null << 'PROFILE'
+export PATH=$PATH:/usr/local/go/bin
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+PROFILE
+    sudo chmod +x /etc/profile.d/golang.sh
+
+    # Add to bashrc for interactive sessions
+    if ! grep -q "/usr/local/go/bin" ~/.bashrc 2>/dev/null; then
+        echo '' >> ~/.bashrc
+        echo '# Go configuration' >> ~/.bashrc
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+        echo 'export GOPATH=$HOME/go' >> ~/.bashrc
+        echo 'export PATH=$PATH:$GOPATH/bin' >> ~/.bashrc
+    fi
 
     # Set for current session
     export PATH=$PATH:/usr/local/go/bin
     export GOPATH=$HOME/go
     export PATH=$PATH:$GOPATH/bin
+
+    # Source system profile to make available immediately in SSH
+    source /etc/profile.d/golang.sh
 
     print_success "Go installed: $(go version)"
 else

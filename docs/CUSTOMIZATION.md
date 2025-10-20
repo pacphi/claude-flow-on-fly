@@ -561,6 +561,25 @@ plandex init
 plandex plan "add user authentication"
 ```
 
+**Hector:**
+
+```bash
+# Pure A2A-Native declarative AI agent platform
+# Requires Go (install via 20-golang.sh extension)
+# Supports multiple LLM providers via API keys
+flyctl secrets set OPENAI_API_KEY=sk-... -a <app-name>
+# Or ANTHROPIC_API_KEY, GOOGLE_GEMINI_API_KEY, etc.
+
+# Create YAML config (example: agent.yaml)
+# Define agents, LLMs, and tools in pure YAML
+
+# Usage
+hector serve --config agent.yaml     # Start server
+hector chat assistant                # Interactive chat
+hector call assistant "prompt"       # Single call
+hector list                          # List agents
+```
+
 **Ollama:**
 
 ```bash

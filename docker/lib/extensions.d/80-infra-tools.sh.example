@@ -4,10 +4,22 @@
 # Source common utilities
 source "${WORKSPACE_DIR:-/workspace}/scripts/lib/common.sh"
 
-print_header "Infrastructure Tooling Setup"
+print_status "Infrastructure Tooling Setup"
+
+# Ansible
+print_status "Installing Ansible..."
+if ! command -v ansible &> /dev/null; then
+    sudo apt-get update -qq
+    sudo apt-get install -y software-properties-common
+    sudo add-apt-repository --yes --update ppa:ansible/ansible
+    sudo apt-get install -y ansible
+    print_success "Ansible installed"
+else
+    print_status "Ansible already installed: $(ansible --version | head -1)"
+fi
 
 # Terraform
-print_info "Installing Terraform..."
+print_status "Installing Terraform..."
 if ! command -v terraform &> /dev/null; then
     TERRAFORM_VERSION="1.13.0"
     wget -q "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
@@ -16,22 +28,22 @@ if ! command -v terraform &> /dev/null; then
     rm "terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
     print_success "Terraform ${TERRAFORM_VERSION} installed"
 else
-    print_info "Terraform already installed: $(terraform version | head -1)"
+    print_status "Terraform already installed: $(terraform version | head -1)"
 fi
 
 # Kubernetes CLI (kubectl)
-print_info "Installing kubectl..."
+print_status "Installing kubectl..."
 if ! command -v kubectl &> /dev/null; then
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     chmod +x kubectl
     sudo mv kubectl /usr/local/bin/
     print_success "kubectl installed"
 else
-    print_info "kubectl already installed: $(kubectl version --client --short 2>/dev/null)"
+    print_status "kubectl already installed: $(kubectl version --client --short 2>/dev/null)"
 fi
 
 # Helm
-print_info "Installing Helm..."
+print_status "Installing Helm..."
 if ! command -v helm &> /dev/null; then
     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
     chmod 700 get_helm.sh
@@ -39,35 +51,35 @@ if ! command -v helm &> /dev/null; then
     rm get_helm.sh
     print_success "Helm installed"
 else
-    print_info "Helm already installed: $(helm version --short)"
+    print_status "Helm already installed: $(helm version --short)"
 fi
 
 # Carvel tools suite
-print_info "Installing Carvel tools..."
+print_status "Installing Carvel tools..."
 CARVEL_TOOLS=(kapp ytt kbld vendir imgpkg)
 for tool in "${CARVEL_TOOLS[@]}"; do
     if ! command -v "$tool" &> /dev/null; then
-        print_info "  Installing $tool..."
+        print_status "  Installing $tool..."
         wget -qO- "https://carvel.dev/install.sh" | bash -s -- "$tool"
         sudo mv "$tool" /usr/local/bin/
         print_success "  $tool installed"
     else
-        print_info "  $tool already installed"
+        print_status "  $tool already installed"
     fi
 done
 
 # Crossplane CLI
-print_info "Installing Crossplane CLI..."
+print_status "Installing Crossplane CLI..."
 if ! command -v crossplane &> /dev/null; then
     curl -sL "https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh" | sh
     sudo mv crossplane /usr/local/bin/
     print_success "Crossplane CLI installed"
 else
-    print_info "Crossplane CLI already installed"
+    print_status "Crossplane CLI already installed"
 fi
 
 # Pulumi
-print_info "Installing Pulumi..."
+print_status "Installing Pulumi..."
 if ! command -v pulumi &> /dev/null; then
     curl -fsSL https://get.pulumi.com | sh
     # Add Pulumi to PATH for current session
@@ -76,11 +88,11 @@ if ! command -v pulumi &> /dev/null; then
     echo 'export PATH=$PATH:$HOME/.pulumi/bin' >> ~/.bashrc
     print_success "Pulumi installed"
 else
-    print_info "Pulumi already installed: $(pulumi version)"
+    print_status "Pulumi already installed: $(pulumi version)"
 fi
 
 # Optional: Install additional useful infra tools
-print_info "Installing additional tools..."
+print_status "Installing additional tools..."
 
 # k9s - Kubernetes TUI
 if ! command -v k9s &> /dev/null; then
@@ -101,7 +113,7 @@ if ! command -v kubectx &> /dev/null; then
 fi
 
 # Create infrastructure project directories
-print_info "Setting up infrastructure workspace directories..."
+print_status "Setting up infrastructure workspace directories..."
 mkdir -p "$WORKSPACE_DIR/infrastructure"/{terraform,kubernetes,helm-charts,crossplane,pulumi}
 
 # Create sample configuration files
@@ -174,5 +186,5 @@ imgpkg push -b registry.example.com/my-bundle:v1.0.0 -f config/
 EOF
 
 print_success "Infrastructure tooling setup complete!"
-print_info "Infrastructure workspace created at: $WORKSPACE_DIR/infrastructure"
-print_info "Run 'source ~/.bashrc' to update PATH if needed"
+print_status "Infrastructure workspace created at: $WORKSPACE_DIR/infrastructure"
+print_status "Run 'source ~/.bashrc' to update PATH if needed"

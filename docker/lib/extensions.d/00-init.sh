@@ -26,6 +26,14 @@ print_status "🚀 Initializing core development environment..."
 install_playwright() {
     print_status "🎭 Installing Playwright for visual verification..."
 
+    # Ensure Node.js is installed
+    if ! command_exists node; then
+        print_status "📦 Installing Node.js..."
+        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        print_success "✅ Node.js installed: $(node -v)"
+    fi
+
     # Ensure we're in workspace directory
     cd "$WORKSPACE_DIR" || return 1
 

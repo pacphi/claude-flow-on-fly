@@ -18,8 +18,21 @@ if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
     # Source cargo environment
     source $HOME/.cargo/env
 
-    # Add to bashrc for future sessions
-    echo 'source $HOME/.cargo/env' >> ~/.bashrc
+    # Add to system-wide PATH for non-interactive shells (SSH)
+    sudo tee /etc/profile.d/rust.sh > /dev/null << 'PROFILE'
+export PATH="$HOME/.cargo/bin:$PATH"
+PROFILE
+    sudo chmod +x /etc/profile.d/rust.sh
+
+    # Add to bashrc for interactive sessions
+    if ! grep -q ".cargo/env" ~/.bashrc 2>/dev/null; then
+        echo '' >> ~/.bashrc
+        echo '# Rust configuration' >> ~/.bashrc
+        echo 'source $HOME/.cargo/env' >> ~/.bashrc
+    fi
+
+    # Source system profile to make available immediately in SSH
+    source /etc/profile.d/rust.sh
 
     print_success "Rust installed: $(rustc --version)"
 else
@@ -61,7 +74,7 @@ done
 
 # Install optional tools in background (user can continue)
 print_status "Installing optional tools in background..."
-print_info "You can continue working - these will install in the background"
+print_status "You can continue working - these will install in the background"
 
 for tool in "${optional_tools[@]}"; do
     print_debug "Starting background installation of $tool..."
@@ -74,8 +87,8 @@ for tool in "${optional_tools[@]}"; do
     ) &
 done
 
-print_info "Background installations will log to /workspace/rust-install.log"
-print_info "Check progress with: tail -f /workspace/rust-install.log"
+print_status "Background installations will log to /workspace/rust-install.log"
+print_status "Check progress with: tail -f /workspace/rust-install.log"
 
 # Install rust-analyzer for IDE support
 print_status "Installing rust-analyzer..."
