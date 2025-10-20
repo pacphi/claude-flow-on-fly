@@ -15,23 +15,10 @@ if [[ ! -d "$HOME/.sdkman" ]]; then
         # Source SDKMAN
         source "$HOME/.sdkman/bin/sdkman-init.sh"
 
-        # Add to system-wide PATH for non-interactive shells (SSH)
-        sudo tee /etc/profile.d/sdkman.sh > /dev/null << 'PROFILE'
-export SDKMAN_DIR="$HOME/.sdkman"
-[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
-PROFILE
-        sudo chmod +x /etc/profile.d/sdkman.sh
-
-        # Add to bashrc for interactive sessions
-        if ! grep -q "SDKMAN" ~/.bashrc 2>/dev/null; then
-            echo '' >> ~/.bashrc
-            echo '# SDKMAN configuration' >> ~/.bashrc
-            echo 'export SDKMAN_DIR="$HOME/.sdkman"' >> ~/.bashrc
-            echo '[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"' >> ~/.bashrc
-        fi
-
-        # Source system profile to make available immediately in SSH
-        source /etc/profile.d/sdkman.sh
+        # Configure PATH for both interactive and non-interactive SSH sessions
+        setup_tool_path "sdkman" \
+            'export SDKMAN_DIR="$HOME/.sdkman"' \
+            '[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"'
 
         print_success "SDKMAN installed successfully"
     else

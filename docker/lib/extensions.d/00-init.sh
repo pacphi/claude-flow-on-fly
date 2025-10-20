@@ -26,12 +26,27 @@ print_status "🚀 Initializing core development environment..."
 install_playwright() {
     print_status "🎭 Installing Playwright for visual verification..."
 
-    # Ensure Node.js is installed
+    # Ensure Node.js is installed first
     if ! command_exists node; then
         print_status "📦 Installing Node.js..."
         curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
         sudo apt-get install -y nodejs
+
+        # Verify Node.js installation
+        if ! command_exists node; then
+            print_error "❌ Failed to install Node.js - Playwright cannot be installed"
+            return 1
+        fi
+
         print_success "✅ Node.js installed: $(node -v)"
+    else
+        print_status "✅ Node.js already installed: $(node -v)"
+    fi
+
+    # Verify npm is available
+    if ! command_exists npm; then
+        print_error "❌ npm is not available - cannot install Playwright"
+        return 1
     fi
 
     # Ensure we're in workspace directory
@@ -47,17 +62,37 @@ install_playwright() {
     print_status "🔧 Setting up ES modules..."
     npm pkg set type="module"
 
-    # Install Playwright
+    # Install Playwright with explicit error handling
     print_status "🧪 Installing Playwright..."
-    npm install -D playwright @playwright/test
+    if npm install -D playwright @playwright/test; then
+        print_success "✅ Playwright packages installed"
+    else
+        print_error "❌ Failed to install Playwright packages"
+        return 1
+    fi
 
-    # Install Playwright browsers
-    npx playwright install chromium
-    npx playwright install-deps chromium
+    # Install Playwright browsers with better error handling
+    print_status "🌐 Installing Playwright Chromium browser..."
+    if npx playwright install chromium; then
+        print_success "✅ Chromium browser installed"
+    else
+        print_warning "⚠️ Chromium browser installation had issues"
+    fi
+
+    print_status "🔧 Installing Chromium dependencies..."
+    if npx playwright install-deps chromium; then
+        print_success "✅ Chromium dependencies installed"
+    else
+        print_warning "⚠️ Chromium dependencies installation had issues"
+    fi
 
     # Install TypeScript and build tools
     print_status "🔧 Installing TypeScript and development tools..."
-    npm install -D typescript @types/node
+    if npm install -D typescript @types/node; then
+        print_success "✅ TypeScript tools installed"
+    else
+        print_warning "⚠️ TypeScript installation had issues"
+    fi
 
     # Copy TypeScript configuration from docker/config
     print_status "⚙️ Setting up TypeScript configuration..."
@@ -97,11 +132,25 @@ EOF
     npm pkg set scripts.typecheck="tsc --noEmit"
     npm pkg set scripts.playwright="playwright test"
 
-    # Verify installation
-    if npx playwright --version >/dev/null 2>&1; then
-        print_success "✅ Playwright installed and ready for visual verification"
+    # Verify installation with detailed checking
+    print_status "🔍 Verifying Playwright installation..."
+
+    # Check if playwright binary exists in node_modules
+    if [[ -f "node_modules/.bin/playwright" ]]; then
+        print_success "✅ Playwright binary found"
+
+        # Try to get version
+        if npx playwright --version >/dev/null 2>&1; then
+            local pw_version=$(npx playwright --version 2>/dev/null || echo "unknown")
+            print_success "✅ Playwright installed and ready: $pw_version"
+            return 0
+        else
+            print_warning "⚠️ Playwright binary exists but version check failed"
+            return 1
+        fi
     else
-        print_warning "⚠️ Playwright installation may have issues"
+        print_error "❌ Playwright binary not found in node_modules"
+        return 1
     fi
 }
 
@@ -628,6 +677,10 @@ main() {
 
     # Setup unified workspace aliases (shared function from common.sh)
     setup_workspace_aliases
+
+    # Configure SSH daemon for non-interactive environment support
+    print_status "🔐 Configuring SSH for non-interactive sessions..."
+    configure_ssh_daemon_for_env
 
     print_success "🎉 Core environment initialization completed!"
     echo

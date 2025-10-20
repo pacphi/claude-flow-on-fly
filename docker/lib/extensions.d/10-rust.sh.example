@@ -18,21 +18,10 @@ if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
     # Source cargo environment
     source $HOME/.cargo/env
 
-    # Add to system-wide PATH for non-interactive shells (SSH)
-    sudo tee /etc/profile.d/rust.sh > /dev/null << 'PROFILE'
-export PATH="$HOME/.cargo/bin:$PATH"
-PROFILE
-    sudo chmod +x /etc/profile.d/rust.sh
-
-    # Add to bashrc for interactive sessions
-    if ! grep -q ".cargo/env" ~/.bashrc 2>/dev/null; then
-        echo '' >> ~/.bashrc
-        echo '# Rust configuration' >> ~/.bashrc
-        echo 'source $HOME/.cargo/env' >> ~/.bashrc
-    fi
-
-    # Source system profile to make available immediately in SSH
-    source /etc/profile.d/rust.sh
+    # Configure PATH for both interactive and non-interactive SSH sessions
+    setup_tool_path "rust" \
+        'export PATH="$HOME/.cargo/bin:$PATH"' \
+        'source $HOME/.cargo/env'
 
     print_success "Rust installed: $(rustc --version)"
 else

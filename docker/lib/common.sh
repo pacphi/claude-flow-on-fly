@@ -312,9 +312,140 @@ setup_workspace_aliases() {
     print_success "✅ Workspace aliases configured"
 }
 
+#============================================================================
+# SSH ENVIRONMENT CONFIGURATION
+# Functions to configure PATH for both interactive and non-interactive sessions
+#============================================================================
+
+# SSH environment file that works for non-interactive sessions
+SSH_ENV_FILE="/etc/profile.d/00-ssh-environment.sh"
+
+# Function to add environment configuration that works in SSH non-interactive sessions
+# Usage: add_to_ssh_environment "export PATH=\"/some/path:\$PATH\""
+#        add_to_ssh_environment "source /some/script.sh"
+add_to_ssh_environment() {
+    local env_config="$1"
+    local component_name="${2:-custom}"
+
+    print_debug "Adding SSH environment for $component_name"
+
+    # Create SSH environment file if it doesn't exist
+    if [[ ! -f "$SSH_ENV_FILE" ]]; then
+        sudo tee "$SSH_ENV_FILE" > /dev/null << 'EOF'
+#!/bin/bash
+# SSH Environment Configuration
+# This file is sourced for both interactive and non-interactive SSH sessions
+# via BASH_ENV mechanism configured in /etc/ssh/sshd_config
+
+# If not running interactively, set up environment
+if [[ $- != *i* ]]; then
+    # Source all profile.d scripts for non-interactive sessions
+    if [ -d /etc/profile.d ]; then
+        for script in /etc/profile.d/*.sh; do
+            if [ -r "$script" ] && [ "$script" != "/etc/profile.d/00-ssh-environment.sh" ]; then
+                . "$script" >/dev/null 2>&1
+            fi
+        done
+    fi
+fi
+EOF
+        sudo chmod +x "$SSH_ENV_FILE"
+        print_success "Created SSH environment file: $SSH_ENV_FILE"
+    fi
+
+    # Add configuration to SSH environment file (prevent duplicates)
+    if ! sudo grep -qF "$env_config" "$SSH_ENV_FILE" 2>/dev/null; then
+        echo "$env_config" | sudo tee -a "$SSH_ENV_FILE" > /dev/null
+        print_debug "Added to SSH environment: $env_config"
+    else
+        print_debug "Already in SSH environment: $env_config"
+    fi
+
+    # Also add to bashrc for interactive sessions (prevent duplicates)
+    if [[ -f "$HOME/.bashrc" ]]; then
+        if ! grep -qF "$env_config" "$HOME/.bashrc" 2>/dev/null; then
+            echo "$env_config" >> "$HOME/.bashrc"
+            print_debug "Added to bashrc: $env_config"
+        fi
+    fi
+
+    # Evaluate in current session
+    eval "$env_config" 2>/dev/null || print_debug "Could not evaluate in current session: $env_config"
+}
+
+# Function to configure SSH daemon for non-interactive environment support
+configure_ssh_daemon_for_env() {
+    print_status "Configuring SSH daemon for non-interactive environment support..."
+
+    local sshd_config="/etc/ssh/sshd_config"
+    local sshd_config_d="/etc/ssh/sshd_config.d"
+    local env_config_file="$sshd_config_d/99-bash-env.conf"
+
+    # Create sshd_config.d directory if it doesn't exist
+    if [[ ! -d "$sshd_config_d" ]]; then
+        sudo mkdir -p "$sshd_config_d"
+    fi
+
+    # Add BASH_ENV configuration for non-interactive SSH sessions
+    if [[ ! -f "$env_config_file" ]]; then
+        sudo tee "$env_config_file" > /dev/null << EOF
+# Configure BASH_ENV for non-interactive SSH sessions
+# This allows environment setup for commands executed via SSH
+Match User *
+    SetEnv BASH_ENV=$SSH_ENV_FILE
+EOF
+        print_success "Created SSH daemon environment config: $env_config_file"
+
+        # Note: We don't reload sshd during extension installation to avoid disrupting the current session
+        # The configuration will take effect on next VM restart
+        print_status "SSH daemon will use new config after next VM restart"
+    else
+        print_debug "SSH daemon environment config already exists"
+    fi
+}
+
+# Function to setup PATH for a tool/language (handles both interactive and non-interactive sessions)
+# Usage: setup_tool_path "Ruby" 'export PATH="$HOME/.rbenv/bin:$PATH"' 'eval "$(rbenv init -)"'
+setup_tool_path() {
+    local tool_name="$1"
+    local path_export="$2"
+    local init_command="${3:-}"
+
+    print_debug "Setting up PATH for $tool_name"
+
+    # Create /etc/profile.d/ script for login shells
+    local profile_script="/etc/profile.d/${tool_name,,}.sh"
+    if [[ ! -f "$profile_script" ]]; then
+        {
+            echo "#!/bin/bash"
+            echo "# $tool_name environment configuration"
+            echo "$path_export"
+            [[ -n "$init_command" ]] && echo "$init_command"
+        } | sudo tee "$profile_script" > /dev/null
+        sudo chmod +x "$profile_script"
+        print_debug "Created profile.d script: $profile_script"
+    fi
+
+    # Add to SSH environment
+    add_to_ssh_environment "$path_export" "$tool_name"
+    [[ -n "$init_command" ]] && add_to_ssh_environment "$init_command" "$tool_name"
+
+    # Add to ~/.bashrc if not already there (prevent duplicates)
+    if ! grep -q "$tool_name environment configuration" "$HOME/.bashrc" 2>/dev/null; then
+        {
+            echo ""
+            echo "# $tool_name environment configuration"
+            echo "$path_export"
+            [[ -n "$init_command" ]] && echo "$init_command"
+        } >> "$HOME/.bashrc"
+        print_debug "Added to ~/.bashrc"
+    fi
+}
+
 # Export all functions so they're available to subshells
 export -f print_status print_success print_warning print_error print_debug
 export -f command_exists is_in_vm ensure_permissions create_directory
 export -f safe_copy check_env_var confirm run_command check_disk_space
 export -f get_timestamp get_backup_filename load_config save_config
 export -f check_network retry_with_backoff spinner setup_workspace_aliases
+export -f add_to_ssh_environment configure_ssh_daemon_for_env setup_tool_path

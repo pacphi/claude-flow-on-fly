@@ -47,24 +47,14 @@ if [[ ! -d "$HOME/.rbenv" ]]; then
 
     # Clone rbenv repository
     if git clone https://github.com/rbenv/rbenv.git ~/.rbenv 2>/dev/null; then
-        # Add to system-wide PATH for non-interactive shells (SSH)
-        sudo tee /etc/profile.d/rbenv.sh > /dev/null << 'PROFILE'
-export PATH="$HOME/.rbenv/bin:$PATH"
-eval "$(rbenv init - bash)"
-PROFILE
-        sudo chmod +x /etc/profile.d/rbenv.sh
-
-        # Add rbenv to bashrc for interactive sessions
-        if ! grep -q "rbenv" ~/.bashrc 2>/dev/null; then
-            echo '' >> ~/.bashrc
-            echo '# rbenv configuration' >> ~/.bashrc
-            echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
-            echo 'eval "$(rbenv init -)"' >> ~/.bashrc
-        fi
+        # Configure PATH for both interactive and non-interactive SSH sessions
+        setup_tool_path "rbenv" \
+            'export PATH="$HOME/.rbenv/bin:$PATH"' \
+            'eval "$(rbenv init - bash)"'
 
         # Set for current session
         export PATH="$HOME/.rbenv/bin:$PATH"
-        eval "$(rbenv init -)"
+        eval "$(rbenv init - bash)"
 
         print_success "rbenv installed successfully"
     else
