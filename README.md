@@ -3,6 +3,7 @@
 [![Version](https://img.shields.io/github/v/release/pacphi/sindri?include_prereleases)](https://github.com/pacphi/sindri/releases)
 [![License](https://img.shields.io/github/license/pacphi/sindri)](LICENSE)
 [![Integration Tests](https://github.com/pacphi/sindri/actions/workflows/integration.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/integration.yml)
+[![Extension Tests](https://github.com/pacphi/sindri/actions/workflows/extension-tests.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/extension-tests.yml)
 [![Changelog](https://img.shields.io/badge/changelog-latest-blue)](CHANGELOG.md)
 
 A complete AI-powered cloud development forge running on Fly.io infrastructure with zero local installation, auto-suspend VMs, and persistent storage.
