@@ -56,11 +56,10 @@ cd claude-flow-on-fly
 
 # Optional: Customize configuration before deployment
 nano docker/config/agents-config.yaml    # Configure agent sources
-nano docker/config/agent-aliases         # Customize agent aliases
 nano docker/lib/agent-discovery.sh       # Add discovery functions
 nano docker/config/tmux.conf             # Customize tmux settings
 nano docker/lib/tmux-workspace.sh        # Modify workspace launcher
-nano docker/config/tmux-aliases          # Customize tmux shortcuts
+nano docker/config/workspace-aliases     # Customize all workspace aliases and shortcuts
 
 # Deploy with your configuration
 ./scripts/vm-setup.sh --app-name my-claude-env

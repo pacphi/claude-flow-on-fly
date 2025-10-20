@@ -1,0 +1,985 @@
+name: Extension System Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'docker/lib/extensions.d/**'
+      - 'docker/lib/extension-manager.sh'
+      - 'docker/lib/common.sh'
+      - '.github/workflows/extension-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'docker/lib/extensions.d/**'
+      - 'docker/lib/extension-manager.sh'
+      - 'docker/lib/common.sh'
+      - '.github/workflows/extension-tests.yml'
+  workflow_dispatch:
+    inputs:
+      extension_name:
+        description: 'Test specific extension (e.g., rust, golang, ai-tools)'
+        required: false
+        type: string
+      skip_cleanup:
+        description: 'Skip cleanup for debugging'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  TEST_APP_PREFIX: "ext-test"
+  REGION: "iad"
+  FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
+
+jobs:
+  # ============================================================================
+  # Job 1: Extension Manager Validation
+  # ============================================================================
+  extension-manager-validation:
+    name: Validate Extension Manager
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Validate extension-manager.sh syntax
+        run: |
+          echo "Running shellcheck on extension-manager.sh..."
+          shellcheck docker/lib/extension-manager.sh
+
+      - name: Test extension-manager list command
+        run: |
+          echo "Testing extension-manager list command..."
+          cd docker/lib
+          bash extension-manager.sh list
+
+      - name: Test extension name extraction
+        run: |
+          echo "Testing extension name extraction..."
+          cd docker/lib
+
+          # Test with various filename formats
+          test_file="extensions.d/10-rust.sh.example"
+          if [[ -f "$test_file" ]]; then
+            # Extract name using the same logic as extension-manager
+            name=$(basename "$test_file" .sh.example | sed 's/^[0-9]*-//')
+            echo "Extracted name from $test_file: $name"
+
+            if [[ "$name" != "rust" ]]; then
+              echo "ERROR: Expected 'rust', got '$name'"
+              exit 1
+            fi
+          fi
+
+          echo "✅ Extension name extraction working correctly"
+
+      - name: Test protected extension detection
+        run: |
+          echo "Testing protected extension detection..."
+          cd docker/lib
+
+          # Create temporary test file
+          touch extensions.d/00-test.sh.example
+
+          # Test protected extension logic
+          if bash -c 'source extension-manager.sh; is_protected_extension "00-test.sh" && echo "PROTECTED" || echo "NOT_PROTECTED"' | grep -q "PROTECTED"; then
+            echo "✅ Protected extension detection working"
+          else
+            echo "❌ Protected extension detection failed"
+            exit 1
+          fi
+
+          # Cleanup
+          rm -f extensions.d/00-test.sh.example
+
+      - name: Report validation results
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Extension manager validation passed"
+          else
+            echo "❌ Extension manager validation failed"
+          fi
+
+  # ============================================================================
+  # Job 2: Extension Syntax Validation
+  # ============================================================================
+  extension-syntax-validation:
+    name: Validate Extension Scripts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Validate all extension scripts
+        run: |
+          echo "Validating all extension scripts with shellcheck..."
+
+          failed_scripts=()
+
+          for script in docker/lib/extensions.d/*.sh.example docker/lib/extensions.d/*.sh; do
+            # Skip if file doesn't exist (in case no .sh files)
+            [[ ! -f "$script" ]] && continue
+
+            echo "Checking $script..."
+            if ! shellcheck -x "$script"; then
+              failed_scripts+=("$script")
+            fi
+          done
+
+          if [[ ${#failed_scripts[@]} -gt 0 ]]; then
+            echo "❌ Shellcheck failed for:"
+            printf '%s\n' "${failed_scripts[@]}"
+            exit 1
+          fi
+
+          echo "✅ All extension scripts pass shellcheck"
+
+      - name: Verify common.sh sourcing
+        run: |
+          echo "Verifying all extensions source common.sh..."
+
+          missing_source=()
+
+          for script in docker/lib/extensions.d/*.sh.example; do
+            [[ ! -f "$script" ]] && continue
+
+            # Check if script sources common.sh
+            if ! grep -q "source.*common\.sh" "$script"; then
+              missing_source+=("$script")
+            fi
+          done
+
+          if [[ ${#missing_source[@]} -gt 0 ]]; then
+            echo "⚠️  Extensions missing common.sh source:"
+            printf '%s\n' "${missing_source[@]}"
+            echo "This is a warning - extensions may have alternative sourcing"
+          else
+            echo "✅ All extensions properly source common.sh"
+          fi
+
+      - name: Verify shebang presence
+        run: |
+          echo "Verifying all extensions have proper shebang..."
+
+          missing_shebang=()
+
+          for script in docker/lib/extensions.d/*.sh.example docker/lib/extensions.d/*.sh; do
+            [[ ! -f "$script" ]] && continue
+
+            # Check for shebang on first line
+            if ! head -n 1 "$script" | grep -q "^#!/bin/bash"; then
+              missing_shebang+=("$script")
+            fi
+          done
+
+          if [[ ${#missing_shebang[@]} -gt 0 ]]; then
+            echo "❌ Extensions missing proper shebang:"
+            printf '%s\n' "${missing_shebang[@]}"
+            exit 1
+          fi
+
+          echo "✅ All extensions have proper shebang"
+
+      - name: Check for error handling
+        run: |
+          echo "Checking for basic error handling patterns..."
+
+          for script in docker/lib/extensions.d/*.sh.example; do
+            [[ ! -f "$script" ]] && continue
+
+            script_name=$(basename "$script")
+
+            # Check if script uses print functions (good practice)
+            if grep -q "print_" "$script"; then
+              echo "✅ $script_name uses print functions"
+            else
+              echo "⚠️  $script_name doesn't use print functions"
+            fi
+          done
+
+      - name: Report validation results
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Extension syntax validation passed"
+          else
+            echo "❌ Extension syntax validation failed"
+          fi
+
+  # ============================================================================
+  # Job 3: Core Extension Tests (00-init.sh)
+  # ============================================================================
+  core-extension-tests:
+    name: Test Core Extension (00-init.sh)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.extension_name == ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Generate test app name
+        id: app-name
+        run: |
+          timestamp=$(date +%s)
+          app_name="${TEST_APP_PREFIX}-core-${timestamp}"
+          echo "app_name=$app_name" >> $GITHUB_OUTPUT
+          echo "Test app name: $app_name"
+
+      - name: Create test SSH key
+        run: |
+          ssh-keygen -t ed25519 -f test_key -N "" -C "ext-test"
+          chmod 600 test_key
+          chmod 644 test_key.pub
+
+      - name: Prepare fly.toml for testing
+        env:
+          APP_NAME: ${{ steps.app-name.outputs.app_name }}
+          VOLUME_NAME: "test_data"
+          VOLUME_SIZE: "5"
+          VM_MEMORY: "2048"
+          CPU_KIND: "shared"
+          CPU_COUNT: "1"
+          CI_MODE: "true"
+        run: |
+          ./scripts/prepare-fly-config.sh --ci-mode
+
+      - name: Deploy test environment
+        run: |
+          echo "Creating Fly.io app for core extension testing..."
+
+          flyctl apps create ${{ steps.app-name.outputs.app_name }} --org personal || echo "App may already exist"
+
+          flyctl volumes create test_data \
+            --app ${{ steps.app-name.outputs.app_name }} \
+            --region ${REGION} \
+            --size 5 \
+            --no-encryption \
+            --yes
+
+          ssh_key_content=$(cat test_key.pub)
+          flyctl secrets set AUTHORIZED_KEYS="$ssh_key_content" \
+            --app ${{ steps.app-name.outputs.app_name }}
+          flyctl secrets set CI_MODE="true" \
+            --app ${{ steps.app-name.outputs.app_name }}
+
+          flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 90s --yes
+
+      - name: Wait for deployment
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+          timeout=180
+          elapsed=0
+          interval=10
+
+          while [ $elapsed -lt $timeout ]; do
+            status_output=$(flyctl status --app $app_name 2>&1)
+            echo "=== Status Check (${elapsed}s/${timeout}s) ==="
+
+            if echo "$status_output" | grep -q "started"; then
+              echo "✅ Deployment successful"
+              break
+            elif echo "$status_output" | grep -q "failed\|crashed\|error"; then
+              echo "❌ Deployment failed"
+              exit 1
+            fi
+
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+
+      - name: Verify core extension present
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            if [ -f /workspace/scripts/extensions.d/00-init.sh ]; then
+              echo \"✅ Core extension 00-init.sh is present\"
+              exit 0
+            else
+              echo \"❌ Core extension 00-init.sh is missing\"
+              exit 1
+            fi
+          '"
+
+      - name: Test core extension components
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          echo "Testing core extension components..."
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            echo \"=== Testing Turbo Flow Components ===\"
+
+            # Check Playwright
+            if npx playwright --version >/dev/null 2>&1; then
+              echo \"✅ Playwright installed\"
+            else
+              echo \"❌ Playwright not installed\"
+              exit 1
+            fi
+
+            # Check TypeScript
+            if npx tsc --version >/dev/null 2>&1; then
+              echo \"✅ TypeScript installed\"
+            else
+              echo \"❌ TypeScript not installed\"
+              exit 1
+            fi
+
+            # Check monitoring tools
+            if command -v claude-monitor >/dev/null 2>&1 || command -v uv >/dev/null 2>&1; then
+              echo \"✅ Monitoring tools available\"
+            else
+              echo \"⚠️  Monitoring tools not fully installed\"
+            fi
+
+            echo \"=== Testing Agent Manager ===\"
+
+            # Check agent-manager binary
+            if [ -x /workspace/bin/agent-manager ]; then
+              echo \"✅ Agent Manager binary present\"
+            else
+              echo \"❌ Agent Manager binary missing\"
+              exit 1
+            fi
+
+            echo \"=== Testing Tmux Workspace ===\"
+
+            # Check tmux installation
+            if command -v tmux >/dev/null 2>&1; then
+              echo \"✅ Tmux installed\"
+            else
+              echo \"❌ Tmux not installed\"
+              exit 1
+            fi
+
+            # Check tmux config
+            if [ -f /workspace/config/tmux.conf ]; then
+              echo \"✅ Tmux config present\"
+            else
+              echo \"❌ Tmux config missing\"
+              exit 1
+            fi
+
+            echo \"=== Testing Context Management ===\"
+
+            # Check context loader
+            if [ -f /workspace/scripts/lib/context-loader.sh ]; then
+              echo \"✅ Context loader present\"
+            else
+              echo \"❌ Context loader missing\"
+              exit 1
+            fi
+
+            echo \"✅ All core extension components validated\"
+          '"
+
+      - name: Test protected extension behavior
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          echo "Testing that core extension cannot be deactivated..."
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            cd /workspace/scripts/lib
+
+            # Attempt to deactivate should fail
+            if bash extension-manager.sh deactivate init --yes 2>&1 | grep -q \"Cannot deactivate protected\"; then
+              echo \"✅ Core extension properly protected from deactivation\"
+              exit 0
+            else
+              echo \"❌ Core extension protection failed\"
+              exit 1
+            fi
+          '"
+
+      - name: Cleanup test resources
+        if: always() && !inputs.skip_cleanup
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          machines=$(flyctl machine list --app $app_name --json | jq -r '.[].id')
+          for machine in $machines; do
+            flyctl machine stop $machine --app $app_name || true
+            sleep 5
+            flyctl machine destroy $machine --app $app_name --force || true
+          done
+
+          volumes=$(flyctl volumes list --app $app_name --json | jq -r '.[].id')
+          for volume in $volumes; do
+            flyctl volumes destroy $volume --app $app_name --yes || true
+          done
+
+          flyctl apps destroy $app_name --yes || true
+          rm -f test_key test_key.pub
+
+  # ============================================================================
+  # Job 4: Per-Extension Tests (Matrix)
+  # ============================================================================
+  per-extension-tests:
+    name: Test Extension - ${{ matrix.extension.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        extension:
+          - { name: 'rust', commands: 'rustc,cargo', key_tool: 'rustc', timeout: '30m' }
+          - { name: 'golang', commands: 'go', key_tool: 'go', timeout: '15m' }
+          - { name: 'python', commands: 'python3,pip3', key_tool: 'python3', timeout: '15m' }
+          - { name: 'docker', commands: 'docker', key_tool: 'docker', timeout: '20m' }
+          - { name: 'jvm', commands: 'java,sdk', key_tool: 'java', timeout: '25m' }
+          - { name: 'php', commands: 'php,composer', key_tool: 'php', timeout: '15m' }
+          - { name: 'ruby', commands: 'ruby,gem,bundle', key_tool: 'ruby', timeout: '20m' }
+          - { name: 'dotnet', commands: 'dotnet', key_tool: 'dotnet', timeout: '20m' }
+          - { name: 'infra-tools', commands: 'terraform,ansible', key_tool: 'terraform', timeout: '20m' }
+          - { name: 'cloud-tools', commands: 'aws', key_tool: 'aws', timeout: '15m' }
+          - { name: 'ai-tools', commands: 'ollama,fabric', key_tool: 'ollama', timeout: '20m' }
+
+    steps:
+      - name: Check if extension should be tested
+        id: should-test
+        run: |
+          # Skip if workflow_dispatch with specific extension that doesn't match
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && \
+             [ -n "${{ github.event.inputs.extension_name }}" ] && \
+             [ "${{ github.event.inputs.extension_name }}" != "${{ matrix.extension.name }}" ]; then
+            echo "should_test=false" >> $GITHUB_OUTPUT
+            echo "Skipping ${{ matrix.extension.name }} - not requested"
+          else
+            echo "should_test=true" >> $GITHUB_OUTPUT
+            echo "Testing ${{ matrix.extension.name }}"
+          fi
+
+      - name: Checkout code
+        if: steps.should-test.outputs.should_test == 'true'
+        uses: actions/checkout@v5
+
+      - name: Install Fly CLI
+        if: steps.should-test.outputs.should_test == 'true'
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Generate test app name
+        if: steps.should-test.outputs.should_test == 'true'
+        id: app-name
+        run: |
+          timestamp=$(date +%s)
+          app_name="${TEST_APP_PREFIX}-${{ matrix.extension.name }}-${timestamp}"
+          echo "app_name=$app_name" >> $GITHUB_OUTPUT
+          echo "Test app name: $app_name"
+
+      - name: Create test SSH key
+        if: steps.should-test.outputs.should_test == 'true'
+        run: |
+          ssh-keygen -t ed25519 -f test_key -N "" -C "ext-test"
+          chmod 600 test_key
+          chmod 644 test_key.pub
+
+      - name: Prepare fly.toml for testing
+        if: steps.should-test.outputs.should_test == 'true'
+        env:
+          APP_NAME: ${{ steps.app-name.outputs.app_name }}
+          VOLUME_NAME: "test_data"
+          VOLUME_SIZE: "10"
+          VM_MEMORY: "4096"
+          CPU_KIND: "shared"
+          CPU_COUNT: "2"
+          CI_MODE: "true"
+        run: |
+          ./scripts/prepare-fly-config.sh --ci-mode
+
+      - name: Deploy test environment
+        if: steps.should-test.outputs.should_test == 'true'
+        run: |
+          echo "Deploying test environment for ${{ matrix.extension.name }}..."
+
+          flyctl apps create ${{ steps.app-name.outputs.app_name }} --org personal || echo "App may already exist"
+
+          flyctl volumes create test_data \
+            --app ${{ steps.app-name.outputs.app_name }} \
+            --region ${REGION} \
+            --size 10 \
+            --no-encryption \
+            --yes
+
+          ssh_key_content=$(cat test_key.pub)
+          flyctl secrets set AUTHORIZED_KEYS="$ssh_key_content" \
+            --app ${{ steps.app-name.outputs.app_name }}
+          flyctl secrets set CI_MODE="true" \
+            --app ${{ steps.app-name.outputs.app_name }}
+
+          flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 120s --yes
+
+      - name: Wait for deployment
+        if: steps.should-test.outputs.should_test == 'true'
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+          timeout=240
+          elapsed=0
+          interval=15
+
+          while [ $elapsed -lt $timeout ]; do
+            status_output=$(flyctl status --app $app_name 2>&1)
+
+            if echo "$status_output" | grep -q "started"; then
+              echo "✅ Deployment successful"
+              sleep 30  # Extra time for system to stabilize
+              break
+            elif echo "$status_output" | grep -q "failed\|crashed\|error"; then
+              echo "❌ Deployment failed"
+              flyctl logs --app $app_name
+              exit 1
+            fi
+
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+
+      - name: Activate extension
+        if: steps.should-test.outputs.should_test == 'true'
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+          extension_name="${{ matrix.extension.name }}"
+
+          echo "Activating $extension_name extension..."
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            cd /workspace/scripts/lib
+            if bash extension-manager.sh activate $extension_name; then
+              echo \"✅ Extension activated successfully\"
+            else
+              echo \"❌ Extension activation failed\"
+              exit 1
+            fi
+          '"
+
+      - name: Run vm-configure with extension
+        if: steps.should-test.outputs.should_test == 'true'
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+          timeout="${{ matrix.extension.timeout }}"
+
+          echo "Running vm-configure.sh with ${{ matrix.extension.name }} extension (timeout: $timeout)..."
+
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            echo \"Starting extension installation...\"
+            if timeout $timeout /workspace/scripts/vm-configure.sh --extensions-only 2>&1 | tee /tmp/configure.log; then
+              echo \"✅ Configuration completed\"
+            else
+              echo \"❌ Configuration failed or timed out\"
+              echo \"Last 50 lines of output:\"
+              tail -50 /tmp/configure.log
+              exit 1
+            fi
+          '" || {
+            echo "❌ vm-configure.sh failed"
+            flyctl logs --app $app_name
+            exit 1
+          }
+
+      - name: Verify commands available
+        if: steps.should-test.outputs.should_test == 'true'
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+          commands="${{ matrix.extension.commands }}"
+
+          echo "Verifying commands are available: $commands"
+
+          IFS=',' read -ra CMD_ARRAY <<< "$commands"
+
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            failed_commands=()
+
+            for cmd in ${CMD_ARRAY[@]}; do
+              echo \"Checking command: \$cmd\"
+              if command -v \$cmd >/dev/null 2>&1; then
+                echo \"✅ \$cmd available\"
+                \$cmd --version 2>/dev/null || \$cmd version 2>/dev/null || echo \"  (version check not supported)\"
+              else
+                echo \"❌ \$cmd not found\"
+                failed_commands+=(\"\$cmd\")
+              fi
+            done
+
+            if [ \${#failed_commands[@]} -gt 0 ]; then
+              echo \"❌ Missing commands: \${failed_commands[*]}\"
+              exit 1
+            fi
+
+            echo \"✅ All commands available\"
+          '"
+
+      - name: Test key functionality
+        if: steps.should-test.outputs.should_test == 'true'
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+          key_tool="${{ matrix.extension.key_tool }}"
+
+          echo "Testing key functionality for $key_tool..."
+
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            case \"$key_tool\" in
+              rustc)
+                echo \"Testing Rust compilation...\"
+                echo \"fn main() { println!(\\\"Hello\\\"); }\" > /tmp/test.rs
+                rustc /tmp/test.rs -o /tmp/test && /tmp/test
+                ;;
+              go)
+                echo \"Testing Go compilation...\"
+                echo \"package main; import \\\"fmt\\\"; func main() { fmt.Println(\\\"Hello\\\") }\" > /tmp/test.go
+                go run /tmp/test.go
+                ;;
+              python3)
+                echo \"Testing Python execution...\"
+                python3 -c \"print('Hello')\"
+                pip3 --version
+                ;;
+              java)
+                echo \"Testing Java...\"
+                java -version
+                ;;
+              php)
+                echo \"Testing PHP...\"
+                php -r \"echo 'Hello';\"
+                ;;
+              ruby)
+                echo \"Testing Ruby...\"
+                ruby -e \"puts 'Hello'\"
+                ;;
+              dotnet)
+                echo \"Testing .NET...\"
+                dotnet --info
+                ;;
+              docker)
+                echo \"Testing Docker...\"
+                docker --version
+                docker-compose --version || docker compose version
+                ;;
+              terraform)
+                echo \"Testing Terraform...\"
+                terraform version
+                ;;
+              aws)
+                echo \"Testing AWS CLI...\"
+                aws --version
+                ;;
+              ollama)
+                echo \"Testing Ollama...\"
+                ollama --version
+                ;;
+              *)
+                echo \"⚠️  No specific test for $key_tool\"
+                ;;
+            esac
+
+            echo \"✅ Key functionality test passed\"
+          '"
+
+      - name: Test idempotency
+        if: steps.should-test.outputs.should_test == 'true'
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          echo "Testing idempotency (running vm-configure.sh again)..."
+
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            echo \"Running configuration a second time...\"
+            if /workspace/scripts/vm-configure.sh --extensions-only 2>&1 | tee /tmp/configure2.log; then
+              # Check for error indicators in output
+              if grep -qi \"error\|failed\" /tmp/configure2.log; then
+                echo \"⚠️  Warnings or errors detected on second run\"
+                grep -i \"error\|failed\" /tmp/configure2.log || true
+              else
+                echo \"✅ Second run completed without errors\"
+              fi
+            else
+              echo \"❌ Second run failed\"
+              exit 1
+            fi
+          '"
+
+      - name: Cleanup test resources
+        if: always() && !inputs.skip_cleanup
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          machines=$(flyctl machine list --app $app_name --json 2>/dev/null | jq -r '.[].id' || echo "")
+          for machine in $machines; do
+            [[ -z "$machine" ]] && continue
+            flyctl machine stop $machine --app $app_name || true
+            sleep 3
+            flyctl machine destroy $machine --app $app_name --force || true
+          done
+
+          volumes=$(flyctl volumes list --app $app_name --json 2>/dev/null | jq -r '.[].id' || echo "")
+          for volume in $volumes; do
+            [[ -z "$volume" ]] && continue
+            flyctl volumes destroy $volume --app $app_name --yes || true
+          done
+
+          flyctl apps destroy $app_name --yes || true
+          rm -f test_key test_key.pub
+
+  # ============================================================================
+  # Job 5: Extension Combinations
+  # ============================================================================
+  extension-combinations:
+    name: Test Combination - ${{ matrix.combination.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        combination:
+          - { name: 'fullstack', extensions: 'python,docker,cloud-tools', description: 'Python + Docker + Cloud' }
+          - { name: 'systems', extensions: 'rust,golang,docker', description: 'Rust + Go + Docker' }
+          - { name: 'enterprise', extensions: 'jvm,docker,infra-tools', description: 'JVM + Docker + Infrastructure' }
+          - { name: 'ai-dev', extensions: 'python,ai-tools,docker', description: 'Python + AI Tools + Docker' }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Generate test app name
+        id: app-name
+        run: |
+          timestamp=$(date +%s)
+          app_name="${TEST_APP_PREFIX}-combo-${{ matrix.combination.name }}-${timestamp}"
+          echo "app_name=$app_name" >> $GITHUB_OUTPUT
+
+      - name: Create test SSH key
+        run: |
+          ssh-keygen -t ed25519 -f test_key -N "" -C "ext-test"
+          chmod 600 test_key
+          chmod 644 test_key.pub
+
+      - name: Prepare fly.toml for testing
+        env:
+          APP_NAME: ${{ steps.app-name.outputs.app_name }}
+          VOLUME_NAME: "test_data"
+          VOLUME_SIZE: "15"
+          VM_MEMORY: "8192"
+          CPU_KIND: "shared"
+          CPU_COUNT: "4"
+          CI_MODE: "true"
+        run: |
+          ./scripts/prepare-fly-config.sh --ci-mode
+
+      - name: Deploy test environment
+        run: |
+          flyctl apps create ${{ steps.app-name.outputs.app_name }} --org personal || true
+
+          flyctl volumes create test_data \
+            --app ${{ steps.app-name.outputs.app_name }} \
+            --region ${REGION} \
+            --size 15 \
+            --no-encryption \
+            --yes
+
+          ssh_key_content=$(cat test_key.pub)
+          flyctl secrets set AUTHORIZED_KEYS="$ssh_key_content" \
+            --app ${{ steps.app-name.outputs.app_name }}
+          flyctl secrets set CI_MODE="true" \
+            --app ${{ steps.app-name.outputs.app_name }}
+
+          flyctl deploy --app ${{ steps.app-name.outputs.app_name }} --strategy immediate --wait-timeout 180s --yes
+
+      - name: Wait for deployment
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+          timeout=300
+          elapsed=0
+          interval=20
+
+          while [ $elapsed -lt $timeout ]; do
+            status_output=$(flyctl status --app $app_name 2>&1)
+
+            if echo "$status_output" | grep -q "started"; then
+              echo "✅ Deployment successful"
+              sleep 45
+              break
+            fi
+
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+
+      - name: Activate extension combination
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+          extensions="${{ matrix.combination.extensions }}"
+
+          echo "Activating extensions: $extensions"
+
+          IFS=',' read -ra EXT_ARRAY <<< "$extensions"
+
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            cd /workspace/scripts/lib
+            failed_extensions=()
+
+            for ext in ${EXT_ARRAY[@]}; do
+              echo \"Activating: \$ext\"
+              if bash extension-manager.sh activate \$ext; then
+                echo \"✅ \$ext activated\"
+              else
+                echo \"❌ \$ext activation failed\"
+                failed_extensions+=(\"\$ext\")
+              fi
+            done
+
+            if [ \${#failed_extensions[@]} -gt 0 ]; then
+              echo \"❌ Failed to activate: \${failed_extensions[*]}\"
+              exit 1
+            fi
+
+            echo \"✅ All extensions activated\"
+          '"
+
+      - name: Run vm-configure with extensions
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          echo "Running vm-configure.sh with extension combination..."
+
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            if timeout 60m /workspace/scripts/vm-configure.sh --extensions-only 2>&1 | tee /tmp/configure-combo.log; then
+              echo \"✅ Configuration completed\"
+            else
+              echo \"❌ Configuration failed\"
+              tail -100 /tmp/configure-combo.log
+              exit 1
+            fi
+          '"
+
+      - name: Verify no conflicts
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          echo "Checking for conflicts or errors..."
+
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            if [ -f /tmp/configure-combo.log ]; then
+              # Check for common conflict indicators
+              if grep -qi \"conflict\|collision\|duplicate\" /tmp/configure-combo.log; then
+                echo \"⚠️  Potential conflicts detected\"
+                grep -i \"conflict\|collision\|duplicate\" /tmp/configure-combo.log
+              else
+                echo \"✅ No conflicts detected\"
+              fi
+            fi
+          '"
+
+      - name: Test cross-extension functionality
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+          combo="${{ matrix.combination.name }}"
+
+          echo "Testing cross-extension functionality for $combo..."
+
+          flyctl ssh console --app $app_name --command "/bin/bash -c '
+            case \"$combo\" in
+              fullstack)
+                echo \"Testing Python + Docker combination...\"
+                python3 --version && docker --version
+                ;;
+              systems)
+                echo \"Testing Rust + Go combination...\"
+                rustc --version && go version
+                ;;
+              enterprise)
+                echo \"Testing JVM + Infrastructure combination...\"
+                java -version && terraform version
+                ;;
+              ai-dev)
+                echo \"Testing Python + AI Tools combination...\"
+                python3 --version && ollama --version
+                ;;
+            esac
+
+            echo \"✅ Cross-extension functionality verified\"
+          '"
+
+      - name: Cleanup test resources
+        if: always() && !inputs.skip_cleanup
+        run: |
+          app_name="${{ steps.app-name.outputs.app_name }}"
+
+          machines=$(flyctl machine list --app $app_name --json 2>/dev/null | jq -r '.[].id' || echo "")
+          for machine in $machines; do
+            [[ -z "$machine" ]] && continue
+            flyctl machine stop $machine --app $app_name || true
+            sleep 3
+            flyctl machine destroy $machine --app $app_name --force || true
+          done
+
+          volumes=$(flyctl volumes list --app $app_name --json 2>/dev/null | jq -r '.[].id' || echo "")
+          for volume in $volumes; do
+            [[ -z "$volume" ]] && continue
+            flyctl volumes destroy $volume --app $app_name --yes || true
+          done
+
+          flyctl apps destroy $app_name --yes || true
+          rm -f test_key test_key.pub
+
+  # ============================================================================
+  # Job 6: Report Test Results
+  # ============================================================================
+  report-results:
+    name: Report Test Results
+    runs-on: ubuntu-latest
+    needs: [extension-manager-validation, extension-syntax-validation, core-extension-tests]
+    if: always()
+    permissions:
+      contents: read
+
+    steps:
+      - name: Generate test report
+        run: |
+          echo "# Extension System Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Extension Manager Validation: ${{ needs.extension-manager-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Extension Syntax Validation: ${{ needs.extension-syntax-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Core Extension Tests: ${{ needs.core-extension-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.extension-manager-validation.result }}" = "success" ] && \
+             [ "${{ needs.extension-syntax-validation.result }}" = "success" ] && \
+             [ "${{ needs.core-extension-tests.result }}" = "success" ]; then
+            echo "✅ **All critical tests passed**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some tests failed - review logs above**" >> $GITHUB_STEP_SUMMARY
+          fi

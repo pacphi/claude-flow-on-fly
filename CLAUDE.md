@@ -148,6 +148,84 @@ goalie --help                        # View available options
 # Get API key from: https://www.perplexity.ai/settings/api
 ```
 
+### AI CLI Tools
+
+Additional AI coding assistants available via the `87-ai-tools.sh` extension:
+
+#### Autonomous Coding Agents
+
+```bash
+# Codex CLI - Multi-mode AI assistant
+codex suggest "optimize this function"
+codex edit file.js
+codex run "create REST API"
+
+# Claude Squad - Terminal-based AI assistant
+claude-squad "implement authentication"
+
+# Plandex - Multi-step development tasks
+plandex init                         # Initialize in project
+plandex plan "add user auth"         # Plan task
+plandex execute                      # Execute plan
+```
+
+#### Platform CLIs
+
+```bash
+# Gemini CLI (requires GOOGLE_GEMINI_API_KEY)
+gemini chat "explain this code"
+gemini generate "write unit tests"
+
+# GitHub Copilot CLI (requires gh and GitHub account)
+gh copilot suggest "git command to undo"
+gh copilot explain "docker-compose up"
+
+# AWS Q Developer (requires AWS CLI from 85-cloud-tools.sh)
+aws q chat
+aws q explain "lambda function"
+```
+
+#### Local AI (No API Keys)
+
+```bash
+# Ollama - Run LLMs locally
+nohup ollama serve > ~/ollama.log 2>&1 &   # Start service
+ollama pull llama3.2                        # Pull model
+ollama run llama3.2                         # Interactive chat
+ollama list                                 # List installed models
+
+# Fabric - AI framework with patterns
+fabric --setup                              # First-time setup
+echo "code" | fabric --pattern explain     # Use pattern
+fabric --list                               # List patterns
+```
+
+#### API Keys Setup
+
+```bash
+# Via Fly.io secrets (recommended)
+flyctl secrets set GOOGLE_GEMINI_API_KEY=... -a <app-name>
+flyctl secrets set GROK_API_KEY=... -a <app-name>
+
+# Or in shell (temporary)
+export GOOGLE_GEMINI_API_KEY=your_key
+export GROK_API_KEY=your_key
+```
+
+**Get API keys:**
+
+- Gemini: <https://makersuite.google.com/app/apikey>
+- Grok: xAI account required
+
+**Enable the extension:**
+
+```bash
+extension-manager activate ai-tools
+/workspace/scripts/vm-configure.sh --extension ai-tools
+```
+
+See `/workspace/ai-tools/README.md` for complete documentation.
+
 ### AI Model Management with agent-flow
 
 Agent-flow provides cost-optimized multi-model AI routing for development tasks:

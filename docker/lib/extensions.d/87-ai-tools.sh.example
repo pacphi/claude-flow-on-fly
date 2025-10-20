@@ -1,0 +1,414 @@
+#!/bin/bash
+# AI CLI Tools and Coding Assistants Setup
+
+# Source common utilities
+source "${WORKSPACE_DIR:-/workspace}/scripts/lib/common.sh"
+
+print_header "AI CLI Tools and Coding Assistants Setup"
+
+# Codex CLI
+print_info "Installing Codex CLI..."
+if ! command -v codex &> /dev/null; then
+    npm install -g codex-cli
+    print_success "Codex CLI installed"
+else
+    print_info "Codex CLI already installed: $(codex --version 2>/dev/null || echo 'version unknown')"
+fi
+
+# Gemini CLI
+print_info "Installing Gemini CLI..."
+if ! command -v gemini &> /dev/null; then
+    npm install -g @google/gemini-cli
+    print_success "Gemini CLI installed"
+else
+    print_info "Gemini CLI already installed"
+fi
+
+# GitHub Copilot CLI
+print_info "Installing GitHub Copilot CLI..."
+if ! gh extension list | grep -q "github/gh-copilot"; then
+    if command -v gh &> /dev/null; then
+        gh extension install github/gh-copilot
+        print_success "GitHub Copilot CLI installed"
+    else
+        print_warning "GitHub CLI (gh) not found. Install it first to use GitHub Copilot CLI"
+    fi
+else
+    print_info "GitHub Copilot CLI already installed"
+fi
+
+# Amazon Q Developer (AWS Q CLI)
+print_info "Checking AWS CLI for Amazon Q Developer..."
+if command -v aws &> /dev/null; then
+    print_info "AWS CLI available: $(aws --version)"
+    print_info "Amazon Q Developer available through AWS CLI"
+    print_info "Use 'aws q' commands or install AWS Toolkit for IDE integration"
+else
+    print_warning "AWS CLI not found. Install 85-cloud-tools.sh extension to use Amazon Q Developer"
+fi
+
+# Ollama
+print_info "Installing Ollama..."
+if ! command -v ollama &> /dev/null; then
+    curl -fsSL https://ollama.ai/install.sh | sh
+    print_success "Ollama installed"
+    print_info "Start Ollama service with: ollama serve"
+    print_info "Pull models with: ollama pull llama3.2"
+else
+    print_info "Ollama already installed: $(ollama --version 2>/dev/null || echo 'version unknown')"
+fi
+
+# Fabric
+print_info "Installing Fabric..."
+if ! command -v fabric &> /dev/null; then
+    # Detect architecture
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then
+        FABRIC_ARCH="amd64"
+    elif [ "$ARCH" = "aarch64" ]; then
+        FABRIC_ARCH="arm64"
+    else
+        print_warning "Unsupported architecture: $ARCH"
+        FABRIC_ARCH="amd64"
+    fi
+
+    curl -L "https://github.com/danielmiessler/fabric/releases/latest/download/fabric-linux-${FABRIC_ARCH}" -o fabric
+    chmod +x fabric
+    sudo mv fabric /usr/local/bin/
+    print_success "Fabric installed"
+    print_info "Initialize with: fabric --setup"
+else
+    print_info "Fabric already installed: $(fabric --version 2>/dev/null || echo 'version unknown')"
+fi
+
+# Plandex
+print_info "Installing Plandex..."
+if ! command -v plandex &> /dev/null; then
+    if command -v go &> /dev/null; then
+        go install github.com/plandex-ai/plandex@latest
+        # Add Go bin to PATH if not already there
+        if [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then
+            echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc
+            export PATH=$PATH:$HOME/go/bin
+        fi
+        print_success "Plandex installed"
+    else
+        print_warning "Go not found. Install 20-golang.sh extension to use Plandex"
+    fi
+else
+    print_info "Plandex already installed: $(plandex version 2>/dev/null || echo 'version unknown')"
+fi
+
+# Grok CLI
+print_info "Installing Grok CLI..."
+if ! command -v grok &> /dev/null; then
+    if command -v pip &> /dev/null; then
+        pip install grok-cli
+        print_success "Grok CLI installed"
+    else
+        print_warning "pip not found. Install Python to use Grok CLI"
+    fi
+else
+    print_info "Grok CLI already installed: $(grok --version 2>/dev/null || echo 'version unknown')"
+fi
+
+# Claude Squad
+print_info "Installing Claude Squad..."
+if ! command -v claude-squad &> /dev/null; then
+    npm install -g claude-squad
+    print_success "Claude Squad installed"
+else
+    print_info "Claude Squad already installed: $(claude-squad --version 2>/dev/null || echo 'version unknown')"
+fi
+
+# Create AI tools workspace
+print_info "Setting up AI tools workspace directories..."
+mkdir -p "$WORKSPACE_DIR/ai-tools"/{ollama-models,fabric-patterns,projects}
+
+# Create comprehensive README
+cat > "$WORKSPACE_DIR/ai-tools/README.md" << 'EOF'
+# AI CLI Tools and Coding Assistants
+
+## Installed AI Tools
+
+### Autonomous Coding Agents
+
+#### Codex CLI
+- **Command**: `codex`
+- **Documentation**: https://github.com/codex/codex-cli
+- **Description**: Multi-mode AI assistant with suggest, edit, and run capabilities
+- **Usage**:
+  ```bash
+  codex suggest "how to optimize this function"
+  codex edit file.js
+  codex run "create a REST API"
+  ```
+
+#### Claude Squad
+- **Command**: `claude-squad`
+- **Documentation**: https://github.com/claude-squad/cli
+- **Description**: Terminal-based AI coding assistant with prompt support
+- **Usage**:
+  ```bash
+  claude-squad "implement authentication"
+  claude-squad --help
+  ```
+
+#### Plandex
+- **Command**: `plandex`
+- **Documentation**: https://github.com/plandex-ai/plandex
+- **Description**: Go-based CLI for planning and executing multi-step development tasks
+- **Setup**: `plandex init` in your project directory
+- **Usage**:
+  ```bash
+  plandex plan "add user authentication"
+  plandex execute
+  plandex status
+  ```
+
+### Major Platform CLIs
+
+#### Gemini CLI
+- **Command**: `gemini`
+- **Documentation**: https://github.com/google-gemini/gemini-cli
+- **Description**: Google's CLI for Gemini models with GitHub Actions integration
+- **API Key**: Set `GOOGLE_GEMINI_API_KEY` environment variable
+- **Usage**:
+  ```bash
+  export GOOGLE_GEMINI_API_KEY=your_key_here
+  gemini chat "explain this code"
+  gemini generate "write unit tests"
+  ```
+- **Get API Key**: https://makersuite.google.com/app/apikey
+
+#### GitHub Copilot CLI
+- **Command**: `gh copilot`
+- **Documentation**: https://docs.github.com/en/copilot/github-copilot-in-the-cli
+- **Description**: GitHub's official CLI extension for AI-powered command suggestions
+- **Authentication**: `gh auth login` (GitHub account required)
+- **Usage**:
+  ```bash
+  gh copilot suggest "git command to undo last commit"
+  gh copilot explain "docker-compose up -d"
+  ```
+
+#### Amazon Q Developer (AWS Q CLI)
+- **Command**: `aws q`
+- **Documentation**: https://aws.amazon.com/q/developer/
+- **Description**: AWS's AI assistant with session memory and file-aware responses
+- **Prerequisites**: AWS CLI installed (via 85-cloud-tools.sh extension)
+- **Authentication**: `aws configure`
+- **Usage**:
+  ```bash
+  aws q chat
+  aws q explain "lambda function"
+  ```
+
+### Local Model Management
+
+#### Ollama
+- **Command**: `ollama`
+- **Documentation**: https://ollama.ai
+- **Description**: Run large language models locally with simple commands
+- **Start Service**: `ollama serve` (run in background)
+- **Usage**:
+  ```bash
+  # Start service (in background)
+  nohup ollama serve > ~/ollama.log 2>&1 &
+
+  # Pull and run models
+  ollama pull llama3.2
+  ollama pull codellama
+  ollama pull mistral
+
+  # Interactive chat
+  ollama run llama3.2
+
+  # Single command
+  ollama run llama3.2 "explain quantum computing"
+
+  # List models
+  ollama list
+  ```
+- **Popular Models**:
+  - `llama3.2` - Meta's latest Llama model
+  - `codellama` - Code-specialized Llama
+  - `mistral` - High-performance open model
+  - `deepseek-coder` - Code generation specialist
+
+#### Grok CLI
+- **Command**: `grok`
+- **Documentation**: https://github.com/xai-org/grok-cli
+- **Description**: Terminal interface for xAI's Grok large language model
+- **API Key**: Set `GROK_API_KEY` environment variable
+- **Usage**:
+  ```bash
+  export GROK_API_KEY=your_key_here
+  grok chat
+  grok ask "what's the latest in AI?"
+  ```
+
+### Framework and Pattern Tools
+
+#### Fabric
+- **Command**: `fabric`
+- **Documentation**: https://github.com/danielmiessler/fabric
+- **Description**: Open-source framework for augmenting humans using AI with crowdsourced patterns
+- **Setup**: `fabric --setup` (first time only)
+- **Usage**:
+  ```bash
+  # Setup (first time)
+  fabric --setup
+
+  # Use patterns
+  echo "complex code here" | fabric --pattern explain
+  fabric --pattern summarize < document.txt
+  fabric --pattern extract_wisdom < article.md
+
+  # List available patterns
+  fabric --list
+
+  # Create custom patterns
+  fabric --pattern custom_pattern --create
+  ```
+- **Popular Patterns**:
+  - `explain` - Explain complex concepts
+  - `summarize` - Summarize content
+  - `extract_wisdom` - Extract key insights
+  - `create_coding_project` - Project planning
+  - `improve_code` - Code optimization
+
+## API Key Requirements
+
+Most tools require API keys from their respective providers:
+
+- **Google Gemini**: `GOOGLE_GEMINI_API_KEY` - https://makersuite.google.com/app/apikey
+- **GitHub Copilot**: GitHub account with Copilot subscription
+- **AWS Q Developer**: AWS account credentials
+- **Grok**: `GROK_API_KEY` - xAI account required
+- **Ollama**: No API key (runs locally)
+- **Fabric**: Optional API keys for various providers
+
+### Setting API Keys
+
+```bash
+# Temporary (current session)
+export GOOGLE_GEMINI_API_KEY=your_key_here
+export GROK_API_KEY=your_key_here
+
+# Permanent (add to ~/.bashrc)
+echo 'export GOOGLE_GEMINI_API_KEY=your_key_here' >> ~/.bashrc
+echo 'export GROK_API_KEY=your_key_here' >> ~/.bashrc
+
+# Via Fly.io secrets (recommended for sensitive keys)
+flyctl secrets set GOOGLE_GEMINI_API_KEY=your_key_here -a <app-name>
+flyctl secrets set GROK_API_KEY=your_key_here -a <app-name>
+```
+
+## Directory Structure
+
+```
+ai-tools/
+├── ollama-models/   # Ollama model storage
+├── fabric-patterns/ # Custom Fabric patterns
+└── projects/        # AI-assisted project workspace
+```
+
+## Getting Started
+
+1. **For Local AI** (no API keys needed):
+   ```bash
+   # Start Ollama service
+   nohup ollama serve > ~/ollama.log 2>&1 &
+
+   # Pull a model
+   ollama pull llama3.2
+
+   # Start chatting
+   ollama run llama3.2
+   ```
+
+2. **For Cloud AI** (requires API keys):
+   ```bash
+   # Set API keys
+   export GOOGLE_GEMINI_API_KEY=your_key_here
+
+   # Use Gemini
+   gemini chat "help me debug this code"
+   ```
+
+3. **For Development Tasks**:
+   ```bash
+   # Use Plandex for multi-step tasks
+   cd your-project
+   plandex init
+   plandex plan "add user authentication with JWT"
+
+   # Use Codex for quick tasks
+   codex suggest "optimize database queries"
+   ```
+
+4. **For Command Help**:
+   ```bash
+   # GitHub Copilot for CLI commands
+   gh copilot suggest "find large files in directory"
+   gh copilot explain "kubectl get pods"
+   ```
+
+## Best Practices
+
+1. **Cost Management**: Use local models (Ollama) for development and testing
+2. **Security**: Never commit API keys to version control
+3. **Context**: Provide clear, specific prompts for better results
+4. **Validation**: Always review AI-generated code before use
+5. **Privacy**: Use local models for sensitive code or data
+
+## Troubleshooting
+
+**Ollama won't start:**
+```bash
+# Check if already running
+ps aux | grep ollama
+killall ollama
+ollama serve
+```
+
+**API key errors:**
+```bash
+# Verify keys are set
+echo $GOOGLE_GEMINI_API_KEY
+echo $GROK_API_KEY
+
+# Check Fly.io secrets
+flyctl secrets list -a <app-name>
+```
+
+**Command not found:**
+```bash
+# Reload shell configuration
+source ~/.bashrc
+
+# Check PATH
+echo $PATH
+
+# Verify installation
+which codex
+which gemini
+which ollama
+```
+
+## Additional Resources
+
+- **OpenAI API**: For ChatGPT/GPT-4 access
+- **Anthropic API**: For Claude access (already configured)
+- **Perplexity API**: For research (via goalie tool)
+- **Agent Flow**: Multi-model cost optimization (already configured)
+
+See main project documentation for more AI tools and integrations.
+EOF
+
+print_success "AI CLI tools setup complete!"
+print_info "AI tools workspace created at: $WORKSPACE_DIR/ai-tools"
+print_info "Run 'source ~/.bashrc' to update PATH if needed"
+print_info "Configure API keys for cloud-based tools (see README)"
+print_info "For local AI, start Ollama with: nohup ollama serve > ~/ollama.log 2>&1 &"

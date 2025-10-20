@@ -274,9 +274,47 @@ spinner() {
     echo " Done"
 }
 
+# Function to setup workspace aliases (runs once per session)
+setup_workspace_aliases() {
+    # Prevent multiple execution
+    if [[ "${WORKSPACE_ALIASES_SETUP:-}" == "true" ]]; then
+        print_debug "Workspace aliases already configured"
+        return 0
+    fi
+
+    print_status "🔗 Setting up workspace aliases..."
+
+    local aliases_file="/workspace/.workspace-aliases"
+    local template_file="/docker/config/workspace-aliases"
+
+    # Copy from template
+    if [[ -f "$template_file" ]]; then
+        cp "$template_file" "$aliases_file"
+        print_success "✅ Workspace aliases copied"
+    else
+        print_error "❌ Template not found: $template_file"
+        return 1
+    fi
+
+    # Add to bashrc if not present
+    if ! grep -q "workspace-aliases" "$HOME/.bashrc" 2>/dev/null; then
+        {
+            echo ""
+            echo "# Source unified workspace aliases"
+            echo "if [[ -f /workspace/.workspace-aliases ]]; then"
+            echo "    source /workspace/.workspace-aliases"
+            echo "fi"
+        } >> "$HOME/.bashrc"
+        print_success "✅ Added to .bashrc"
+    fi
+
+    export WORKSPACE_ALIASES_SETUP="true"
+    print_success "✅ Workspace aliases configured"
+}
+
 # Export all functions so they're available to subshells
 export -f print_status print_success print_warning print_error print_debug
 export -f command_exists is_in_vm ensure_permissions create_directory
 export -f safe_copy check_env_var confirm run_command check_disk_space
 export -f get_timestamp get_backup_filename load_config save_config
-export -f check_network retry_with_backoff spinner
+export -f check_network retry_with_backoff spinner setup_workspace_aliases

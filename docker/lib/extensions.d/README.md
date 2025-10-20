@@ -39,6 +39,22 @@ cargo install cargo-watch cargo-edit
 print_success "Rust toolchain installed successfully"
 ```
 
+## Core Extensions
+
+### Required Core Extension
+
+- `00-init.sh` - **Core environment initialization** (Required, pre-installed)
+  - Automatically installed during VM configuration
+  - Provides foundation for all development workflows
+  - Components:
+    - **Turbo Flow**: Playwright, TypeScript, monitoring tools, validation
+    - **Agent Manager**: Claude Code agent system with discovery utilities
+    - **Tmux Workspace**: Multi-window development environment
+    - **Context Management**: Claude Flow integration and context loading
+    - **Workspace Aliases**: Unified command aliases system
+  - Creates complete project structure and development environment
+  - All subsequent extensions build on this foundation
+
 ## Available Examples
 
 ### Language & Runtime Environments
@@ -55,6 +71,7 @@ print_success "Rust toolchain installed successfully"
 - `30-docker.sh.example` - Docker tools installation
 - `80-infra-tools.sh.example` - Curated infrastructure tooling
 - `85-cloud-tools.sh.example` - Curated cloud provider CLIs
+- `87-ai-tools.sh.example` - AI CLI tools and coding assistants (Codex, Gemini, Copilot, Ollama, Fabric, etc.)
 - `post-50-cleanup.sh.example` - Post-installation cleanup
 
 ## Best Practices

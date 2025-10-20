@@ -45,14 +45,14 @@ is_activated() {
     [[ -f "$activated_file" ]]
 }
 
-# Function to check if an extension is protected (01-04 prefixes)
+# Function to check if an extension is protected (00 prefix for core initialization)
 is_protected_extension() {
     local filename="$1"
     local base=$(basename "$filename" .sh.example)
     base=$(basename "$base" .sh)
 
-    # Check if filename starts with 01, 02, 03, or 04
-    if [[ "$base" =~ ^0[1-4]- ]]; then
+    # Check if filename starts with 00 (core initialization script)
+    if [[ "$base" =~ ^00- ]]; then
         return 0  # Protected
     fi
     return 1  # Not protected
@@ -261,7 +261,7 @@ deactivate_extension() {
             # Check if extension is protected
             if is_protected_extension "$filename"; then
                 print_error "Cannot deactivate protected extension '$extension_name' ($filename)"
-                print_warning "Extensions 01-04 are core system components and cannot be deactivated"
+                print_warning "Extension 00-init is the core system initialization script and cannot be deactivated"
                 return 1
             fi
 
@@ -420,7 +420,8 @@ Extensions are identified by their base name without the number prefix.
 For example, '10-rust.sh.example' is referred to as 'rust'.
 
 Protected Extensions:
-  Extensions 01-04 are core system components and cannot be deactivated.
+  Extension 00-init is the core system initialization script and cannot be deactivated.
+  This script combines Turbo Flow, Agent Manager, Tmux Workspace, and Context Management.
 
 Note: Activated extensions will be executed during VM configuration.
 EOF
