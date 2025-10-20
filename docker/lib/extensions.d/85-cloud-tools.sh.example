@@ -4,10 +4,10 @@
 # Source common utilities
 source "${WORKSPACE_DIR:-/workspace}/scripts/lib/common.sh"
 
-print_header "Cloud Provider CLI Tools Setup"
+print_status "Cloud Provider CLI Tools Setup"
 
 # AWS CLI
-print_info "Installing AWS CLI..."
+print_status "Installing AWS CLI..."
 if ! command -v aws &> /dev/null; then
     curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip -q awscliv2.zip
@@ -15,31 +15,31 @@ if ! command -v aws &> /dev/null; then
     rm -rf aws awscliv2.zip
     print_success "AWS CLI installed"
 else
-    print_info "AWS CLI already installed: $(aws --version)"
+    print_status "AWS CLI already installed: $(aws --version)"
 fi
 
 # Azure CLI
-print_info "Installing Azure CLI..."
+print_status "Installing Azure CLI..."
 if ! command -v az &> /dev/null; then
     curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
     print_success "Azure CLI installed"
 else
-    print_info "Azure CLI already installed: $(az version --output tsv --query '\"azure-cli\"')"
+    print_status "Azure CLI already installed: $(az version --output tsv --query '\"azure-cli\"')"
 fi
 
 # Google Cloud CLI
-print_info "Installing Google Cloud CLI..."
+print_status "Installing Google Cloud CLI..."
 if ! command -v gcloud &> /dev/null; then
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
     sudo apt-get update && sudo apt-get install -y google-cloud-cli
     print_success "Google Cloud CLI installed"
 else
-    print_info "Google Cloud CLI already installed: $(gcloud version --format='value(version)')"
+    print_status "Google Cloud CLI already installed: $(gcloud version --format='value(version)')"
 fi
 
 # Oracle Cloud Infrastructure CLI
-print_info "Installing Oracle Cloud CLI..."
+print_status "Installing Oracle Cloud CLI..."
 if ! command -v oci &> /dev/null; then
     bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
     # Add OCI CLI to PATH for current session
@@ -48,11 +48,11 @@ if ! command -v oci &> /dev/null; then
     echo 'export PATH=$PATH:$HOME/bin' >> ~/.bashrc
     print_success "Oracle Cloud CLI installed"
 else
-    print_info "Oracle Cloud CLI already installed: $(oci --version)"
+    print_status "Oracle Cloud CLI already installed: $(oci --version)"
 fi
 
 # Alibaba Cloud CLI
-print_info "Installing Alibaba Cloud CLI..."
+print_status "Installing Alibaba Cloud CLI..."
 if ! command -v aliyun &> /dev/null; then
     wget -q https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-amd64.tgz
     tar xzf aliyun-cli-linux-latest-amd64.tgz
@@ -60,11 +60,11 @@ if ! command -v aliyun &> /dev/null; then
     rm aliyun-cli-linux-latest-amd64.tgz
     print_success "Alibaba Cloud CLI installed"
 else
-    print_info "Alibaba Cloud CLI already installed: $(aliyun version)"
+    print_status "Alibaba Cloud CLI already installed: $(aliyun version)"
 fi
 
 # DigitalOcean CLI
-print_info "Installing DigitalOcean CLI (doctl)..."
+print_status "Installing DigitalOcean CLI (doctl)..."
 if ! command -v doctl &> /dev/null; then
     DOCTL_VERSION=$(curl -s https://api.github.com/repos/digitalocean/doctl/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
     wget -q "https://github.com/digitalocean/doctl/releases/download/v${DOCTL_VERSION}/doctl-${DOCTL_VERSION}-linux-amd64.tar.gz"
@@ -73,20 +73,20 @@ if ! command -v doctl &> /dev/null; then
     rm "doctl-${DOCTL_VERSION}-linux-amd64.tar.gz"
     print_success "DigitalOcean CLI installed"
 else
-    print_info "DigitalOcean CLI already installed: $(doctl version)"
+    print_status "DigitalOcean CLI already installed: $(doctl version)"
 fi
 
 # IBM Cloud CLI
-print_info "Installing IBM Cloud CLI..."
+print_status "Installing IBM Cloud CLI..."
 if ! command -v ibmcloud &> /dev/null; then
     curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
     print_success "IBM Cloud CLI installed"
 else
-    print_info "IBM Cloud CLI already installed: $(ibmcloud version)"
+    print_status "IBM Cloud CLI already installed: $(ibmcloud version)"
 fi
 
 # Create cloud projects workspace
-print_info "Setting up cloud workspace directories..."
+print_status "Setting up cloud workspace directories..."
 mkdir -p "$WORKSPACE_DIR/cloud"/{aws,azure,gcp,oracle,alibaba,digitalocean,ibm}
 
 # Create comprehensive README
@@ -241,6 +241,6 @@ Consider installing these multi-cloud tools:
 EOF
 
 print_success "Cloud provider CLI tools setup complete!"
-print_info "Cloud workspace created at: $WORKSPACE_DIR/cloud"
-print_info "Run 'source ~/.bashrc' to update PATH for OCI CLI"
-print_info "Configure each CLI with its respective authentication command"
+print_status "Cloud workspace created at: $WORKSPACE_DIR/cloud"
+print_status "Run 'source ~/.bashrc' to update PATH for OCI CLI"
+print_status "Configure each CLI with its respective authentication command"

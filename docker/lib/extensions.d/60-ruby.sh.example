@@ -88,10 +88,18 @@ fi
 # Install Ruby versions
 print_status "Installing Ruby versions..."
 
-ruby_versions=(
-    "3.4.5"    # Latest stable
-    "3.3.9"    # Previous stable
-)
+# Check if running in CI mode
+if [[ "$CI_MODE" == "true" ]]; then
+    print_status "CI mode detected - installing single Ruby version only"
+    ruby_versions=(
+        "3.4.5"    # Latest stable only in CI
+    )
+else
+    ruby_versions=(
+        "3.4.5"    # Latest stable
+        "3.3.9"    # Previous stable
+    )
+fi
 
 for version in "${ruby_versions[@]}"; do
     print_debug "Installing Ruby $version..."
@@ -103,10 +111,22 @@ for version in "${ruby_versions[@]}"; do
 done
 
 # Set default Ruby version
-rbenv global 3.3.0
+rbenv global 3.4.5
 rbenv rehash
 
-print_success "Ruby $(ruby -v) set as default"
+# Verify Ruby is available before proceeding
+if ! command_exists ruby; then
+    print_warning "Ruby not immediately available after rehash, sourcing environment..."
+    export PATH="$HOME/.rbenv/shims:$PATH"
+    eval "$(rbenv init - bash)"
+fi
+
+if command_exists ruby; then
+    print_success "Ruby $(ruby -v) set as default"
+else
+    print_error "Ruby installation verification failed"
+    return 1
+fi
 
 # Install Bundler
 print_status "Installing Bundler..."
@@ -117,12 +137,37 @@ else
     print_warning "Failed to install Bundler or already installed"
 fi
 
+# Check if running in CI mode - skip Rails, gems, and additional setup
+if [[ "$CI_MODE" == "true" ]]; then
+    print_status "CI mode detected - skipping Rails, Sinatra, and development gems"
+
+    # Create minimal wrapper scripts for non-interactive SSH sessions
+    print_status "Creating command wrappers for non-interactive SSH..."
+    create_tool_wrapper "ruby" "" "dynamic"
+    create_tool_wrapper "gem" "" "dynamic"
+    create_tool_wrapper "bundle" "" "dynamic"
+    create_tool_wrapper "bundler" "" "dynamic"
+
+    print_success "Ruby development environment configured (CI mode)"
+    return 0
+fi
+
 # Create wrapper scripts for non-interactive SSH sessions
 print_status "Creating command wrappers for non-interactive SSH..."
-create_tool_wrapper "ruby" "$HOME/.rbenv/shims/ruby"
-create_tool_wrapper "gem" "$HOME/.rbenv/shims/gem"
-create_tool_wrapper "bundle" "$HOME/.rbenv/shims/bundle"
-create_tool_wrapper "bundler" "$HOME/.rbenv/shims/bundler"
+
+# Use dynamic wrappers for rbenv-managed commands since they:
+# 1. May not exist as shims immediately after rehash
+# 2. Can be switched between versions dynamically
+# 3. Are available in PATH after sourcing rbenv init
+
+# Create dynamic wrappers (commands resolved via PATH after sourcing environment)
+create_tool_wrapper "ruby" "" "dynamic"
+create_tool_wrapper "gem" "" "dynamic"
+create_tool_wrapper "bundle" "" "dynamic"
+create_tool_wrapper "bundler" "" "dynamic"
+create_tool_wrapper "rails" "" "dynamic"
+create_tool_wrapper "rake" "" "dynamic"
+create_tool_wrapper "irb" "" "dynamic"
 
 # Install Rails
 print_status "Installing Ruby on Rails..."

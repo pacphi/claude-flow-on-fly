@@ -35,6 +35,22 @@ else
     return 1
 fi
 
+# Check if running in CI mode
+if [[ "$CI_MODE" == "true" ]]; then
+    print_status "CI mode detected - skipping slow cargo tools"
+
+    # Only install rust-analyzer (fast, essential for IDE)
+    print_status "Installing rust-analyzer..."
+    if rustup component add rust-analyzer 2>/dev/null; then
+        print_success "rust-analyzer installed"
+    else
+        print_warning "Failed to install rust-analyzer"
+    fi
+
+    print_success "Rust development environment configured (CI mode)"
+    return 0
+fi
+
 # Install useful Rust tools
 print_status "Installing additional Rust tools..."
 print_warning "Note: This may take 10-15 minutes as tools compile from source"
@@ -60,10 +76,10 @@ optional_tools=(
 # Install essential tools first
 for tool in "${essential_tools[@]}"; do
     print_debug "Installing essential tool: $tool..."
-    if timeout 300 cargo install "$tool"; then
+    if timeout 900 cargo install "$tool"; then
         print_debug "✓ $tool installed"
     else
-        print_warning "Failed to install $tool (timeout after 5 minutes)"
+        print_warning "Failed to install $tool (timeout after 15 minutes)"
     fi
 done
 

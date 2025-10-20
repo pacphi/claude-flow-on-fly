@@ -26,6 +26,11 @@ on:
         required: false
         default: false
         type: boolean
+      skip_idempotency:
+        description: 'Skip idempotency tests (faster, but less thorough)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   TEST_APP_PREFIX: "ext-test"
@@ -786,7 +791,7 @@ jobs:
           '"
 
       - name: Test idempotency
-        if: steps.should-test.outputs.should_test == 'true'
+        if: steps.should-test.outputs.should_test == 'true' && inputs.skip_idempotency != true
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
 
@@ -839,7 +844,8 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: read
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # Only run on workflow_dispatch or when explicitly requested via commit message
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[test-combinations]')
 
     strategy:
       fail-fast: false

@@ -4,28 +4,28 @@
 # Source common utilities
 source "${WORKSPACE_DIR:-/workspace}/scripts/lib/common.sh"
 
-print_header "AI CLI Tools and Coding Assistants Setup"
+print_status "AI CLI Tools and Coding Assistants Setup"
 
 # Codex CLI
-print_info "Installing Codex CLI..."
+print_status "Installing Codex CLI..."
 if ! command -v codex &> /dev/null; then
     npm install -g codex-cli
     print_success "Codex CLI installed"
 else
-    print_info "Codex CLI already installed: $(codex --version 2>/dev/null || echo 'version unknown')"
+    print_status "Codex CLI already installed: $(codex --version 2>/dev/null || echo 'version unknown')"
 fi
 
 # Gemini CLI
-print_info "Installing Gemini CLI..."
+print_status "Installing Gemini CLI..."
 if ! command -v gemini &> /dev/null; then
     npm install -g @google/gemini-cli
     print_success "Gemini CLI installed"
 else
-    print_info "Gemini CLI already installed"
+    print_status "Gemini CLI already installed"
 fi
 
 # GitHub Copilot CLI
-print_info "Installing GitHub Copilot CLI..."
+print_status "Installing GitHub Copilot CLI..."
 if ! gh extension list | grep -q "github/gh-copilot"; then
     if command -v gh &> /dev/null; then
         gh extension install github/gh-copilot
@@ -34,32 +34,32 @@ if ! gh extension list | grep -q "github/gh-copilot"; then
         print_warning "GitHub CLI (gh) not found. Install it first to use GitHub Copilot CLI"
     fi
 else
-    print_info "GitHub Copilot CLI already installed"
+    print_status "GitHub Copilot CLI already installed"
 fi
 
 # Amazon Q Developer (AWS Q CLI)
-print_info "Checking AWS CLI for Amazon Q Developer..."
+print_status "Checking AWS CLI for Amazon Q Developer..."
 if command -v aws &> /dev/null; then
-    print_info "AWS CLI available: $(aws --version)"
-    print_info "Amazon Q Developer available through AWS CLI"
-    print_info "Use 'aws q' commands or install AWS Toolkit for IDE integration"
+    print_status "AWS CLI available: $(aws --version)"
+    print_status "Amazon Q Developer available through AWS CLI"
+    print_status "Use 'aws q' commands or install AWS Toolkit for IDE integration"
 else
     print_warning "AWS CLI not found. Install 85-cloud-tools.sh extension to use Amazon Q Developer"
 fi
 
 # Ollama
-print_info "Installing Ollama..."
+print_status "Installing Ollama..."
 if ! command -v ollama &> /dev/null; then
     curl -fsSL https://ollama.ai/install.sh | sh
     print_success "Ollama installed"
-    print_info "Start Ollama service with: ollama serve"
-    print_info "Pull models with: ollama pull llama3.2"
+    print_status "Start Ollama service with: ollama serve"
+    print_status "Pull models with: ollama pull llama3.2"
 else
-    print_info "Ollama already installed: $(ollama --version 2>/dev/null || echo 'version unknown')"
+    print_status "Ollama already installed: $(ollama --version 2>/dev/null || echo 'version unknown')"
 fi
 
 # Fabric
-print_info "Installing Fabric..."
+print_status "Installing Fabric..."
 if ! command -v fabric &> /dev/null; then
     # Detect architecture
     ARCH=$(uname -m)
@@ -76,13 +76,13 @@ if ! command -v fabric &> /dev/null; then
     chmod +x fabric
     sudo mv fabric /usr/local/bin/
     print_success "Fabric installed"
-    print_info "Initialize with: fabric --setup"
+    print_status "Initialize with: fabric --setup"
 else
-    print_info "Fabric already installed: $(fabric --version 2>/dev/null || echo 'version unknown')"
+    print_status "Fabric already installed: $(fabric --version 2>/dev/null || echo 'version unknown')"
 fi
 
 # Plandex
-print_info "Installing Plandex..."
+print_status "Installing Plandex..."
 if ! command -v plandex &> /dev/null; then
     if command -v go &> /dev/null; then
         go install github.com/plandex-ai/plandex@latest
@@ -96,11 +96,11 @@ if ! command -v plandex &> /dev/null; then
         print_warning "Go not found. Install 20-golang.sh extension to use Plandex"
     fi
 else
-    print_info "Plandex already installed: $(plandex version 2>/dev/null || echo 'version unknown')"
+    print_status "Plandex already installed: $(plandex version 2>/dev/null || echo 'version unknown')"
 fi
 
 # Hector
-print_info "Installing Hector..."
+print_status "Installing Hector..."
 if ! command -v hector &> /dev/null; then
     if command -v go &> /dev/null; then
         go install github.com/kadirpekel/hector/cmd/hector@latest
@@ -114,11 +114,11 @@ if ! command -v hector &> /dev/null; then
         print_warning "Go not found. Install 20-golang.sh extension to use Hector"
     fi
 else
-    print_info "Hector already installed: $(hector version 2>/dev/null || echo 'version unknown')"
+    print_status "Hector already installed: $(hector version 2>/dev/null || echo 'version unknown')"
 fi
 
 # Grok CLI
-print_info "Installing Grok CLI..."
+print_status "Installing Grok CLI..."
 if ! command -v grok &> /dev/null; then
     if command -v pip &> /dev/null; then
         pip install grok-cli
@@ -127,20 +127,20 @@ if ! command -v grok &> /dev/null; then
         print_warning "pip not found. Install Python to use Grok CLI"
     fi
 else
-    print_info "Grok CLI already installed: $(grok --version 2>/dev/null || echo 'version unknown')"
+    print_status "Grok CLI already installed: $(grok --version 2>/dev/null || echo 'version unknown')"
 fi
 
 # Claude Squad
-print_info "Installing Claude Squad..."
+print_status "Installing Claude Squad..."
 if ! command -v claude-squad &> /dev/null; then
     npm install -g claude-squad
     print_success "Claude Squad installed"
 else
-    print_info "Claude Squad already installed: $(claude-squad --version 2>/dev/null || echo 'version unknown')"
+    print_status "Claude Squad already installed: $(claude-squad --version 2>/dev/null || echo 'version unknown')"
 fi
 
 # Create AI tools workspace
-print_info "Setting up AI tools workspace directories..."
+print_status "Setting up AI tools workspace directories..."
 mkdir -p "$WORKSPACE_DIR/ai-tools"/{ollama-models,fabric-patterns,projects}
 
 # Create comprehensive README
@@ -455,7 +455,7 @@ See main project documentation for more AI tools and integrations.
 EOF
 
 print_success "AI CLI tools setup complete!"
-print_info "AI tools workspace created at: $WORKSPACE_DIR/ai-tools"
-print_info "Run 'source ~/.bashrc' to update PATH if needed"
-print_info "Configure API keys for cloud-based tools (see README)"
-print_info "For local AI, start Ollama with: nohup ollama serve > ~/ollama.log 2>&1 &"
+print_status "AI tools workspace created at: $WORKSPACE_DIR/ai-tools"
+print_status "Run 'source ~/.bashrc' to update PATH if needed"
+print_status "Configure API keys for cloud-based tools (see README)"
+print_status "For local AI, start Ollama with: nohup ollama serve > ~/ollama.log 2>&1 &"

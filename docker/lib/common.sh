@@ -446,13 +446,15 @@ setup_tool_path() {
 # This ensures tools work in non-interactive SSH sessions
 # Usage: create_tool_wrapper "go" "/usr/local/go/bin/go"
 #        create_tool_wrapper "cargo" "$HOME/.cargo/bin/cargo"
+#        create_tool_wrapper "sdk" "" "dynamic"  # For commands resolved via PATH/init
 create_tool_wrapper() {
     local tool_name="$1"
     local actual_path="$2"
-    local env_file="${3:-/etc/profile.d/00-ssh-environment.sh}"
+    local mode="${3:-static}"  # "static" (with path) or "dynamic" (via PATH)
+    local env_file="/etc/profile.d/00-ssh-environment.sh"
     local wrapper_path="/usr/local/bin/$tool_name"
 
-    print_debug "Creating wrapper for $tool_name"
+    print_debug "Creating wrapper for $tool_name (mode: $mode)"
 
     # Skip if wrapper already exists
     if [[ -f "$wrapper_path" ]] && [[ -L "$wrapper_path" || $(head -1 "$wrapper_path" 2>/dev/null | grep -c "Wrapper for") -gt 0 ]]; then
@@ -460,20 +462,41 @@ create_tool_wrapper() {
         return 0
     fi
 
-    # Expand actual_path if it contains variables like $HOME
-    actual_path=$(eval echo "$actual_path")
-
-    # Skip if actual command doesn't exist
-    if [[ ! -f "$actual_path" ]] && [[ ! -x "$actual_path" ]]; then
-        print_debug "Skipping wrapper - command not found: $actual_path"
-        return 1
-    fi
-
-    # Create wrapper that sources environment before executing
-    sudo tee "$wrapper_path" > /dev/null << EOF
+    if [[ "$mode" == "dynamic" ]]; then
+        # Create dynamic wrapper that resolves command via PATH after sourcing environment
+        # This handles cases where commands are in PATH but not at fixed locations
+        sudo tee "$wrapper_path" > /dev/null << EOF
 #!/bin/bash
 # Wrapper for $tool_name - ensures environment is loaded for non-interactive SSH
 # Created by extension system to support 'flyctl ssh console --command' usage
+# Mode: dynamic (resolves command via PATH)
+
+# Source environment if available (for non-interactive sessions)
+[[ -f "$env_file" ]] && source "$env_file" 2>/dev/null
+
+# Find and execute command via PATH
+exec $tool_name "\$@"
+EOF
+
+        sudo chmod +x "$wrapper_path"
+        print_success "Created dynamic wrapper: $wrapper_path"
+        return 0
+    else
+        # Static mode: use explicit path
+        # Expand actual_path if it contains variables like $HOME
+        actual_path=$(eval echo "$actual_path")
+
+        # Warn if command doesn't exist, but still create wrapper for delayed availability
+        if [[ ! -f "$actual_path" ]] && [[ ! -x "$actual_path" ]]; then
+            print_warning "Command not yet available: $actual_path (creating wrapper anyway)"
+        fi
+
+        # Create wrapper that sources environment before executing
+        sudo tee "$wrapper_path" > /dev/null << EOF
+#!/bin/bash
+# Wrapper for $tool_name - ensures environment is loaded for non-interactive SSH
+# Created by extension system to support 'flyctl ssh console --command' usage
+# Mode: static (uses explicit path)
 
 # Source environment if available (for non-interactive sessions)
 [[ -f "$env_file" ]] && source "$env_file" 2>/dev/null
@@ -482,9 +505,10 @@ create_tool_wrapper() {
 exec "$actual_path" "\$@"
 EOF
 
-    sudo chmod +x "$wrapper_path"
-    print_debug "Created wrapper: $wrapper_path -> $actual_path"
-    return 0
+        sudo chmod +x "$wrapper_path"
+        print_debug "Created static wrapper: $wrapper_path -> $actual_path"
+        return 0
+    fi
 }
 
 # Export all functions so they're available to subshells

@@ -43,6 +43,13 @@ else
     return 1
 fi
 
+# Check if running in CI mode
+if [[ "$CI_MODE" == "true" ]]; then
+    print_status "CI mode detected - skipping Go development tools"
+    print_success "Go development environment configured (CI mode)"
+    return 0
+fi
+
 # Install useful Go tools
 print_status "Installing Go development tools..."
 
