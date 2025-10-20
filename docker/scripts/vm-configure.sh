@@ -1,6 +1,6 @@
 #!/bin/bash
-# vm-configure.sh - Configuration script for Claude Development Environment
-# This script runs ON the Fly.io VM to configure the development environment
+# vm-configure.sh - Configuration script for Sindri
+# This script runs ON the Fly.io VM to configure the AI-powered development forge
 
 set -e  # Exit on any error
 
@@ -92,8 +92,8 @@ run_interactive_setup() {
 
 # Main execution function
 main() {
-    echo "🔧 Configuring Claude Development Environment"
-    echo "============================================"
+    echo "🔧 Configuring Sindri Development Environment"
+    echo "=============================================="
     echo
 
     # Parse command line arguments
@@ -246,6 +246,12 @@ EOF
 
     # Run configuration steps
     setup_workspace_structure
+
+    # Setup MOTD banner
+    if [[ -x "$SCRIPT_DIR/setup-motd.sh" ]]; then
+        bash "$SCRIPT_DIR/setup-motd.sh"
+    fi
+
     setup_nodejs
 
     # Setup GitHub CLI early if token is available (needed for agent-manager)

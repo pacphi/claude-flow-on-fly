@@ -165,7 +165,7 @@ jobs:
           echo "git clone https://github.com/${{ github.repository }}.git" >> $changelog_file
           echo "cd $(basename ${{ github.repository }})" >> $changelog_file
           echo "git checkout $current_tag" >> $changelog_file
-          echo "./scripts/vm-setup.sh --app-name my-claude-dev" >> $changelog_file
+          echo "./scripts/vm-setup.sh --app-name my-sindri-dev" >> $changelog_file
           echo '```' >> $changelog_file
           echo "" >> $changelog_file
 
@@ -313,8 +313,8 @@ jobs:
           fi
 
           # Clone the repository
-          git clone https://github.com/${{ github.repository }}.git claude-flow-on-fly
-          cd claude-flow-on-fly
+          git clone https://github.com/${{ github.repository }}.git sindri
+          cd sindri
           git checkout \$TAG
 
           echo "✅ Downloaded Claude Flow on Fly.io \$VERSION"
@@ -327,8 +327,8 @@ jobs:
 
           echo ""
           echo "Next steps:"
-          echo "  cd claude-flow-on-fly"
-          echo "  ./scripts/vm-setup.sh --app-name my-claude-dev"
+          echo "  cd sindri"
+          echo "  ./scripts/vm-setup.sh --app-name my-sindri-dev"
           EOF
 
           chmod +x release-assets/install.sh
@@ -342,8 +342,8 @@ jobs:
 
           ## Setup
           ```bash
-          ./scripts/vm-setup.sh --app-name my-claude-dev
-          flyctl ssh console --app my-claude-dev
+          ./scripts/vm-setup.sh --app-name my-sindri-dev
+          flyctl ssh console --app my-sindri-dev
           /workspace/scripts/vm-configure.sh
           claude
           ```

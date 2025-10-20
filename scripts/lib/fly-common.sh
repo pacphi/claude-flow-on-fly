@@ -18,10 +18,10 @@ export PURPLE='\033[0;35m'
 export NC='\033[0m' # No Color
 
 # Common configuration
-export DEFAULT_APP_NAME="claude-dev-env"
+export DEFAULT_APP_NAME="sindri-dev-env"
 export DEFAULT_REMOTE_USER="developer"
 export DEFAULT_REMOTE_PORT="10022"
-export DEFAULT_VOLUME_NAME="claude_data"
+export DEFAULT_VOLUME_NAME="sindri_data"
 export DEFAULT_REGION="iad"
 
 # Function to print colored output
@@ -200,7 +200,7 @@ parse_common_args() {
 show_common_usage() {
     local script_name="$1"
     echo "Common Options:"
-    echo "  --app-name NAME     Fly.io app name (default: claude-dev-env)"
+    echo "  --app-name NAME     Fly.io app name (default: sindri-dev-env)"
     echo "  --help              Show this help message"
     echo ""
     echo "Environment Variables:"

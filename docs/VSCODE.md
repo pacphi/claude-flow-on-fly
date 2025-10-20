@@ -1,6 +1,6 @@
 # VS Code Remote Development Setup
 
-## Connect VS Code to your Claude development environment on Fly.io
+## Connect VS Code to your Sindri development environment on Fly.io
 
 > **📋 Complete the common setup first:** See [IDE Setup Guide](IDE_SETUP.md) for prerequisites, SSH configuration,
 > and VM setup before proceeding.
@@ -37,7 +37,7 @@ This guide covers VS Code-specific setup using the Remote-SSH extension.
 
 1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
 2. Type "Remote-SSH: Connect to Host"
-3. Select your configured host (`claude-dev`)
+3. Select your configured host (`sindri-dev`)
 
 #### Method 2: Remote Explorer
 
@@ -83,7 +83,7 @@ This guide covers VS Code-specific setup using the Remote-SSH extension.
 
 ### Installation
 
-1. **Extensions Panel:** Open Extensions (⇧⌘X) → Search → "Install in SSH: claude-dev"
+1. **Extensions Panel:** Open Extensions (⇧⌘X) → Search → "Install in SSH: sindri-dev"
 2. **Command Line:** `code --install-extension extension-name`
 3. **Settings Sync:** Enable to automatically sync extensions
 
@@ -171,7 +171,7 @@ Add to VS Code's `settings.json`:
 **Test Connection:**
 
 ```bash
-ssh -v claude-dev 'echo "Connection works"'
+ssh -v sindri-dev 'echo "Connection works"'
 ```
 
 ## VS Code Best Practices

@@ -178,19 +178,19 @@ jobs:
       - name: Build Docker image
         run: |
           echo "Building Docker image..."
-          docker build -t claude-dev-env:test .
+          docker build -t sindri-dev-env:test .
 
       - name: Test Docker image basic functionality
         run: |
           echo "Testing basic Docker image functionality..."
 
           # Run container and check if entrypoint exists
-          docker run --rm claude-dev-env:test ls -la /docker/scripts/entrypoint.sh
+          docker run --rm sindri-dev-env:test ls -la /docker/scripts/entrypoint.sh
 
           # Check if a minium subset of tools are installed
-          docker run --rm claude-dev-env:test which ssh
-          docker run --rm claude-dev-env:test which curl
-          docker run --rm claude-dev-env:test which git
+          docker run --rm sindri-dev-env:test which ssh
+          docker run --rm sindri-dev-env:test which curl
+          docker run --rm sindri-dev-env:test which git
 
           echo "✅ Docker image built successfully with required tools"
 

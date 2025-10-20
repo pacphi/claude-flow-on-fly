@@ -4,9 +4,10 @@ Project-specific guidance for Claude Code when working with this repository.
 
 ## Project Overview
 
-Complete remote AI-assisted development environment running Claude Code and Claude Flow on Fly.io infrastructure.
-Provides cost-optimized, secure virtual machines with persistent storage for AI-assisted development without
-requiring local installation.
+Sindri is a complete AI-powered cloud development forge running on Fly.io infrastructure. It provides cost-optimized,
+secure virtual machines with persistent storage for AI-assisted development without requiring local installation.
+Like the legendary Norse blacksmith, Sindri forges powerful development environments from cloud infrastructure,
+AI tools, and developer workflows.
 
 ## Development Commands
 

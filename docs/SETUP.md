@@ -1,4 +1,4 @@
-# Setup Guide
+# Sindri Setup Guide
 
 Advanced setup topics not covered in [Quick Start](QUICKSTART.md).
 
@@ -48,7 +48,7 @@ flyctl secrets set PERPLEXITY_API_KEY="pplx-..." -a <app-name>
 flyctl secrets set AUTHORIZED_KEYS="$(cat key1.pub key2.pub key3.pub)" -a <app-name>
 
 # Team members connect to same VM
-ssh developer@team-claude-dev.fly.dev -p 10022
+ssh developer@team-sindri-dev.fly.dev -p 10022
 ```
 
 ### Individual VMs
@@ -56,8 +56,8 @@ ssh developer@team-claude-dev.fly.dev -p 10022
 Each team member deploys their own VM:
 
 ```bash
-./scripts/vm-setup.sh --app-name alice-claude-dev
-./scripts/vm-setup.sh --app-name bob-claude-dev
+./scripts/vm-setup.sh --app-name alice-sindri-dev
+./scripts/vm-setup.sh --app-name bob-sindri-dev
 ```
 
 Use volume snapshots to share data between VMs when needed.

@@ -1,11 +1,11 @@
 # IDE Remote Development Setup Guide
 
-## Common setup guide for connecting any IDE to your Claude development environment on Fly.io
+## Common setup guide for connecting any IDE to your Sindri development environment on Fly.io
 
 > **⚡ Need to set up your Fly.io environment first?** Use our automated setup script:
-> `./scripts/vm-setup.sh --app-name my-claude-dev`. See the [Quick Start Guide](QUICKSTART.md) for details.
+> `./scripts/vm-setup.sh --app-name my-sindri-dev`. See the [Quick Start Guide](QUICKSTART.md) for details.
 
-This guide covers the common setup steps for connecting any IDE to your Fly.io-hosted Claude development
+This guide covers the common setup steps for connecting any IDE to your Fly.io-hosted Sindri development
 environment. For IDE-specific instructions, see:
 
 - **[VS Code Setup](VSCODE.md)** - Visual Studio Code with Remote-SSH
@@ -15,7 +15,7 @@ environment. For IDE-specific instructions, see:
 
 Before setting up any IDE connection, ensure you have:
 
-- ✅ Your Fly.io Claude development environment deployed
+- ✅ Your Fly.io Sindri development environment deployed
 - ✅ SSH key pair created and configured with Fly.io
 - ✅ VM is running (check with `flyctl status -a your-app-name`)
 
@@ -25,11 +25,11 @@ If you haven't set up your Fly.io environment yet:
 
 ```bash
 # Clone the repository
-git clone https://github.com/pacphi/claude-flow-on-fly.git
-cd claude-flow-on-fly
+git clone https://github.com/pacphi/sindri.git
+cd sindri
 
 # Run automated setup
-./scripts/vm-setup.sh --app-name my-claude-dev --region iad
+./scripts/vm-setup.sh --app-name my-sindri-dev --region iad
 ```
 
 The script will handle all the Fly.io configuration and provide connection details.
@@ -41,9 +41,9 @@ The script will handle all the Fly.io configuration and provide connection detai
 Create or edit your SSH config file at `~/.ssh/config`:
 
 ```bash
-# Replace 'my-claude-dev' with your actual app name
-Host claude-dev
-    HostName my-claude-dev.fly.dev
+# Replace 'my-sindri-dev' with your actual app name
+Host sindri-dev
+    HostName my-sindri-dev.fly.dev
     Port 10022
     User developer
     IdentityFile ~/.ssh/id_rsa
@@ -55,7 +55,7 @@ Host claude-dev
 
 # Optional: Add a shorter alias
 Host dev
-    HostName my-claude-dev.fly.dev
+    HostName my-sindri-dev.fly.dev
     Port 10022
     User developer
     IdentityFile ~/.ssh/id_rsa
@@ -68,7 +68,7 @@ Host dev
 Before connecting any IDE, test the SSH connection:
 
 ```bash
-ssh claude-dev
+ssh sindri-dev
 ```
 
 You should connect successfully and see the welcome message from your VM.
@@ -204,7 +204,7 @@ git config --global user.email "your.email@example.com"
 Add to your SSH config for seamless Git operations:
 
 ```bash
-Host claude-dev
+Host sindri-dev
     ForwardAgent yes
     # ... other settings
 ```
@@ -288,7 +288,7 @@ setup_git_hooks
 
 ```bash
 # Add to ~/.ssh/config for better performance
-Host claude-dev
+Host sindri-dev
     TCPKeepAlive yes
     ServerAliveInterval 30
     ServerAliveCountMax 6

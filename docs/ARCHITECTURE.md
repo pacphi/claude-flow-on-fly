@@ -2,8 +2,8 @@
 
 ## System Overview
 
-This project provides a complete remote development environment running on Fly.io infrastructure with persistent
-storage, auto-scaling, and AI-assisted development tools.
+Sindri provides a complete AI-powered cloud development forge running on Fly.io infrastructure with persistent
+storage, auto-scaling, and integrated AI development tools.
 
 ## Infrastructure Components
 

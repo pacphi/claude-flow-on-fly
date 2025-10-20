@@ -2,7 +2,7 @@
 
 ## Cost Structure
 
-Understanding Fly.io's billing model helps optimize your development environment costs.
+Understanding Fly.io's billing model helps optimize Sindri's infrastructure costs.
 
 ### Billing Components
 
@@ -106,8 +106,8 @@ enabled = true
 **Check VM status:**
 
 ```bash
-flyctl status -a my-claude-dev
-flyctl machine list -a my-claude-dev
+flyctl status -a my-sindri-dev
+flyctl machine list -a my-sindri-dev
 ```
 
 ### Resource Optimization
@@ -115,21 +115,21 @@ flyctl machine list -a my-claude-dev
 **Scale down for light work:**
 
 ```bash
-flyctl scale memory 256 -a my-claude-dev
-flyctl scale count 1 -a my-claude-dev
+flyctl scale memory 256 -a my-sindri-dev
+flyctl scale count 1 -a my-sindri-dev
 ```
 
 **Scale up for intensive tasks:**
 
 ```bash
-flyctl scale memory 8192 -a my-claude-dev
-flyctl scale count 2 -a my-claude-dev
+flyctl scale memory 8192 -a my-sindri-dev
+flyctl scale count 2 -a my-sindri-dev
 ```
 
 **Monitor resource usage:**
 
 ```bash
-flyctl metrics -a my-claude-dev
+flyctl metrics -a my-sindri-dev
 ```
 
 ## Cost Monitoring
@@ -262,10 +262,10 @@ Automatically scale based on development schedules:
 
 ```bash
 # Scale up during work hours (9 AM)
-echo "0 9 * * 1-5 /usr/local/bin/flyctl scale memory 2048 -a my-claude-dev" | crontab
+echo "0 9 * * 1-5 /usr/local/bin/flyctl scale memory 2048 -a my-sindri-dev" | crontab
 
 # Scale down after hours (6 PM)
-echo "0 18 * * 1-5 /usr/local/bin/flyctl scale memory 256 -a my-claude-dev" | crontab
+echo "0 18 * * 1-5 /usr/local/bin/flyctl scale memory 256 -a my-sindri-dev" | crontab
 ```
 
 ### Resource Right-sizing
@@ -423,8 +423,8 @@ Cost monitoring provides recommendations but no automated alerts:
 
 **Investigation Steps:**
 
-1. Check VM status: `flyctl machine list -a my-claude-dev`
-2. Review resource usage: `flyctl metrics -a my-claude-dev`
+1. Check VM status: `flyctl machine list -a my-sindri-dev`
+2. Review resource usage: `flyctl metrics -a my-sindri-dev`
 3. Analyze billing: Fly.io dashboard billing section
 4. Monitor traffic: Check egress patterns
 
@@ -432,11 +432,11 @@ Cost monitoring provides recommendations but no automated alerts:
 
 ```bash
 # Force suspend all machines
-flyctl machine stop --all -a my-claude-dev
+flyctl machine stop --all -a my-sindri-dev
 
 # Reset to minimal configuration
-flyctl scale memory 256 -a my-claude-dev
-flyctl scale count 1 -a my-claude-dev
+flyctl scale memory 256 -a my-sindri-dev
+flyctl scale count 1 -a my-sindri-dev
 
 # Review current costs and get recommendations
 ./scripts/cost-monitor.sh

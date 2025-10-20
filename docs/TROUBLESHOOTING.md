@@ -1,6 +1,6 @@
 # 🛠️ Troubleshooting Guide
 
-This comprehensive guide helps resolve common issues with your Claude development environment on Fly.io.
+This comprehensive guide helps resolve common issues with your Sindri development environment on Fly.io.
 
 ## Table of Contents
 
@@ -29,13 +29,13 @@ Connection reset by 2a09:8280:1::8c:fcda:0 port 10022
 
 ```bash
 # For standard hostnames
-ssh-keygen -R "[my-claude-dev.fly.dev]:10022"
+ssh-keygen -R "[my-sindri-dev.fly.dev]:10022"
 
 # If you have IPv6 addresses cached
 ssh-keygen -R "[2a09:8280:1::8c:fcda:0]:10022"
 
 # Then retry your connection
-ssh developer@my-claude-dev.fly.dev -p 10022
+ssh developer@my-sindri-dev.fly.dev -p 10022
 ```
 
 **Why this happens:** SSH stores host keys to prevent man-in-the-middle attacks. When you recreate a VM,
@@ -50,21 +50,21 @@ it gets a new host key, causing a mismatch with the stored key.
 1. Check if the VM is running:
 
    ```bash
-   flyctl status -a my-claude-dev
-   flyctl machine list -a my-claude-dev
+   flyctl status -a my-sindri-dev
+   flyctl machine list -a my-sindri-dev
    ```
 
 2. If the VM is suspended, resume it:
 
    ```bash
-   ./scripts/vm-resume.sh --app-name my-claude-dev
+   ./scripts/vm-resume.sh --app-name my-sindri-dev
    # Wait 30-60 seconds for the VM to fully start
    ```
 
 3. Check VM logs for errors:
 
    ```bash
-   flyctl logs -a my-claude-dev
+   flyctl logs -a my-sindri-dev
    ```
 
 ### Connection Timeout
@@ -76,20 +76,20 @@ it gets a new host key, causing a mismatch with the stored key.
 1. Test with verbose output to see where it fails:
 
    ```bash
-   ssh -vvv developer@my-claude-dev.fly.dev -p 10022
+   ssh -vvv developer@my-sindri-dev.fly.dev -p 10022
    ```
 
 2. Check if the app is accessible:
 
    ```bash
-   flyctl ping -a my-claude-dev
+   flyctl ping -a my-sindri-dev
    ```
 
 3. Verify your firewall isn't blocking port 10022:
 
    ```bash
    # Test connectivity
-   nc -zv my-claude-dev.fly.dev 10022
+   nc -zv my-sindri-dev.fly.dev 10022
    ```
 
 ### Permission Denied (publickey)
@@ -101,7 +101,7 @@ it gets a new host key, causing a mismatch with the stored key.
 1. Verify you're using the correct private key:
 
    ```bash
-   ssh -i ~/.ssh/id_rsa developer@my-claude-dev.fly.dev -p 10022
+   ssh -i ~/.ssh/id_rsa developer@my-sindri-dev.fly.dev -p 10022
    ```
 
 2. Check key permissions (must be 600 for private keys):
@@ -114,7 +114,7 @@ it gets a new host key, causing a mismatch with the stored key.
 3. Ensure your public key was deployed:
 
    ```bash
-   flyctl ssh console -a my-claude-dev
+   flyctl ssh console -a my-sindri-dev
    cat /workspace/developer/.ssh/authorized_keys
    ```
 
@@ -195,21 +195,21 @@ ssh-add -l
 1. Check machine status and logs:
 
    ```bash
-   flyctl status -a my-claude-dev
-   flyctl machine list -a my-claude-dev
-   flyctl logs -a my-claude-dev
+   flyctl status -a my-sindri-dev
+   flyctl machine list -a my-sindri-dev
+   flyctl logs -a my-sindri-dev
    ```
 
 2. Restart the machine:
 
    ```bash
-   flyctl machine restart <machine-id> -a my-claude-dev
+   flyctl machine restart <machine-id> -a my-sindri-dev
    ```
 
 3. Check resource allocation:
 
    ```bash
-   flyctl scale show -a my-claude-dev
+   flyctl scale show -a my-sindri-dev
    ```
 
 ### VM Suspended Unexpectedly
@@ -243,19 +243,19 @@ ssh-add -l
 1. Check volume attachment:
 
    ```bash
-   flyctl volumes list -a my-claude-dev
+   flyctl volumes list -a my-sindri-dev
    ```
 
 2. Verify mount in machine config:
 
    ```bash
-   flyctl config show -a my-claude-dev
+   flyctl config show -a my-sindri-dev
    ```
 
 3. Restart with volume check:
 
    ```bash
-   flyctl machine restart <machine-id> -a my-claude-dev --force
+   flyctl machine restart <machine-id> -a my-sindri-dev --force
    ```
 
 ## Configuration Problems
@@ -270,7 +270,7 @@ ssh-add -l
 
    ```bash
    # Redeploy the application
-   flyctl deploy -a my-claude-dev
+   flyctl deploy -a my-sindri-dev
    ```
 
 2. Check if volume is mounted correctly:
@@ -411,7 +411,7 @@ Common quick fixes:
 1. Add connection multiplexing to `~/.ssh/config`:
 
    ```bash
-   Host my-claude-dev
+   Host my-sindri-dev
        ControlMaster auto
        ControlPath ~/.ssh/control-%r@%h:%p
        ControlPersist 10m
@@ -431,20 +431,20 @@ Common quick fixes:
 1. Check current resources:
 
    ```bash
-   flyctl scale show -a my-claude-dev
+   flyctl scale show -a my-sindri-dev
    ```
 
 2. Scale up if needed:
 
    ```bash
-   flyctl scale vm shared-cpu-2x -a my-claude-dev
-   flyctl scale memory 2048 -a my-claude-dev
+   flyctl scale vm shared-cpu-2x -a my-sindri-dev
+   flyctl scale memory 2048 -a my-sindri-dev
    ```
 
 3. Use performance CPU for intensive workloads:
 
    ```bash
-   flyctl scale vm performance-2x -a my-claude-dev
+   flyctl scale vm performance-2x -a my-sindri-dev
    ```
 
 ## Cost and Billing Issues
@@ -464,14 +464,14 @@ Common quick fixes:
 2. Ensure auto-suspend is working:
 
    ```bash
-   flyctl status -a my-claude-dev
+   flyctl status -a my-sindri-dev
    # Should show "stopped" when not in use
    ```
 
 3. Suspend VMs when not needed:
 
    ```bash
-   ./scripts/vm-suspend.sh --app-name my-claude-dev
+   ./scripts/vm-suspend.sh --app-name my-sindri-dev
    ```
 
 4. Review Fly.io dashboard:
@@ -484,20 +484,20 @@ Common quick fixes:
 1. **Use shared CPU instead of performance**:
 
    ```bash
-   flyctl scale vm shared-cpu-1x -a my-claude-dev
+   flyctl scale vm shared-cpu-1x -a my-sindri-dev
    ```
 
 2. **Reduce memory allocation**:
 
    ```bash
-   flyctl scale memory 512 -a my-claude-dev
+   flyctl scale memory 512 -a my-sindri-dev
    ```
 
 3. **Delete unused volumes**:
 
    ```bash
-   flyctl volumes list -a my-claude-dev
-   flyctl volumes destroy <volume-id> -a my-claude-dev
+   flyctl volumes list -a my-sindri-dev
+   flyctl volumes destroy <volume-id> -a my-sindri-dev
    ```
 
 ## Claude Tools Issues
@@ -556,20 +556,20 @@ If your issue isn't covered here:
 1. **Check logs for detailed error messages**:
 
    ```bash
-   flyctl logs -a my-claude-dev --since 1h
+   flyctl logs -a my-sindri-dev --since 1h
    ```
 
 2. **Enable debug mode for scripts**:
 
    ```bash
-   DEBUG=true ./scripts/vm-setup.sh --app-name my-claude-dev
+   DEBUG=true ./scripts/vm-setup.sh --app-name my-sindri-dev
    ```
 
 3. **Community resources**:
 
    - [Fly.io Community Forum](https://community.fly.io)
    - [Claude Documentation](https://docs.anthropic.com)
-   - [GitHub Issues](https://github.com/pacphi/claude-flow-on-fly/issues)
+   - [GitHub Issues](https://github.com/pacphi/sindri/issues)
 
 4. **Contact support**:
 

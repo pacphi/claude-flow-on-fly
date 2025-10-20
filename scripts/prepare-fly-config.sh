@@ -18,7 +18,7 @@ fi
 # Default values
 APP_NAME="${APP_NAME:-}"
 REGION="${REGION:-iad}"
-VOLUME_NAME="${VOLUME_NAME:-claude_data}"
+VOLUME_NAME="${VOLUME_NAME:-sindri_data}"
 VOLUME_SIZE="${VOLUME_SIZE:-30}"
 VM_MEMORY="${VM_MEMORY:-8192}"
 CPU_KIND="${CPU_KIND:-shared}"

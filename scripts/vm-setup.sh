@@ -1,5 +1,5 @@
 #!/bin/bash
-# vm-setup.sh - Initial setup script for Claude Development Environment on Fly.io
+# vm-setup.sh - Initial setup script for Sindri on Fly.io
 # This script helps set up the Fly.io VM with all necessary tools and configurations
 
 set -e  # Exit on any error
@@ -12,13 +12,13 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration variables (can be overridden with environment variables)
-APP_NAME="${APP_NAME:-claude-dev-env}"
+APP_NAME="${APP_NAME:-sindri-dev-env}"
 REGION="${REGION:-iad}"
 VM_MEMORY="${VM_MEMORY:-8192}"
 CPU_KIND="${CPU_KIND:-shared}"
 CPU_COUNT="${CPU_COUNT:-2}"
 VOLUME_SIZE="${VOLUME_SIZE:-30}"
-VOLUME_NAME="${VOLUME_NAME:-claude_data}"
+VOLUME_NAME="${VOLUME_NAME:-sindri_data}"
 
 # Function to print colored output
 print_status() {
@@ -321,7 +321,7 @@ show_connection_info() {
     print_status "Next Steps:"
     echo "  1. Connect via SSH or IDE remote development"
     echo "  2. Run: /workspace/scripts/vm-configure.sh"
-    echo "  3. Authenticate Claude: claude"
+    echo "  3. Authenticate Claude Code: claude"
     echo "  4. Start developing!"
 }
 
@@ -346,7 +346,7 @@ show_cost_info() {
 
 # Main execution function
 main() {
-    echo "🚀 Setting up Claude Development Environment on Fly.io"
+    echo "🚀 Setting up Sindri on Fly.io"
     echo "=================================================="
     echo
 
@@ -382,7 +382,7 @@ main() {
 Usage: $0 [OPTIONS]
 
 Options:
-  --app-name NAME     Name for the Fly.io app (default: claude-dev-env)
+  --app-name NAME     Name for the Fly.io app (default: sindri-dev-env)
   --region REGION     Fly.io region (default: iad)
   --volume-size SIZE  Volume size in GB (default: 30)
   --memory SIZE       VM memory in MB (default: 8192)
@@ -448,7 +448,7 @@ EOF
     show_connection_info
     show_cost_info
 
-    print_success "🎉 Setup complete! Your Claude development environment is ready."
+    print_success "🎉 Setup complete! Your Sindri development environment is ready."
 }
 
 # Check if script is being sourced or executed

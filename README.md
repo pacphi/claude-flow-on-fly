@@ -1,23 +1,32 @@
-# Claude Code, Claude Flow, and Agentic Flow on Fly.io
+# Sindri
 
-[![Version](https://img.shields.io/github/v/release/pacphi/claude-flow-on-fly?include_prereleases)](https://github.com/pacphi/claude-flow-on-fly/releases)
-[![License](https://img.shields.io/github/license/pacphi/claude-flow-on-fly)](LICENSE)
-[![Integration Tests](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml/badge.svg)](https://github.com/pacphi/claude-flow-on-fly/actions/workflows/integration.yml)
+[![Version](https://img.shields.io/github/v/release/pacphi/sindri?include_prereleases)](https://github.com/pacphi/sindri/releases)
+[![License](https://img.shields.io/github/license/pacphi/sindri)](LICENSE)
+[![Integration Tests](https://github.com/pacphi/sindri/actions/workflows/integration.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/integration.yml)
 [![Changelog](https://img.shields.io/badge/changelog-latest-blue)](CHANGELOG.md)
 
-A complete remote AI-assisted development environment running Claude Code, Claude Flow, and Agentic Flow on Fly.io infrastructure
-with zero local installation, auto-suspend VMs, and persistent storage.
+A complete AI-powered cloud development forge running on Fly.io infrastructure with zero local installation, auto-suspend VMs, and persistent storage.
+
+## About the Name
+
+**Sindri** (Old Norse: "spark") was a legendary dwarf blacksmith in Norse mythology, renowned as one of the greatest craftsmen who ever lived. Together with his brother Brokkr, Sindri forged three of the most powerful artifacts in Norse mythology:
+
+- **Mjölnir** - Thor's legendary hammer
+- **Draupnir** - Odin's self-multiplying golden ring
+- **Gullinbursti** - Freyr's radiant golden boar
+
+Like its mythological namesake, Sindri forges powerful development environments from raw materials—transforming cloud infrastructure, AI tools, and developer workflows into a legendary platform for building software.
 
 ## ⚡ Quick Start
 
 ```bash
 # Clone and deploy
-git clone https://github.com/pacphi/claude-flow-on-fly.git
-cd claude-flow-on-fly
-./scripts/vm-setup.sh --app-name my-claude-dev --region iad
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+./scripts/vm-setup.sh --app-name my-sindri-dev --region iad
 
 # Connect and configure
-ssh developer@my-claude-dev.fly.dev -p 10022
+ssh developer@my-sindri-dev.fly.dev -p 10022
 ./scripts/vm-configure.sh
 
 # Start developing
@@ -88,11 +97,11 @@ Manual controls:
 
 ```bash
 # VM Management
-flyctl status -a my-claude-dev
-./scripts/vm-teardown.sh --app-name my-claude-dev
+flyctl status -a my-sindri-dev
+./scripts/vm-teardown.sh --app-name my-sindri-dev
 
 # Development
-ssh developer@my-claude-dev.fly.dev -p 10022
+ssh developer@my-sindri-dev.fly.dev -p 10022
 claude
 ```
 

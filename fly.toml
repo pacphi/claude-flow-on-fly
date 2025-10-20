@@ -1,6 +1,6 @@
-# fly.toml configuration for Claude Development Environment
-# This configuration optimizes for cost-effective remote development
-# with scale-to-zero capabilities and persistent storage
+# fly.toml configuration for Sindri
+# AI-powered cloud development forge with cost-effective remote development,
+# scale-to-zero capabilities, and persistent storage
 
 app = "{{APP_NAME}}"
 # Change to your preferred region
@@ -34,7 +34,7 @@ primary_region = "{{REGION}}"
   # Grow by 5GB increments
   auto_extend_size_increment = "5GB"
   # Maximum size limit
-  auto_extend_size_limit = "100GB"
+  auto_extend_size_limit = "250GB"
 
 # SSH service configuration (primary access method)
 [[services]]
@@ -104,7 +104,7 @@ primary_region = "{{REGION}}"
 #   worker = "background-tasks"
 
 # Volume configuration reference
-# Create volume with: flyctl volumes create claude_data --region iad --size 30
+# Create volume with: flyctl volumes create sindri_data --region iad --size 30
 # Volume naming pattern: <app-name>_data
 # Pricing: ~$0.15/GB/month
 
@@ -112,7 +112,7 @@ primary_region = "{{REGION}}"
 # 1. auto_stop_machines = "suspend" - Fastest restart, lowest cost when idle
 # 2. min_machines_running = 0 - Allows complete scale-to-zero
 # 3. Shared CPU - Most cost-effective for development workloads
-# 4. 8GB RAM - Good performance for development tasks with Claude Flow
+# 4. 8GB RAM - Good performance for AI-powered development with Sindri
 
 # Security notes:
 # 1. SSH access only via key authentication (configured in Dockerfile)

@@ -3,7 +3,7 @@
 ## Overview
 
 This guide covers integrating [turbo-flow-claude](https://github.com/marcuspat/turbo-flow-claude)-like capabilities
-within the claude-flow-on-fly environment. The integration brings enterprise-grade AI development features
+within the `sindri` environment. The integration brings enterprise-grade AI development features
 including flexible agent management, multi-tier context systems, tmux workspaces, and verification-first development.
 
 Thanks for the inspiration [Marcus Patman](https://github.com/marcuspat)!
@@ -51,8 +51,8 @@ Thanks for the inspiration [Marcus Patman](https://github.com/marcuspat)!
 
 ```bash
 # Clone and customize configuration
-git clone https://github.com/pacphi/claude-flow-on-fly
-cd claude-flow-on-fly
+git clone https://github.com/pacphi/sindri
+cd sindri
 
 # Optional: Customize configuration before deployment
 nano docker/config/agents-config.yaml    # Configure agent sources
@@ -502,7 +502,7 @@ nano /workspace/context/global/CLAUDE.md
 
 ## Migration from Previous Setups
 
-### From Basic Claude-Flow-on-Fly
+### From Basic Sindri
 
 ```bash
 # Your existing data is preserved

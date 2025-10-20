@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting Claude Development Environment..."
+echo "🚀 Starting Sindri..."
 
 # Ensure workspace exists and has correct permissions
 echo "📁 Setting up workspace and developer home..."
@@ -130,7 +130,7 @@ fi
 # Start SSH daemon (check for CI mode)
 if [ "$CI_MODE" = "true" ]; then
     echo "🔌 CI Mode: Skipping SSH daemon startup (using Fly.io hallpass)"
-    echo "🎯 Claude Development Environment is ready (CI Mode)!"
+    echo "🎯 Sindri is ready (CI Mode)!"
     echo "📡 SSH access available via flyctl ssh console"
     echo "🏠 Workspace mounted at /workspace"
 else
@@ -138,7 +138,7 @@ else
     mkdir -p /var/run/sshd
     /usr/sbin/sshd -D &
 
-    echo "🎯 Claude Development Environment is ready!"
+    echo "🎯 Sindri is ready!"
     echo "📡 SSH server listening on port ${SSH_PORT:-2222}"
     echo "🏠 Workspace mounted at /workspace"
 fi

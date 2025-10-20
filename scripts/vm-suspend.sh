@@ -11,7 +11,7 @@ source "$SCRIPT_DIR/lib/fly-vm.sh"
 source "$SCRIPT_DIR/lib/fly-backup.sh"
 
 # Configuration
-APP_NAME="${APP_NAME:-${DEFAULT_APP_NAME:-claude-dev-env}}"
+APP_NAME="${APP_NAME:-${DEFAULT_APP_NAME:-sindri-dev-env}}"
 REMOTE_USER="${DEFAULT_REMOTE_USER:-developer}"
 REMOTE_HOST="$APP_NAME.fly.dev"
 REMOTE_PORT="${DEFAULT_REMOTE_PORT:-10022}"
@@ -290,7 +290,7 @@ main() {
 Usage: $0 [OPTIONS]
 
 Options:
-  --app-name NAME     Fly.io app name (default: claude-dev-env)
+  --app-name NAME     Fly.io app name (default: sindri-dev-env)
   --action ACTION     Action to perform (suspend, status)
   --skip-backup       Skip creating pre-suspend backup
   --force             Skip confirmation prompts

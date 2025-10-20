@@ -1058,7 +1058,7 @@ claude-code-proxy &
 {
     "terminal.integrated.shell.linux": "/bin/bash",
     "remote.SSH.remotePlatform": {
-        "my-claude-dev.fly.dev": "linux"
+        "my-sindri-dev.fly.dev": "linux"
     },
     "workbench.colorTheme": "Dark+ (default dark)",
     "editor.minimap.enabled": false
@@ -1197,7 +1197,7 @@ jobs:
 
       - name: Deploy to development
         run: |
-          flyctl deploy --remote-only -a my-claude-dev
+          flyctl deploy --remote-only -a my-sindri-dev
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 EOF

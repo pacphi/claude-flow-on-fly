@@ -41,8 +41,8 @@ adding features, improving documentation, or sharing extensions, your contributi
 
    ```bash
    # Fork on GitHub, then clone your fork
-   git clone https://github.com/YOUR-USERNAME/claude-flow-on-fly.git
-   cd claude-flow-on-fly
+   git clone https://github.com/YOUR-USERNAME/sindri.git
+   cd sindri
    ```
 
 2. **Set Up Development VM**
@@ -67,7 +67,7 @@ adding features, improving documentation, or sharing extensions, your contributi
 Understanding the codebase organization:
 
 ```text
-claude-flow-on-fly/
+sindri/
 ├── docker/                     # Container configuration
 │   ├── config/                 # Configuration files
 │   ├── context/                # AI context files
@@ -453,8 +453,8 @@ Contributors are recognized through:
 
 ## Questions?
 
-- Check existing [Issues](https://github.com/pacphi/claude-flow-on-fly/issues)
-- Start a [Discussion](https://github.com/pacphi/claude-flow-on-fly/discussions)
+- Check existing [Issues](https://github.com/pacphi/sindri/issues)
+- Start a [Discussion](https://github.com/pacphi/sindri/discussions)
 - Review [Documentation](docs/)
 - Contact maintainers
 

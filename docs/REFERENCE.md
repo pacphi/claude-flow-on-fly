@@ -554,7 +554,7 @@ sudo tail -f /var/log/auth.log
 **Repository Structure:**
 
 ```text
-claude-flow-on-fly/
+sindri/
 ├── README.md                  # Main documentation
 ├── CLAUDE.md                  # Claude context
 ├── Dockerfile                 # Container definition

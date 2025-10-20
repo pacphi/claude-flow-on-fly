@@ -1,5 +1,5 @@
 #!/bin/bash
-# cost-monitor.sh - Monitor and analyze Fly.io costs for Claude development environment
+# cost-monitor.sh - Monitor and analyze Fly.io costs for Sindri development environment
 # This script runs on your LOCAL machine to track VM usage and costs
 
 set -e
@@ -10,7 +10,7 @@ source "$SCRIPT_DIR/lib/fly-common.sh"
 
 # Configuration
 APP_NAME="${APP_NAME:-$DEFAULT_APP_NAME}"
-HISTORY_FILE="$HOME/.claude_cost_history"
+HISTORY_FILE="$HOME/.sindri_cost_history"
 
 # Function to calculate costs
 calculate_costs() {
@@ -388,7 +388,7 @@ main() {
 Usage: $0 [OPTIONS]
 
 Options:
-  --app-name NAME         Fly.io app name (default: claude-dev-env)
+  --app-name NAME         Fly.io app name (default: sindri-dev-env)
   --action ACTION         Action to perform (monitor, history, export)
   --export-format FORMAT  Export format (csv, json)
   --export-file FILE      Export output file

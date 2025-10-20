@@ -1,5 +1,5 @@
 #!/bin/bash
-# vm-teardown.sh - Teardown script for Claude Development Environment on Fly.io
+# vm-teardown.sh - Teardown script for Sindri on Fly.io
 # This script safely removes the Fly.io VM, volumes, and associated resources
 # WARNING: This will permanently delete all data unless backed up first
 
@@ -408,7 +408,7 @@ show_summary() {
 
 # Main execution function
 main() {
-    echo "🗑️  Teardown Claude Development Environment on Fly.io"
+    echo "🗑️  Teardown Sindri on Fly.io"
     echo "=================================================="
     echo
 
@@ -456,16 +456,16 @@ Options:
 
 Examples:
   # Standard teardown with confirmations
-  $0 --app-name my-claude-dev
+  $0 --app-name my-sindri-dev
 
   # Teardown with automatic backup first
-  $0 --app-name my-claude-dev --backup
+  $0 --app-name my-sindri-dev --backup
 
   # Force teardown without prompts (use with caution!)
-  $0 --app-name my-claude-dev --force
+  $0 --app-name my-sindri-dev --force
 
   # Keep volumes but delete everything else
-  $0 --app-name my-claude-dev --keep-volumes
+  $0 --app-name my-sindri-dev --keep-volumes
 
 WARNING: This will permanently delete all data unless you:
   1. Use --backup flag to create a backup first

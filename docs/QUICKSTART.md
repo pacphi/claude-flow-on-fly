@@ -1,6 +1,6 @@
-# Quick Start
+# Sindri Quick Start
 
-Get your Claude development environment running in 5 minutes.
+Get your AI-powered development forge running in 5 minutes.
 
 ## Prerequisites
 
@@ -13,12 +13,12 @@ Get your Claude development environment running in 5 minutes.
 
 ```bash
 # Clone and setup
-git clone https://github.com/pacphi/claude-flow-on-fly.git
-cd claude-flow-on-fly
+git clone https://github.com/pacphi/sindri.git
+cd sindri
 chmod +x scripts/*.sh
 
 # Deploy (takes ~3 minutes)
-./scripts/vm-setup.sh --app-name my-claude-dev --region iad
+./scripts/vm-setup.sh --app-name my-sindri-dev --region iad
 ```
 
 The script automatically creates VM, storage, and SSH access.
@@ -26,7 +26,7 @@ The script automatically creates VM, storage, and SSH access.
 ## Connect
 
 ```bash
-ssh developer@my-claude-dev.fly.dev -p 10022
+ssh developer@my-sindri-dev.fly.dev -p 10022
 ```
 
 For IDE setup, see [IDE Setup Guide](IDE_SETUP.md) first, then [VSCode](VSCODE.md) or [IntelliJ](INTELLIJ.md).
@@ -40,7 +40,7 @@ Run once after connecting:
 ```
 
 This installs Node.js and Claude Code.
-Claude Flow, Agentic Flow, and curated development tools get installed when you create new or clone existing projects.
+Sindri's integrated tools (Claude Flow, Agentic Flow, and curated development tools) are available when you create or clone projects.
 
 ## Start Using Claude
 
@@ -65,8 +65,8 @@ npx claude-flow@alpha init --force
 ./scripts/cost-monitor.sh    # Check usage
 
 # If issues arise
-flyctl status -a my-claude-dev
-flyctl logs -a my-claude-dev
+flyctl status -a my-sindri-dev
+flyctl logs -a my-sindri-dev
 ```
 
 ## Next Steps

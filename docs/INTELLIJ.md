@@ -1,6 +1,6 @@
 # IntelliJ Remote Development Setup
 
-## Connect JetBrains IDEs to your Claude development environment on Fly.io
+## Connect JetBrains IDEs to your Sindri development environment on Fly.io
 
 > **📋 Complete the common setup first:** See [IDE Setup Guide](IDE_SETUP.md) for prerequisites, SSH
 > configuration, and VM setup before proceeding.
@@ -365,7 +365,7 @@ mkdir src public
 
 ## Summary
 
-IntelliJ is now connected to your remote Claude development environment with:
+IntelliJ is now connected to your remote Sindri development environment with:
 
 - ✅ Full JetBrains IDE functionality with debugging and testing
 - ✅ Remote development on persistent Fly.io infrastructure

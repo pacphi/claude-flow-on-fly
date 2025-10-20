@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-APP_NAME="${APP_NAME:-claude-dev-env}"
+APP_NAME="${APP_NAME:-sindri-dev-env}"
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 REMOTE_USER="developer"
 REMOTE_HOST="$APP_NAME.fly.dev"
@@ -346,7 +346,7 @@ main() {
 Usage: $0 [OPTIONS]
 
 Options:
-  --app-name NAME        Fly.io app name (default: claude-dev-env)
+  --app-name NAME        Fly.io app name (default: sindri-dev-env)
   --backup-dir DIR       Local backup directory (default: ./backups)
   --file FILE            Specific backup file to restore
   --skip-pre-backup      Skip creating pre-restore backup

@@ -74,7 +74,7 @@ ssh-keygen -t ed25519 -C "developer@company.com"
 cat ~/.ssh/id_ed25519.pub >> /workspace/developer/.ssh/authorized_keys
 
 # Or use Fly.io CLI
-flyctl ssh issue --agent --email developer@company.com -a my-claude-dev
+flyctl ssh issue --agent --email developer@company.com -a my-sindri-dev
 ```
 
 **Key Rotation:**
@@ -88,7 +88,7 @@ sed -i '/old-key-identifier/d' /workspace/developer/.ssh/authorized_keys
 cat ~/.ssh/new_key.pub >> /workspace/developer/.ssh/authorized_keys
 
 # Test new key
-ssh -i ~/.ssh/new_key developer@my-claude-dev.fly.dev -p 10022
+ssh -i ~/.ssh/new_key developer@my-sindri-dev.fly.dev -p 10022
 ```
 
 ### User Access Control
@@ -126,18 +126,18 @@ find /workspace/projects -type f -exec chmod 644 {} \;
 
 ```bash
 # API keys and tokens
-flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-claude-dev
-flyctl secrets set GITHUB_TOKEN=ghp_... -a my-claude-dev
-flyctl secrets set OPENAI_API_KEY=sk-... -a my-claude-dev
-flyctl secrets set PERPLEXITY_API_KEY=pplx-... -a my-claude-dev
+flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-sindri-dev
+flyctl secrets set GITHUB_TOKEN=ghp_... -a my-sindri-dev
+flyctl secrets set OPENAI_API_KEY=sk-... -a my-sindri-dev
+flyctl secrets set PERPLEXITY_API_KEY=pplx-... -a my-sindri-dev
 
 # Database credentials
-flyctl secrets set DATABASE_PASSWORD=secure_password -a my-claude-dev
-flyctl secrets set REDIS_PASSWORD=redis_secret -a my-claude-dev
+flyctl secrets set DATABASE_PASSWORD=secure_password -a my-sindri-dev
+flyctl secrets set REDIS_PASSWORD=redis_secret -a my-sindri-dev
 
 # Custom application secrets
-flyctl secrets set JWT_SECRET=$(openssl rand -hex 32) -a my-claude-dev
-flyctl secrets set ENCRYPTION_KEY=$(openssl rand -hex 32) -a my-claude-dev
+flyctl secrets set JWT_SECRET=$(openssl rand -hex 32) -a my-sindri-dev
+flyctl secrets set ENCRYPTION_KEY=$(openssl rand -hex 32) -a my-sindri-dev
 ```
 
 **Accessing Secrets Securely:**
@@ -207,7 +207,7 @@ flyctl volumes create encrypted_workspace \
     --encrypted
 
 # Verify encryption status
-flyctl volumes list -a my-claude-dev
+flyctl volumes list -a my-sindri-dev
 ```
 
 **File-Level Encryption:**
@@ -303,7 +303,7 @@ chmod +x /workspace/projects/active/.git/hooks/pre-commit
 
 ```bash
 # Store Claude API key securely
-flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-claude-dev
+flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-sindri-dev
 
 # Never log API keys
 export ANTHROPIC_API_KEY
