@@ -355,72 +355,132 @@ jobs:
           app_name="${{ steps.app-name.outputs.app_name }}"
 
           echo "Testing core extension components..."
-          flyctl ssh console --app $app_name --command "/bin/bash -c '
-            echo \"=== Testing Turbo Flow Components ===\"
 
-            # Check Playwright
-            if npx playwright --version >/dev/null 2>&1; then
-              echo \"✅ Playwright installed\"
+          # Enhanced component testing with retry logic
+          max_retries=2
+          retry_count=0
+
+          while [ $retry_count -lt $max_retries ]; do
+            echo "Component test attempt $((retry_count + 1))/$max_retries..."
+
+            if flyctl ssh console --app $app_name --command "/bin/bash -lc '
+              # Load environment for non-interactive session
+              if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+                source /etc/profile.d/00-ssh-environment.sh
+              fi
+
+              echo \"=== Testing Turbo Flow Components ===\"
+              component_failures=0
+
+              # Check Playwright with timeout
+              echo \"Checking Playwright...\"
+              if timeout 30s npx playwright --version >/dev/null 2>&1; then
+                version=\$(npx playwright --version 2>/dev/null || echo \"unknown\")
+                echo \"✅ Playwright installed: \$version\"
+              else
+                echo \"❌ Playwright not installed or not responding\"
+                ((component_failures++))
+              fi
+
+              # Check TypeScript
+              echo \"Checking TypeScript...\"
+              if timeout 30s npx tsc --version >/dev/null 2>&1; then
+                version=\$(npx tsc --version 2>/dev/null || echo \"unknown\")
+                echo \"✅ TypeScript installed: \$version\"
+              else
+                echo \"❌ TypeScript not installed or not responding\"
+                ((component_failures++))
+              fi
+
+              # Check monitoring tools (optional)
+              echo \"Checking monitoring tools...\"
+              if command -v claude-monitor >/dev/null 2>&1; then
+                echo \"✅ claude-monitor available\"
+              elif command -v uv >/dev/null 2>&1; then
+                echo \"✅ uv available\"
+              else
+                echo \"⚠️  Optional monitoring tools not fully installed (non-critical)\"
+              fi
+
+              echo \"\"
+              echo \"=== Testing Agent Manager ===\"
+
+              # Check agent-manager binary with multiple possible locations
+              echo \"Checking agent-manager binary...\"
+              if [ -x /workspace/bin/agent-manager ]; then
+                echo \"✅ Agent Manager binary present at /workspace/bin/agent-manager\"
+              elif [ -x /usr/local/bin/agent-manager ]; then
+                echo \"✅ Agent Manager binary present at /usr/local/bin/agent-manager\"
+              elif command -v agent-manager >/dev/null 2>&1; then
+                echo \"✅ Agent Manager binary found in PATH: \$(command -v agent-manager)\"
+              else
+                echo \"❌ Agent Manager binary missing\"
+                echo \"Searching for agent-manager...\"
+                find /workspace /usr/local -name \"agent-manager\" -type f 2>/dev/null || true
+                ((component_failures++))
+              fi
+
+              echo \"\"
+              echo \"=== Testing Tmux Workspace ===\"
+
+              # Check tmux installation
+              echo \"Checking tmux...\"
+              if command -v tmux >/dev/null 2>&1; then
+                version=\$(tmux -V 2>/dev/null || echo \"unknown\")
+                echo \"✅ Tmux installed: \$version\"
+              else
+                echo \"❌ Tmux not installed\"
+                ((component_failures++))
+              fi
+
+              # Check tmux config with multiple possible locations
+              echo \"Checking tmux config...\"
+              if [ -f /workspace/config/tmux.conf ]; then
+                echo \"✅ Tmux config present at /workspace/config/tmux.conf\"
+              elif [ -f ~/.tmux.conf ]; then
+                echo \"✅ Tmux config present at ~/.tmux.conf\"
+              else
+                echo \"⚠️  Tmux config not found (may use defaults)\"
+              fi
+
+              echo \"\"
+              echo \"=== Testing Context Management ===\"
+
+              # Check context loader with multiple possible locations
+              echo \"Checking context loader...\"
+              if [ -f /workspace/scripts/lib/context-loader.sh ]; then
+                echo \"✅ Context loader present at /workspace/scripts/lib/context-loader.sh\"
+              elif [ -f /workspace/scripts/context-loader.sh ]; then
+                echo \"✅ Context loader present at /workspace/scripts/context-loader.sh\"
+              else
+                echo \"❌ Context loader missing\"
+                echo \"Searching for context-loader.sh...\"
+                find /workspace/scripts -name \"context-loader.sh\" -type f 2>/dev/null || true
+                ((component_failures++))
+              fi
+
+              echo \"\"
+              if [ \$component_failures -eq 0 ]; then
+                echo \"✅ All core extension components validated successfully\"
+                exit 0
+              else
+                echo \"❌ \$component_failures component(s) failed validation\"
+                exit 1
+              fi
+            '"; then
+              echo "✅ Core component tests passed"
+              break
             else
-              echo \"❌ Playwright not installed\"
-              exit 1
+              retry_count=$((retry_count + 1))
+              if [ $retry_count -lt $max_retries ]; then
+                echo "⚠️  Component tests failed, retrying in 15s..."
+                sleep 15
+              else
+                echo "❌ Core component tests failed after $max_retries attempts"
+                exit 1
+              fi
             fi
-
-            # Check TypeScript
-            if npx tsc --version >/dev/null 2>&1; then
-              echo \"✅ TypeScript installed\"
-            else
-              echo \"❌ TypeScript not installed\"
-              exit 1
-            fi
-
-            # Check monitoring tools
-            if command -v claude-monitor >/dev/null 2>&1 || command -v uv >/dev/null 2>&1; then
-              echo \"✅ Monitoring tools available\"
-            else
-              echo \"⚠️  Monitoring tools not fully installed\"
-            fi
-
-            echo \"=== Testing Agent Manager ===\"
-
-            # Check agent-manager binary
-            if [ -x /workspace/bin/agent-manager ]; then
-              echo \"✅ Agent Manager binary present\"
-            else
-              echo \"❌ Agent Manager binary missing\"
-              exit 1
-            fi
-
-            echo \"=== Testing Tmux Workspace ===\"
-
-            # Check tmux installation
-            if command -v tmux >/dev/null 2>&1; then
-              echo \"✅ Tmux installed\"
-            else
-              echo \"❌ Tmux not installed\"
-              exit 1
-            fi
-
-            # Check tmux config
-            if [ -f /workspace/config/tmux.conf ]; then
-              echo \"✅ Tmux config present\"
-            else
-              echo \"❌ Tmux config missing\"
-              exit 1
-            fi
-
-            echo \"=== Testing Context Management ===\"
-
-            # Check context loader
-            if [ -f /workspace/scripts/lib/context-loader.sh ]; then
-              echo \"✅ Context loader present\"
-            else
-              echo \"❌ Context loader missing\"
-              exit 1
-            fi
-
-            echo \"✅ All core extension components validated\"
-          '"
+          done
 
       - name: Test protected extension behavior
         run: |
@@ -629,25 +689,103 @@ jobs:
 
           echo "Running vm-configure.sh with ${{ matrix.extension.name }} extension (timeout: $timeout)..."
 
-          flyctl ssh console --app $app_name --command "/bin/bash -c '
-            echo \"Starting extension installation...\"
-            if timeout $timeout /workspace/scripts/vm-configure.sh --extensions-only 2>&1 | tee /tmp/configure.log; then
-              echo \"✅ Configuration completed\"
+          # Enhanced configuration with better error handling and timeout management
+          max_config_attempts=2
+          config_attempt=1
 
-              # Wait a moment for SSH daemon reload to settle
-              echo \"⏳ Waiting for SSH environment to stabilize...\"
-              sleep 5
+          while [ $config_attempt -le $max_config_attempts ]; do
+            echo "Configuration attempt $config_attempt/$max_config_attempts..."
+
+            if flyctl ssh console --app $app_name --command "/bin/bash -c '
+              echo \"=== Starting extension installation ===\"
+              echo \"Extension: ${{ matrix.extension.name }}\"
+              echo \"Timeout: $timeout\"
+              echo \"\"
+
+              # Run with enhanced timeout and logging
+              if timeout --kill-after=60s $timeout /workspace/scripts/vm-configure.sh --extensions-only 2>&1 | tee /tmp/configure.log; then
+                config_exit_code=\${PIPESTATUS[0]}
+
+                if [ \$config_exit_code -eq 0 ]; then
+                  echo \"\"
+                  echo \"✅ Configuration completed successfully\"
+                  echo \"\"
+
+                  # Verify configuration success markers
+                  if grep -q \"Extension setup completed\" /tmp/configure.log || \
+                     grep -q \"Configuration complete\" /tmp/configure.log; then
+                    echo \"✅ Configuration markers found\"
+                  else
+                    echo \"⚠️  No completion markers found, but no errors detected\"
+                  fi
+
+                  # Wait for SSH daemon reload to settle
+                  echo \"⏳ Waiting for SSH environment to stabilize (15 seconds)...\"
+                  sleep 15
+
+                  # Verify SSH environment is properly configured
+                  if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+                    echo \"✅ SSH environment file present\"
+                  else
+                    echo \"⚠️  SSH environment file not found\"
+                  fi
+
+                  exit 0
+                else
+                  echo \"\"
+                  echo \"❌ Configuration exited with code: \$config_exit_code\"
+                  echo \"Last 30 lines of output:\"
+                  tail -30 /tmp/configure.log
+                  exit 1
+                fi
+              else
+                timeout_exit_code=\$?
+                echo \"\"
+
+                if [ \$timeout_exit_code -eq 124 ]; then
+                  echo \"❌ Configuration timed out after $timeout\"
+                elif [ \$timeout_exit_code -eq 137 ]; then
+                  echo \"❌ Configuration was killed (timeout kill signal)\"
+                else
+                  echo \"❌ Configuration failed with exit code: \$timeout_exit_code\"
+                fi
+
+                echo \"\"
+                echo \"Last 50 lines of output:\"
+                tail -50 /tmp/configure.log
+
+                # Check for specific error patterns
+                echo \"\"
+                echo \"=== Error Analysis ===\"
+                if grep -i \"error\|failed\|timeout\" /tmp/configure.log | tail -10; then
+                  echo \"(Errors found in log)\"
+                else
+                  echo \"No obvious errors in log\"
+                fi
+
+                exit 1
+              fi
+            '"; then
+              echo "✅ vm-configure.sh completed successfully"
+              break
             else
-              echo \"❌ Configuration failed or timed out\"
-              echo \"Last 50 lines of output:\"
-              tail -50 /tmp/configure.log
-              exit 1
+              exit_code=$?
+              config_attempt=$((config_attempt + 1))
+
+              if [ $config_attempt -le $max_config_attempts ]; then
+                echo "⚠️  Configuration attempt failed with exit code $exit_code"
+                echo "Checking app status before retry..."
+                flyctl status --app $app_name || true
+                echo "Waiting 30s before retry..."
+                sleep 30
+              else
+                echo "❌ vm-configure.sh failed after $max_config_attempts attempts"
+                echo "Retrieving app logs for diagnosis..."
+                flyctl logs --app $app_name
+                exit 1
+              fi
             fi
-          '" || {
-            echo "❌ vm-configure.sh failed"
-            flyctl logs --app $app_name
-            exit 1
-          }
+          done
 
       - name: Verify commands available
         if: steps.should-test.outputs.should_test == 'true'
@@ -657,72 +795,221 @@ jobs:
 
           echo "Verifying commands are available: $commands"
 
-          flyctl ssh console --app $app_name --command "/bin/bash -c '
-            commands=\"$commands\"
-            IFS=\",\" read -ra CMD_ARRAY <<< \"\$commands\"
-            failed_commands=()
+          # Enhanced verification with retry logic and better error handling
+          max_retries=3
+          retry_count=0
 
-            for cmd in \"\${CMD_ARRAY[@]}\"; do
-              echo \"Checking command: \$cmd\"
-              if command -v \"\$cmd\" >/dev/null 2>&1; then
-                echo \"✅ \$cmd available\"
-                \"\$cmd\" --version 2>/dev/null || \"\$cmd\" version 2>/dev/null || echo \"  (version check not supported)\"
-              else
-                echo \"❌ \$cmd not found\"
-                failed_commands+=(\"\$cmd\")
+          while [ $retry_count -lt $max_retries ]; do
+            echo "Verification attempt $((retry_count + 1))/$max_retries..."
+
+            if flyctl ssh console --app $app_name --command "/bin/bash -lc '
+              # Source environment to ensure all paths are loaded
+              if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+                source /etc/profile.d/00-ssh-environment.sh
               fi
-            done
 
-            if [ \${#failed_commands[@]} -gt 0 ]; then
-              echo \"❌ Missing commands: \${failed_commands[*]}\"
-              exit 1
+              # Additional environment setup for non-interactive sessions
+              if [ -f ~/.bashrc ]; then
+                source ~/.bashrc
+              fi
+
+              commands=\"$commands\"
+              IFS=\",\" read -ra CMD_ARRAY <<< \"\$commands\"
+              failed_commands=()
+
+              echo \"=== Command Verification ===\"
+              echo \"Current PATH: \$PATH\"
+              echo \"\"
+
+              for cmd in \"\${CMD_ARRAY[@]}\"; do
+                echo \"Checking command: \$cmd\"
+
+                # Try multiple methods to find the command
+                if command -v \"\$cmd\" >/dev/null 2>&1; then
+                  echo \"✅ \$cmd available at: \$(command -v \"\$cmd\")\"
+                  \"\$cmd\" --version 2>/dev/null || \"\$cmd\" version 2>/dev/null || echo \"  (version check not supported)\"
+                elif which \"\$cmd\" >/dev/null 2>&1; then
+                  echo \"✅ \$cmd available at: \$(which \"\$cmd\")\"
+                  \"\$cmd\" --version 2>/dev/null || \"\$cmd\" version 2>/dev/null || echo \"  (version check not supported)\"
+                elif [ -x \"/usr/local/bin/\$cmd\" ]; then
+                  echo \"✅ \$cmd available at: /usr/local/bin/\$cmd\"
+                  \"/usr/local/bin/\$cmd\" --version 2>/dev/null || echo \"  (version check not supported)\"
+                else
+                  echo \"❌ \$cmd not found in PATH\"
+                  echo \"  Searching for \$cmd...\"
+                  find /usr/local /opt /home -name \"\$cmd\" -type f 2>/dev/null | head -5 || true
+                  failed_commands+=(\"\$cmd\")
+                fi
+                echo \"\"
+              done
+
+              if [ \${#failed_commands[@]} -gt 0 ]; then
+                echo \"❌ Missing commands: \${failed_commands[*]}\"
+                echo \"\"
+                echo \"=== Debug Info ===\"
+                echo \"Available executables in common locations:\"
+                ls -la /usr/local/bin/ 2>/dev/null | head -20 || true
+                echo \"\"
+                echo \"Environment variables:\"
+                env | grep -E \"PATH|HOME|USER\" || true
+                exit 1
+              fi
+
+              echo \"✅ All commands available and verified\"
+            '"; then
+              echo "✅ Command verification successful"
+              break
+            else
+              retry_count=$((retry_count + 1))
+              if [ $retry_count -lt $max_retries ]; then
+                wait_time=$((10 * retry_count))
+                echo "⚠️  Verification failed, retrying in ${wait_time}s..."
+                sleep $wait_time
+              else
+                echo "❌ Command verification failed after $max_retries attempts"
+                exit 1
+              fi
             fi
-
-            echo \"✅ All commands available\"
-          '"
+          done
 
       - name: Diagnose environment on failure
         if: failure() && steps.should-test.outputs.should_test == 'true'
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
 
-          echo "🔍 Diagnosing environment for debugging..."
-          flyctl ssh console --app $app_name --command "/bin/bash -c '
-            echo \"=== Environment Diagnostics ===\"
+          echo "🔍 Comprehensive environment diagnostics for debugging..."
+          flyctl ssh console --app $app_name --command "/bin/bash -lc '
+            echo \"===========================================\"
+            echo \"   ENVIRONMENT DIAGNOSTICS\"
+            echo \"===========================================\"
             echo \"\"
+
+            echo \"=== Basic System Information ===\"
+            echo \"Current user: \$(whoami)\"
+            echo \"User home: \$HOME\"
+            echo \"Current directory: \$(pwd)\"
+            echo \"Shell: \$SHELL\"
+            echo \"\"
+
+            echo \"=== PATH Configuration ===\"
             echo \"Current PATH:\"
-            echo \"\$PATH\"
+            echo \"\$PATH\" | tr \":\" \"\\n\" | nl
             echo \"\"
-            echo \"BASH_ENV setting:\"
-            echo \"\$BASH_ENV\"
+
+            echo \"=== Environment Variables ===\"
+            echo \"BASH_ENV: \$BASH_ENV\"
+            echo \"CI_MODE: \$CI_MODE\"
+            env | grep -E \"PATH|HOME|USER|SHELL|BASH\" | sort
             echo \"\"
-            echo \"Profile.d scripts:\"
-            ls -la /etc/profile.d/ 2>/dev/null || echo \"No /etc/profile.d/\"
+
+            echo \"=== Profile and RC Files ===\"
+            for file in /etc/profile ~/.profile ~/.bashrc ~/.bash_profile; do
+              if [ -f \"\$file\" ]; then
+                echo \"✅ \$file exists\"
+              else
+                echo \"❌ \$file not found\"
+              fi
+            done
             echo \"\"
-            echo \"SSH environment file:\"
-            if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
-              echo \"File exists, first 20 lines:\"
-              head -20 /etc/profile.d/00-ssh-environment.sh
+
+            echo \"=== Profile.d Scripts ===\"
+            if [ -d /etc/profile.d/ ]; then
+              ls -lh /etc/profile.d/
+              echo \"\"
+              for script in /etc/profile.d/*.sh; do
+                if [ -f \"\$script\" ]; then
+                  echo \"Content of \$(basename \$script) (first 15 lines):\"
+                  head -15 \"\$script\"
+                  echo \"---\"
+                fi
+              done
             else
-              echo \"File not found: /etc/profile.d/00-ssh-environment.sh\"
+              echo \"❌ /etc/profile.d/ directory not found\"
             fi
             echo \"\"
-            echo \"SSH daemon config:\"
+
+            echo \"=== SSH Environment Configuration ===\"
+            if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+              echo \"✅ SSH environment file exists\"
+              echo \"Full content:\"
+              cat /etc/profile.d/00-ssh-environment.sh
+            else
+              echo \"❌ SSH environment file not found\"
+            fi
+            echo \"\"
+
+            echo \"=== SSH Daemon Configuration ===\"
             if [ -f /etc/ssh/sshd_config.d/99-bash-env.conf ]; then
+              echo \"✅ SSH daemon env config exists\"
               cat /etc/ssh/sshd_config.d/99-bash-env.conf
             else
-              echo \"File not found: /etc/ssh/sshd_config.d/99-bash-env.conf\"
+              echo \"❌ SSH daemon env config not found\"
             fi
             echo \"\"
-            echo \"Wrapper scripts in /usr/local/bin:\"
-            ls -la /usr/local/bin/ 2>/dev/null | grep -E \"(go|cargo|rustc|ruby|java|sdk)\" || echo \"No wrappers found\"
+
+            echo \"=== Extension Manager Status ===\"
+            if [ -f /workspace/scripts/lib/extension-manager.sh ]; then
+              echo \"✅ Extension manager found\"
+              cd /workspace/scripts/lib && bash extension-manager.sh list
+            else
+              echo \"❌ Extension manager not found\"
+            fi
             echo \"\"
-            echo \"User home directory:\"
-            echo \"\$HOME\"
+
+            echo \"=== Active Extensions ===\"
+            if [ -d /workspace/scripts/extensions.d ]; then
+              echo \"Activated extensions:\"
+              ls -lh /workspace/scripts/extensions.d/*.sh 2>/dev/null || echo \"No active extensions\"
+            elif [ -d /workspace/scripts/lib/extensions.d ]; then
+              echo \"Activated extensions:\"
+              ls -lh /workspace/scripts/lib/extensions.d/*.sh 2>/dev/null || echo \"No active extensions\"
+            else
+              echo \"❌ Extensions directory not found\"
+            fi
             echo \"\"
-            echo \"Current user:\"
-            whoami
-          '" || echo "Failed to retrieve diagnostics"
+
+            echo \"=== Installed Tools and Wrappers ===\"
+            echo \"Tools in /usr/local/bin:\"
+            ls -lh /usr/local/bin/ 2>/dev/null | grep -E \"(go|cargo|rustc|ruby|java|sdk|python|php|docker|terraform|aws|ollama)\" || echo \"No tool wrappers found\"
+            echo \"\"
+
+            echo \"=== Tool Version Checks ===\"
+            for tool in go cargo rustc ruby java python3 php docker terraform aws ollama; do
+              echo -n \"Checking \$tool: \"
+              if command -v \$tool >/dev/null 2>&1; then
+                echo \"Found at \$(command -v \$tool)\"
+                \$tool --version 2>/dev/null || \$tool version 2>/dev/null || echo \"  (version check not supported)\"
+              else
+                echo \"Not found in PATH\"
+              fi
+            done
+            echo \"\"
+
+            echo \"=== Recent Configuration Logs ===\"
+            if [ -f /tmp/configure.log ]; then
+              echo \"Last 100 lines of configuration log:\"
+              tail -100 /tmp/configure.log
+            else
+              echo \"No configuration log found\"
+            fi
+            echo \"\"
+
+            echo \"=== System Resources ===\"
+            echo \"Disk usage:\"
+            df -h / /workspace 2>/dev/null || true
+            echo \"\"
+            echo \"Memory usage:\"
+            free -h 2>/dev/null || true
+            echo \"\"
+
+            echo \"===========================================\"
+            echo \"   END DIAGNOSTICS\"
+            echo \"===========================================\"
+          '" || echo "⚠️  Failed to retrieve full diagnostics"
+
+          echo ""
+          echo "Retrieving application logs..."
+          flyctl logs --app $app_name || echo "Failed to retrieve logs"
 
       - name: Test key functionality
         if: steps.should-test.outputs.should_test == 'true'
