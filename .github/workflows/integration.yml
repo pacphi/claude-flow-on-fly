@@ -1,6 +1,20 @@
 name: Integration Tests
 
 on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'docker/lib/extensions.d/**'
+      - 'docker/lib/extension-manager.sh'
+      - 'docker/lib/common.sh'
+      - '.github/workflows/integration.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'docker/lib/extensions.d/**'
+      - 'docker/lib/extension-manager.sh'
+      - 'docker/lib/common.sh'
+      - '.github/workflows/integration.yml'
   workflow_dispatch:
     inputs:
       test_region:
@@ -771,7 +785,6 @@ jobs:
             );
 
             if (!existingIssue) {
-              console.log(`Creating new integration test failure issue for ${today}`);
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -780,7 +793,6 @@ jobs:
                 labels: ['bug', 'integration-test-failure', 'high-priority']
               });
             } else {
-              console.log(`Integration test failure issue already exists for ${today}: #${existingIssue.number}`);
               // Add a comment to the existing issue with new failure details
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
