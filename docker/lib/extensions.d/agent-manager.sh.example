@@ -5,6 +5,10 @@
 # This extension installs the agent-manager binary for managing Claude Code agents.
 # It downloads the latest release from GitHub and sets up agent configuration.
 
+# Source shared extension library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
+
 # ============================================================================
 # METADATA
 # ============================================================================
@@ -14,33 +18,8 @@ EXT_VERSION="1.0.0"
 EXT_DESCRIPTION="Claude Code agent manager for managing AI agents"
 EXT_CATEGORY="development"
 
-# ============================================================================
-# COMMON UTILITIES
-# ============================================================================
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$(dirname "$SCRIPT_DIR")"
-
-if [[ -f "$LIB_DIR/common.sh" ]]; then
-  source "$LIB_DIR/common.sh"
-elif [[ -f "/workspace/scripts/lib/common.sh" ]]; then
-  source "/workspace/scripts/lib/common.sh"
-else
-  print_status() { echo "[INFO] $1"; }
-  print_success() { echo "[SUCCESS] $1"; }
-  print_error() { echo "[ERROR] $1" >&2; }
-  print_warning() { echo "[WARNING] $1"; }
-  print_debug() { [[ "${DEBUG:-}" == "true" ]] && echo "[DEBUG] $1"; }
-  command_exists() { command -v "$1" >/dev/null 2>&1; }
-fi
-
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
-
-GITHUB_REPO="pacphi/claude-code-agent-manager"
-BINARY_NAME="agent-manager"
-INSTALL_PATH="$HOME/.local/bin"
+# Initialize extension environment
+extension_init
 
 # ============================================================================
 # PREREQUISITES
@@ -474,8 +453,7 @@ remove() {
     echo ""
   fi
 
-  read -p "Continue with agent-manager removal? (y/N): " -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  if ! prompt_confirmation "Continue with agent-manager removal?"; then
     print_status "Removal cancelled"
     return 1
   fi
@@ -491,8 +469,7 @@ remove() {
   local config_file="/workspace/config/agents-config.yaml"
   if [[ -f "$config_file" ]]; then
     print_warning "Configuration file exists: $config_file"
-    read -p "Remove configuration file? (y/N): " -r
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if prompt_confirmation "Remove configuration file?"; then
       rm -f "$config_file"
       print_success "Configuration removed"
     else
@@ -504,8 +481,7 @@ remove() {
   local discovery_script="/workspace/scripts/lib/agent-discovery.sh"
   if [[ -f "$discovery_script" ]]; then
     print_warning "Agent discovery utilities exist: $discovery_script"
-    read -p "Remove agent discovery utilities? (y/N): " -r
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if prompt_confirmation "Remove agent discovery utilities?"; then
       rm -f "$discovery_script"
       print_success "Agent discovery utilities removed"
     else
@@ -515,13 +491,13 @@ remove() {
 
   # Remove PATH modifications
   if grep -q "# ${EXT_NAME} - binary path" "$HOME/.bashrc" 2>/dev/null; then
-    sed -i "/# ${EXT_NAME} - binary path/,+1d" "$HOME/.bashrc"
+    cleanup_bashrc "# ${EXT_NAME} - binary path"
     print_success "Removed PATH modification from .bashrc"
   fi
 
   # Remove agent discovery sourcing
   if grep -q "# ${EXT_NAME} - agent discovery utilities" "$HOME/.bashrc" 2>/dev/null; then
-    sed -i "/# ${EXT_NAME} - agent discovery utilities/,+3d" "$HOME/.bashrc"
+    cleanup_bashrc "# ${EXT_NAME} - agent discovery utilities"
     print_success "Removed agent discovery sourcing from .bashrc"
   fi
 
@@ -532,23 +508,7 @@ remove() {
 }
 
 # ============================================================================
-# MAIN EXECUTION (for testing)
+# MAIN EXECUTION
 # ============================================================================
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  command="${1:-status}"
-
-  case "$command" in
-    prerequisites|install|configure|validate|status|remove)
-      if "$command"; then
-        exit 0
-      else
-        exit 1
-      fi
-      ;;
-    *)
-      echo "Usage: $0 {prerequisites|install|configure|validate|status|remove}"
-      exit 1
-      ;;
-  esac
-fi
+extension_main "$@"

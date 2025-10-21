@@ -6,6 +6,10 @@
 # It provides the JavaScript runtime needed by Playwright, monitoring tools, and other extensions.
 # NVM allows easy switching between Node versions and user-space global package management.
 
+# Source shared extension library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
+
 # ============================================================================
 # METADATA
 # ============================================================================
@@ -15,25 +19,8 @@ EXT_VERSION="2.0.0"
 EXT_DESCRIPTION="Node.js LTS and npm via NVM (Node Version Manager)"
 EXT_CATEGORY="language"
 
-# ============================================================================
-# COMMON UTILITIES
-# ============================================================================
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$(dirname "$SCRIPT_DIR")"
-
-if [[ -f "$LIB_DIR/common.sh" ]]; then
-  source "$LIB_DIR/common.sh"
-elif [[ -f "/workspace/scripts/lib/common.sh" ]]; then
-  source "/workspace/scripts/lib/common.sh"
-else
-  print_status() { echo "[INFO] $1"; }
-  print_success() { echo "[SUCCESS] $1"; }
-  print_error() { echo "[ERROR] $1" >&2; }
-  print_warning() { echo "[WARNING] $1"; }
-  print_debug() { [[ "${DEBUG:-}" == "true" ]] && echo "[DEBUG] $1"; }
-  command_exists() { command -v "$1" >/dev/null 2>&1; }
-fi
+# Initialize extension environment
+extension_init
 
 # ============================================================================
 # PREREQUISITES
@@ -334,67 +321,17 @@ status() {
 }
 
 # ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
-
-# Check which active extensions depend on this one
-check_dependent_extensions() {
-  local provided_commands=("$@")
-  local dependent_extensions=()
-
-  # Get manifest file location
-  local manifest_file="$SCRIPT_DIR/active-extensions.conf"
-  [[ ! -f "$manifest_file" ]] && manifest_file="/workspace/scripts/extensions.d/active-extensions.conf"
-
-  if [[ ! -f "$manifest_file" ]]; then
-    return 0
-  fi
-
-  # Read active extensions
-  while IFS= read -r line; do
-    [[ "$line" =~ ^[[:space:]]*# ]] && continue
-    [[ -z "${line// }" ]] && continue
-
-    local ext_name=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-    [[ "$ext_name" == "$EXT_NAME" ]] && continue
-
-    # Find the extension file
-    local ext_file="$SCRIPT_DIR/${ext_name}.sh"
-    [[ ! -f "$ext_file" ]] && ext_file="$SCRIPT_DIR/"*"-${ext_name}.sh"
-    [[ ! -f "$ext_file" ]] && continue
-
-    # Check if extension references any of the provided commands
-    for cmd in "${provided_commands[@]}"; do
-      if grep -q "$cmd" "$ext_file" 2>/dev/null; then
-        dependent_extensions+=("$ext_name")
-        break
-      fi
-    done
-  done < "$manifest_file"
-
-  printf '%s\n' "${dependent_extensions[@]}"
-}
-
-# ============================================================================
 # REMOVE
 # ============================================================================
 
 remove() {
   print_warning "Uninstalling Node.js and NVM..."
 
-  # Check for dependent extensions
-  local dependent_exts=($(check_dependent_extensions "node" "npm" "npx" "nvm"))
+  # Check for dependent extensions and show warning
+  show_dependent_extensions_warning "node" "npm" "npx" "nvm"
 
-  if [[ ${#dependent_exts[@]} -gt 0 ]]; then
-    print_warning "The following active extensions depend on Node.js and may stop working:"
-    for ext in "${dependent_exts[@]}"; do
-      echo "  - $ext"
-    done
-    echo ""
-  fi
-
-  read -p "Continue with Node.js/NVM removal? (y/N): " -r
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  # Confirm removal
+  if ! prompt_confirmation "Continue with Node.js/NVM removal?"; then
     print_status "Removal cancelled"
     return 1
   fi
@@ -424,8 +361,7 @@ remove() {
   local npm_global_dir="$HOME/.npm-global"
   if [[ -d "$npm_global_dir" ]]; then
     print_warning "npm global directory exists: $npm_global_dir"
-    read -p "Remove npm global directory and all global packages? (y/N): " -r
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if prompt_confirmation "Remove npm global directory and all global packages?"; then
       rm -rf "$npm_global_dir"
       print_success "npm global directory removed"
     else
@@ -433,17 +369,9 @@ remove() {
     fi
   fi
 
-  # Remove NVM loading from .bashrc
-  if grep -q "# ${EXT_NAME} - NVM" "$HOME/.bashrc" 2>/dev/null; then
-    sed -i "/# ${EXT_NAME} - NVM/,+3d" "$HOME/.bashrc"
-    print_success "Removed NVM loading from .bashrc"
-  fi
-
-  # Remove npm PATH modification
-  if grep -q "# ${EXT_NAME} - npm global packages" "$HOME/.bashrc" 2>/dev/null; then
-    sed -i "/# ${EXT_NAME} - npm global packages/,+1d" "$HOME/.bashrc"
-    print_success "Removed npm PATH modification from .bashrc"
-  fi
+  # Remove bashrc entries
+  cleanup_bashrc "# ${EXT_NAME} - NVM"
+  cleanup_bashrc "# ${EXT_NAME} - npm global packages"
 
   print_success "Node.js and NVM uninstalled"
   print_warning "Restart your shell or run: source ~/.bashrc"
@@ -452,23 +380,7 @@ remove() {
 }
 
 # ============================================================================
-# MAIN EXECUTION (for testing)
+# MAIN EXECUTION
 # ============================================================================
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  command="${1:-status}"
-
-  case "$command" in
-    prerequisites|install|configure|validate|status|remove)
-      if "$command"; then
-        exit 0
-      else
-        exit 1
-      fi
-      ;;
-    *)
-      echo "Usage: $0 {prerequisites|install|configure|validate|status|remove}"
-      exit 1
-      ;;
-  esac
-fi
+extension_main "$@"

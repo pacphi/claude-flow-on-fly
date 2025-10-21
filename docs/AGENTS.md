@@ -75,13 +75,13 @@ You can customize agent sources in two ways:
 **Before deployment** (recommended):
 
 ```bash
-# Edit templates before VM setup
+# Edit configuration files in repository before VM setup
 nano docker/config/agents-config.yaml    # Configure agent sources
 nano docker/config/agent-aliases         # Customize agent aliases
 nano docker/lib/agent-discovery.sh       # Add discovery functions
 ```
 
-**After deployment**:
+**After deployment on the VM**:
 
 ```bash
 # Edit deployed configurations
@@ -89,13 +89,13 @@ nano /workspace/config/agents-config.yaml          # Agent sources
 nano /workspace/.agent-aliases                     # Agent aliases
 nano /workspace/scripts/lib/agent-discovery.sh     # Discovery functions
 
-# Then reload
+# Reload the configurations
 source /workspace/.agent-aliases                   # Reload agent aliases
 source /workspace/scripts/lib/agent-discovery.sh   # Reload discovery functions
 agent-install                                      # Reinstall agents if config changed
 ```
 
-**Example custom source configuration:**
+**Example custom source in agents-config.yaml:**
 
 ```yaml
 sources:
@@ -111,6 +111,8 @@ sources:
       include_patterns:
         - "*.md"
 ```
+
+This configuration downloads agent files from a custom GitHub repository and makes them available for use with Claude Code.
 
 ## Finding Commands
 
@@ -161,4 +163,11 @@ You are a specialized agent that helps with...
 Use this agent when you need to...
 ```
 
-Place custom agents in your configured source directory and run `agent-install` to make them available.
+**Steps to deploy custom agents:**
+
+1. Create agent files (`.md` format) following the specification above
+2. Place them in your configured source directory
+3. Run `agent-install` to make them available
+4. Use them with `cf-l <agent-name> "task"` for context-aware execution
+
+Custom agents integrate seamlessly with the existing agent system and can be discovered through standard agent search commands.

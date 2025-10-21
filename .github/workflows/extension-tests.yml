@@ -479,133 +479,79 @@ jobs:
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
 
-          echo "Testing core extension components..."
+          echo "Testing core extension components (workspace-structure, ssh-environment, nodejs)..."
 
-          # Enhanced component testing with retry logic
-          max_retries=2
-          retry_count=0
-
-          while [ $retry_count -lt $max_retries ]; do
-            echo "Component test attempt $((retry_count + 1))/$max_retries..."
-
-            if flyctl ssh console --app $app_name --command "/bin/bash -lc '
-              # Load environment for non-interactive session
-              if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
-                source /etc/profile.d/00-ssh-environment.sh
-              fi
-
-              echo \"=== Testing Turbo Flow Components ===\"
-              component_failures=0
-
-              # Check Playwright with timeout
-              echo \"Checking Playwright...\"
-              if timeout 30s npx playwright --version >/dev/null 2>&1; then
-                version=\$(npx playwright --version 2>/dev/null || echo \"unknown\")
-                echo \"✅ Playwright installed: \$version\"
-              else
-                echo \"❌ Playwright not installed or not responding\"
-                ((component_failures++))
-              fi
-
-              # Check TypeScript
-              echo \"Checking TypeScript...\"
-              if timeout 30s npx tsc --version >/dev/null 2>&1; then
-                version=\$(npx tsc --version 2>/dev/null || echo \"unknown\")
-                echo \"✅ TypeScript installed: \$version\"
-              else
-                echo \"❌ TypeScript not installed or not responding\"
-                ((component_failures++))
-              fi
-
-              # Check monitoring tools (optional)
-              echo \"Checking monitoring tools...\"
-              if command -v claude-monitor >/dev/null 2>&1; then
-                echo \"✅ claude-monitor available\"
-              elif command -v uv >/dev/null 2>&1; then
-                echo \"✅ uv available\"
-              else
-                echo \"⚠️  Optional monitoring tools not fully installed (non-critical)\"
-              fi
-
-              echo \"\"
-              echo \"=== Testing Agent Manager ===\"
-
-              # Check agent-manager binary with multiple possible locations
-              echo \"Checking agent-manager binary...\"
-              if [ -x /workspace/bin/agent-manager ]; then
-                echo \"✅ Agent Manager binary present at /workspace/bin/agent-manager\"
-              elif [ -x /usr/local/bin/agent-manager ]; then
-                echo \"✅ Agent Manager binary present at /usr/local/bin/agent-manager\"
-              elif command -v agent-manager >/dev/null 2>&1; then
-                echo \"✅ Agent Manager binary found in PATH: \$(command -v agent-manager)\"
-              else
-                echo \"❌ Agent Manager binary missing\"
-                echo \"Searching for agent-manager...\"
-                find /workspace /usr/local -name \"agent-manager\" -type f 2>/dev/null || true
-                ((component_failures++))
-              fi
-
-              echo \"\"
-              echo \"=== Testing Tmux Workspace ===\"
-
-              # Check tmux installation
-              echo \"Checking tmux...\"
-              if command -v tmux >/dev/null 2>&1; then
-                version=\$(tmux -V 2>/dev/null || echo \"unknown\")
-                echo \"✅ Tmux installed: \$version\"
-              else
-                echo \"❌ Tmux not installed\"
-                ((component_failures++))
-              fi
-
-              # Check tmux config with multiple possible locations
-              echo \"Checking tmux config...\"
-              if [ -f /workspace/config/tmux.conf ]; then
-                echo \"✅ Tmux config present at /workspace/config/tmux.conf\"
-              elif [ -f ~/.tmux.conf ]; then
-                echo \"✅ Tmux config present at ~/.tmux.conf\"
-              else
-                echo \"⚠️  Tmux config not found (may use defaults)\"
-              fi
-
-              echo \"\"
-              echo \"=== Testing Context Management ===\"
-
-              # Check context loader with multiple possible locations
-              echo \"Checking context loader...\"
-              if [ -f /workspace/scripts/lib/context-loader.sh ]; then
-                echo \"✅ Context loader present at /workspace/scripts/lib/context-loader.sh\"
-              elif [ -f /workspace/scripts/context-loader.sh ]; then
-                echo \"✅ Context loader present at /workspace/scripts/context-loader.sh\"
-              else
-                echo \"❌ Context loader missing\"
-                echo \"Searching for context-loader.sh...\"
-                find /workspace/scripts -name \"context-loader.sh\" -type f 2>/dev/null || true
-                ((component_failures++))
-              fi
-
-              echo \"\"
-              if [ \$component_failures -eq 0 ]; then
-                echo \"✅ All core extension components validated successfully\"
-                exit 0
-              else
-                echo \"❌ \$component_failures component(s) failed validation\"
-                exit 1
-              fi
-            '"; then
-              echo "✅ Core component tests passed"
-              break
-            else
-              retry_count=$((retry_count + 1))
-              if [ $retry_count -lt $max_retries ]; then
-                echo "⚠️  Component tests failed, retrying in 15s..."
-                sleep 15
-              else
-                echo "❌ Core component tests failed after $max_retries attempts"
-                exit 1
-              fi
+          flyctl ssh console --app $app_name --command "/bin/bash -lc '
+            # Load environment for non-interactive session
+            if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+              source /etc/profile.d/00-ssh-environment.sh
             fi
-          done
+
+            echo \"=== Testing Core Extensions ===\"
+            component_failures=0
+
+            # Test workspace-structure
+            echo \"\"
+            echo \"Testing workspace-structure extension...\"
+            if [ -d /workspace/src ] || [ -d /workspace/tests ] || [ -d /workspace/docs ]; then
+              echo \"✅ Workspace structure directories present\"
+            else
+              echo \"⚠️  Workspace structure directories may not be created (extension may not run automatically)\"
+            fi
+
+            # Test ssh-environment
+            echo \"\"
+            echo \"Testing ssh-environment extension...\"
+            if [ -f /etc/ssh/sshd_config.d/99-bash-env.conf ]; then
+              echo \"✅ SSH environment config present\"
+              if grep -q \"BASH_ENV\" /etc/ssh/sshd_config.d/99-bash-env.conf; then
+                echo \"✅ BASH_ENV configured\"
+              else
+                echo \"❌ BASH_ENV not configured\"
+                ((component_failures++))
+              fi
+            else
+              echo \"❌ SSH environment config missing\"
+              ((component_failures++))
+            fi
+
+            # Test nodejs
+            echo \"\"
+            echo \"Testing nodejs extension...\"
+            if command -v node >/dev/null 2>&1; then
+              echo \"✅ Node.js available: \$(node --version)\"
+            else
+              echo \"⚠️  Node.js not in PATH (may need login shell or environment setup)\"
+            fi
+
+            if command -v npm >/dev/null 2>&1; then
+              echo \"✅ npm available: \$(npm --version)\"
+            else
+              echo \"⚠️  npm not in PATH\"
+            fi
+
+            # Check if NVM is installed (nodejs uses NVM)
+            if [ -d ~/.nvm ] || [ -d /usr/local/nvm ]; then
+              echo \"✅ NVM directory found\"
+            else
+              echo \"⚠️  NVM directory not found (may not be installed yet)\"
+            fi
+
+            echo \"\"
+            echo \"=== Optional Extensions (Not Tested) ===\"
+            echo \"Note: Playwright, TypeScript, Agent Manager, Tmux, and Context Loader\"
+            echo \"are optional extensions and are not tested in core extension tests.\"
+            echo \"They are tested separately in per-extension-tests job.\"
+
+            echo \"\"
+            if [ \$component_failures -eq 0 ]; then
+              echo \"✅ All core extension components validated successfully\"
+              exit 0
+            else
+              echo \"❌ \$component_failures core component(s) failed validation\"
+              exit 1
+            fi
+          '"
 
       - name: Test manifest-based extension management
         run: |
@@ -706,10 +652,10 @@ jobs:
           - { name: 'docker', commands: 'docker', key_tool: 'docker', timeout: '30m' }
           - { name: 'infra-tools', commands: 'terraform,ansible', key_tool: 'terraform', timeout: '30m' }
           - { name: 'cloud-tools', commands: 'aws', key_tool: 'aws', timeout: '30m' }
-          - { name: 'ai-tools', commands: 'ollama,fabric', key_tool: 'ollama', timeout: '30m' }
+          - { name: 'ai-tools', commands: 'ollama,fabric', key_tool: 'ollama', timeout: '30m', depends_on: 'nodejs' }
           # Utilities
           - { name: 'playwright', commands: 'npx playwright', key_tool: 'playwright', timeout: '25m', depends_on: 'nodejs' }
-          - { name: 'monitoring', commands: 'claude-monitor', key_tool: 'claude-monitor', timeout: '20m' }
+          - { name: 'monitoring', commands: 'claude-monitor,uv', key_tool: 'claude-monitor', timeout: '20m', depends_on: 'python,nodejs' }
           - { name: 'tmux-workspace', commands: 'tmux', key_tool: 'tmux', timeout: '15m' }
 
     steps:
@@ -730,6 +676,39 @@ jobs:
       - name: Checkout code
         if: steps.should-test.outputs.should_test == 'true'
         uses: actions/checkout@v5
+
+      - name: Cache Ruby build artifacts
+        if: steps.should-test.outputs.should_test == 'true' && matrix.extension.name == 'ruby'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rbenv/cache
+            ~/.rbenv/versions
+          key: ${{ runner.os }}-rbenv-${{ hashFiles('docker/lib/extensions.d/ruby.sh.example') }}
+          restore-keys: |
+            ${{ runner.os }}-rbenv-
+
+      - name: Cache Go modules
+        if: steps.should-test.outputs.should_test == 'true' && matrix.extension.name == 'golang'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('docker/lib/extensions.d/golang.sh.example') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Cache Rust toolchain
+        if: steps.should-test.outputs.should_test == 'true' && matrix.extension.name == 'rust'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo
+            ~/.rustup
+          key: ${{ runner.os }}-rust-${{ hashFiles('docker/lib/extensions.d/rust.sh.example') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
 
       - name: Install Fly CLI
         if: steps.should-test.outputs.should_test == 'true'
@@ -841,15 +820,20 @@ jobs:
           flyctl ssh console --app $app_name --command "/bin/bash -c '
             cd /workspace/scripts/lib
 
-            # Activate dependencies first if specified
+            # Activate dependencies first if specified (supports comma-separated list)
             if [ -n \"$depends_on\" ]; then
-              echo \"Activating dependency: $depends_on\"
-              if bash extension-manager.sh activate $depends_on; then
-                echo \"✅ Dependency $depends_on activated\"
-              else
-                echo \"❌ Dependency activation failed\"
-                exit 1
-              fi
+              echo \"Activating dependencies: $depends_on\"
+              IFS=\",\" read -ra DEPS <<< \"$depends_on\"
+              for dep in \"\${DEPS[@]}\"; do
+                dep=\$(echo \"\$dep\" | xargs)  # Trim whitespace
+                echo \"Activating dependency: \$dep\"
+                if bash extension-manager.sh activate \$dep; then
+                  echo \"✅ Dependency \$dep activated\"
+                else
+                  echo \"❌ Dependency \$dep activation failed\"
+                  exit 1
+                fi
+              done
             fi
 
             # Activate the main extension
@@ -1229,13 +1213,24 @@ jobs:
                 ;;
               ssh)
                 echo \"Testing SSH environment configuration...\"
-                # Verify SSH environment file exists
-                if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
-                  echo \"✅ SSH environment configured\"
-                  echo \"PATH in SSH session: \$PATH\"
+                # Verify SSH daemon env config exists (BASH_ENV setup)
+                if [ -f /etc/ssh/sshd_config.d/99-bash-env.conf ]; then
+                  echo \"✅ SSH daemon environment config present\"
+                  # Verify BASH_ENV is configured
+                  if grep -q \"BASH_ENV\" /etc/ssh/sshd_config.d/99-bash-env.conf; then
+                    echo \"✅ BASH_ENV configured for non-interactive sessions\"
+                  else
+                    echo \"⚠️  BASH_ENV configuration not found\"
+                  fi
                 else
-                  echo \"❌ SSH environment not configured\"
+                  echo \"❌ SSH daemon environment config not found\"
                   exit 1
+                fi
+                # Also check if profile.d environment file exists (optional)
+                if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+                  echo \"✅ SSH environment profile.d file present\"
+                else
+                  echo \"⚠️  SSH environment profile.d file not present (may be configured differently)\"
                 fi
                 ;;
               node)

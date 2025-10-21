@@ -5,20 +5,25 @@ This document describes the comprehensive testing system for VM extensions.
 ## Overview
 
 The extension testing workflow (`extension-tests.yml`) provides automated validation and functional testing
-for all extensions in the `docker/lib/extensions.d/` directory. This ensures that users can confidently
-activate and use any extension without encountering issues.
+for all extensions in the `docker/lib/extensions.d/` directory. Extensions follow the **Extension API v1.0**
+specification with manifest-based activation via `active-extensions.conf`.
+
+This comprehensive testing ensures that users can confidently activate and use any extension through the
+`extension-manager` command without encountering issues. Each extension implements 6 required API functions:
+`prerequisites()`, `install()`, `configure()`, `validate()`, `status()`, and `remove()`.
 
 ## Test Coverage
 
 ### 1. Extension Manager Validation
 
-Tests the core extension management system:
+Tests the core extension management system (**Extension API v1.0**):
 
 - **Script Syntax**: Validates `extension-manager.sh` with shellcheck
-- **List Command**: Verifies extension listing functionality
-- **Name Extraction**: Tests extraction of extension names from filenames
-- **Protected Extensions**: Verifies 00-init.sh cannot be deactivated
-- **Backup Functionality**: Tests file backup creation
+- **List Command**: Verifies extension listing functionality via `extension-manager list`
+- **Name Extraction**: Tests extraction of extension names from `.sh.example` files
+- **Manifest Operations**: Tests reading/writing `active-extensions.conf`
+- **Protected Extensions**: Verifies core extensions cannot be deactivated improperly
+- **Backup Functionality**: Tests file backup creation during deactivation
 
 **When It Runs**: On every push/PR affecting extension files
 
@@ -36,22 +41,22 @@ Validates all extension scripts for code quality:
 
 ### 3. Core Extension Tests
 
-Validates the protected 00-init.sh extension:
+Validates essential workspace extensions:
 
-- **Deployment**: Deploys test VM with core extension
+- **Deployment**: Deploys test VM with core extensions activated
 - **Component Verification**: Tests all core components:
-  - Turbo Flow (Playwright, TypeScript, monitoring)
-  - Agent Manager (binary, configuration)
-  - Tmux Workspace (installation, configuration)
-  - Context Management (loader scripts)
-- **Protection**: Verifies core extension cannot be deactivated
+  - Workspace Structure (directory layout, permissions)
+  - Node.js Environment (NVM, npm, global packages)
+  - SSH Environment (wrappers for non-interactive sessions)
+  - Claude Config (CLI authentication, global preferences)
+- **Activation Manifest**: Verifies `active-extensions.conf` processing
 - **Directory Structure**: Validates workspace layout
 
 **When It Runs**: On push/PR (unless specific extension requested)
 
 ### 4. Per-Extension Tests (Matrix)
 
-Comprehensive testing for each extension individually:
+Comprehensive testing for each extension individually using the Extension API v1.0:
 
 #### Tested Extensions
 
@@ -71,14 +76,15 @@ Comprehensive testing for each extension individually:
 
 #### Test Steps
 
-For each extension:
+For each extension using `extension-manager`:
 
-1. **Activation**: Activate extension via extension-manager
-2. **Installation**: Run `vm-configure.sh --extensions-only`
+1. **Activation**: `extension-manager activate <name>` (adds to manifest)
+2. **Installation**: `extension-manager install <name>` (runs prerequisites, install, configure)
 3. **Command Availability**: Verify all expected commands in PATH
 4. **Key Functionality**: Test core capability (compilation, execution, etc.)
-5. **Idempotency**: Run installation again to verify safe re-execution
-6. **Resource Cleanup**: Destroy test VM and volumes
+5. **Validation**: `extension-manager validate <name>` confirms working installation
+6. **Idempotency**: Re-run installation to verify safe re-execution
+7. **Resource Cleanup**: Destroy test VM and volumes
 
 **When It Runs**:
 
@@ -87,9 +93,11 @@ For each extension:
 
 ### 5. Extension Combinations
 
-Tests common extension combinations for conflicts:
+Tests common extension combinations for conflicts using manifest-based activation:
 
 #### Test Combinations
+
+Each combination activates multiple extensions in `active-extensions.conf`:
 
 - **fullstack**: Python + Docker + Cloud Tools
 - **systems**: Rust + Go + Docker
@@ -98,8 +106,9 @@ Tests common extension combinations for conflicts:
 
 #### Validation
 
-- All extensions activate successfully
-- No installation conflicts
+- All extensions activate successfully via `extension-manager`
+- Manifest processes extensions in correct order
+- No installation conflicts between extensions
 - Cross-extension functionality works
 - Tools from different extensions coexist
 
@@ -328,6 +337,9 @@ For issues with extension testing:
 ## Related Documentation
 
 - [Extension Development Guide](CUSTOMIZATION.md#extension-system)
-- [Extension README](../docker/lib/extensions.d/README.md)
-- [Integration Testing](../github/workflows/integration.yml)
-- [Validation Testing](../github/workflows/validate.yml)
+- [Extension System README](../docker/lib/extensions.d/README.md)
+- [Extension API v1.0 Specification](../docker/lib/extensions.d/README.md#extension-api-v10)
+- [Extension Manager Script](../docker/lib/extension-manager.sh)
+- [Integration Testing Workflow](../.github/workflows/integration.yml)
+- [Validation Testing Workflow](../.github/workflows/validate.yml)
+- [Extension Tests Workflow](../.github/workflows/extension-tests.yml)

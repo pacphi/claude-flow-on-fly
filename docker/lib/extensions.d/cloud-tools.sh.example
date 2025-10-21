@@ -12,6 +12,10 @@
 # - IBM Cloud CLI
 # - Cloud workspace setup
 
+# Source shared extension library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
+
 # ============================================================================
 # METADATA
 # ============================================================================
@@ -21,25 +25,8 @@ EXT_VERSION="1.0.0"
 EXT_DESCRIPTION="Cloud provider CLI tools (AWS, Azure, GCP, OCI, Alibaba, DO, IBM)"
 EXT_CATEGORY="infrastructure"
 
-# ============================================================================
-# COMMON UTILITIES
-# ============================================================================
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$(dirname "$SCRIPT_DIR")"
-
-if [[ -f "$LIB_DIR/common.sh" ]]; then
-  source "$LIB_DIR/common.sh"
-elif [[ -f "/workspace/scripts/lib/common.sh" ]]; then
-  source "/workspace/scripts/lib/common.sh"
-else
-  print_status() { echo "[INFO] $1"; }
-  print_success() { echo "[SUCCESS] $1"; }
-  print_error() { echo "[ERROR] $1" >&2; }
-  print_warning() { echo "[WARNING] $1"; }
-  print_debug() { [[ "${DEBUG:-}" == "true" ]] && echo "[DEBUG] $1"; }
-  command_exists() { command -v "$1" >/dev/null 2>&1; }
-fi
+# Initialize extension environment
+extension_init
 
 # ============================================================================
 # PREREQUISITES
@@ -567,8 +554,10 @@ remove() {
     echo ""
   fi
 
-  read -p "Continue with cloud CLIs removal? (y/N): " -r
-  [[ ! $REPLY =~ ^[Yy]$ ]] && print_status "Cancelled" && return 1
+  if ! prompt_confirmation "Continue with cloud CLIs removal?"; then
+    print_status "Removal cancelled"
+    return 1
+  fi
 
   # Remove AWS CLI
   if [[ -d /usr/local/aws-cli ]]; then
@@ -615,12 +604,10 @@ remove() {
   fi
 
   # Remove aliases
-  if grep -q "# Cloud CLI aliases" "$HOME/.bashrc" 2>/dev/null; then
-    sed -i '/# Cloud CLI aliases/,/^$/d' "$HOME/.bashrc"
-  fi
+  cleanup_bashrc "# Cloud CLI aliases"
 
   # Remove Oracle CLI PATH from bashrc
-  grep -q "# ${EXT_NAME}" "$HOME/.bashrc" 2>/dev/null && sed -i "/# ${EXT_NAME}/,+1d" "$HOME/.bashrc"
+  cleanup_bashrc "# ${EXT_NAME}"
 
   # Remove workspace
   local WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace}"
@@ -641,15 +628,4 @@ remove() {
 # MAIN EXECUTION
 # ============================================================================
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  command="${1:-status}"
-  case "$command" in
-    prerequisites|install|configure|validate|status|remove)
-      "$command" && exit 0 || exit 1
-      ;;
-    *)
-      echo "Usage: $0 {prerequisites|install|configure|validate|status|remove}"
-      exit 1
-      ;;
-  esac
-fi
+extension_main "$@"

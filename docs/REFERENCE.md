@@ -369,38 +369,135 @@ flyctl secrets unset API_KEY -a <app-name>
 
 ### Extension Management
 
+Sindri uses **Extension API v1.0** with manifest-based activation. Extensions are managed through the `extension-manager` command and controlled via the `active-extensions.conf` manifest.
+
 **List available extensions:**
 
 ```bash
-ls /workspace/scripts/extensions.d/*.example
+extension-manager list
 ```
 
-**Enable extension:**
+**Activate an extension (adds to manifest):**
 
 ```bash
-# Copy example to enable
-cp /workspace/scripts/extensions.d/10-rust.sh.example \
-   /workspace/scripts/extensions.d/10-rust.sh
+extension-manager activate <name>
 
-# Run specific extension
-/workspace/scripts/extensions.d/10-rust.sh
+# Examples:
+extension-manager activate rust
+extension-manager activate python
+extension-manager activate docker
+```
+
+**Install activated extension:**
+
+```bash
+# Install specific extension
+extension-manager install <name>
+
+# Or install all activated extensions
+extension-manager install-all
+```
+
+**Check extension status:**
+
+```bash
+extension-manager status <name>
+```
+
+**Validate extension installation:**
+
+```bash
+extension-manager validate <name>
+
+# Validate all active extensions
+extension-manager validate-all
+```
+
+**Deactivate extension (removes from manifest):**
+
+```bash
+extension-manager deactivate <name>
+```
+
+**Uninstall extension:**
+
+```bash
+extension-manager uninstall <name>
+```
+
+**Reorder extension priority:**
+
+```bash
+extension-manager reorder <name> <position>
 ```
 
 **Create custom extension:**
 
+Custom extensions must implement the Extension API v1.0 with 6 required functions:
+
 ```bash
-# Create new extension
-cat > /workspace/scripts/extensions.d/50-custom.sh << 'EOF'
+# Create new extension at docker/lib/extensions.d/custom.sh.example
+cat > docker/lib/extensions.d/custom.sh.example << 'EOF'
 #!/bin/bash
+# custom.sh.example - Custom tools extension
+# Implements Extension API v1.0
+
 source /workspace/scripts/lib/common.sh
 
-print_status "Installing custom tools..."
-# Your installation commands
-print_success "Custom tools ready"
+# Extension metadata
+EXT_NAME="custom"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="Custom development tools"
+
+# Required API functions
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
+  # Check requirements
+  print_success "All prerequisites met"
+  return 0
+}
+
+install() {
+  print_status "Installing ${EXT_NAME}..."
+  # Installation commands
+  print_success "Installation complete"
+  return 0
+}
+
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+  # Configuration steps
+  print_success "Configuration complete"
+  return 0
+}
+
+validate() {
+  print_status "Validating ${EXT_NAME}..."
+  # Validation checks
+  print_success "Validation passed"
+  return 0
+}
+
+status() {
+  print_status "Status for ${EXT_NAME}:"
+  # Display installation status
+  return 0
+}
+
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+  # Cleanup steps
+  print_success "Removal complete"
+  return 0
+}
 EOF
 
-chmod +x /workspace/scripts/extensions.d/50-custom.sh
+# Activate and install the custom extension
+extension-manager activate custom
+extension-manager install custom
 ```
+
+For detailed extension development, see the [Extension System README](../docker/lib/extensions.d/README.md).
 
 ## Networking Commands
 
@@ -545,7 +642,13 @@ sudo tail -f /var/log/auth.log
 │   └── archive/                # Archived projects
 ├── scripts/                    # Management scripts
 │   ├── lib/                    # Shared libraries
-│   └── extensions.d/           # Extension scripts
+│   │   ├── common.sh           # Common utility functions
+│   │   ├── extension-manager.sh # Extension management
+│   │   └── *.sh                # Other libraries
+│   ├── extensions.d/           # Extension scripts
+│   │   ├── active-extensions.conf # Activation manifest
+│   │   └── *.sh.example        # Available extensions
+│   └── vm-configure.sh         # Configuration script
 ├── config/                     # Configuration files
 ├── backups/                    # Local backups
 └── .config/                    # Application configs
@@ -560,9 +663,26 @@ sindri/
 ├── Dockerfile                 # Container definition
 ├── fly.toml                   # Fly.io configuration
 ├── docker/                    # Container files
+│   ├── lib/                   # Shared libraries
+│   │   ├── extension-manager.sh # Extension management
+│   │   ├── extensions.d/      # Extension scripts
+│   │   │   ├── active-extensions.conf.example
+│   │   │   └── *.sh.example   # Available extensions
+│   │   └── *.sh               # Other libraries
+│   ├── scripts/               # VM setup scripts
+│   │   ├── vm-configure.sh    # Main configuration
+│   │   └── entrypoint.sh      # Container entrypoint
+│   └── config/                # Configuration files
 ├── scripts/                   # Local management scripts
+│   ├── vm-setup.sh            # Deploy VM
+│   ├── vm-suspend.sh          # Suspend VM
+│   └── vm-*.sh                # Other VM management
 ├── templates/                 # Configuration templates
 └── docs/                      # Documentation
+    ├── REFERENCE.md           # This file
+    ├── EXTENSION_TESTING.md   # Extension testing
+    ├── ARCHITECTURE.md        # System architecture
+    └── AGENTS.md              # Agent system guide
 ```
 
 ### Configuration Files

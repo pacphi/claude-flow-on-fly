@@ -473,8 +473,7 @@ remove() {
   # Example: Remove from PATH (bashrc)
   if grep -q "# ${EXT_NAME} - added by extension" "$HOME/.bashrc" 2>/dev/null; then
     print_status "Removing PATH modifications..."
-    # Remove the comment line and the next line (export PATH=...)
-    sed -i "/# ${EXT_NAME} - added by extension/,+1d" "$HOME/.bashrc"
+    cleanup_bashrc "# ${EXT_NAME} - added by extension"
     print_success "PATH modifications removed"
   fi
 

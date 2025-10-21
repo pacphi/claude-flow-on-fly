@@ -64,7 +64,13 @@ File locations after deployment to the VM:
 │   └── archive/                       # Archived projects
 ├── scripts/                           # VM management scripts
 │   ├── lib/                           # Shared utility libraries
-│   └── extensions.d/                  # Extension scripts
+│   │   ├── common.sh                  # Common utility functions
+│   │   ├── extension-manager.sh       # Extension management CLI
+│   │   └── *.sh                       # Other libraries
+│   ├── extensions.d/                  # Extension scripts
+│   │   ├── active-extensions.conf     # Activation manifest
+│   │   └── *.sh.example               # Available extensions
+│   └── vm-configure.sh                # Main configuration script
 ├── config/                            # Configuration files
 ├── backups/                           # Local backup storage
 └── .config/                           # Application configurations
@@ -113,8 +119,10 @@ File locations after deployment to the VM:
 |-------------------|-------------------|---------|
 | `docker/scripts/vm-configure.sh` | `/workspace/scripts/vm-configure.sh` | Main configuration script |
 | `docker/lib/*.sh` | `/workspace/scripts/lib/*.sh` | Shared utility libraries |
+| `docker/lib/extension-manager.sh` | `/workspace/scripts/lib/extension-manager.sh` | Extension management CLI |
+| `docker/lib/extensions.d/*.sh.example` | `/workspace/scripts/extensions.d/*.sh.example` | Available extensions |
+| `docker/lib/extensions.d/active-extensions.conf.example` | `/workspace/scripts/extensions.d/active-extensions.conf` | Activation manifest |
 | `docker/config/*` | Various VM locations | Configuration files |
-| `docker/lib/extensions.d/*.sh` | `/workspace/scripts/extensions.d/*.sh` | Extension scripts |
 | `templates/*.example` | User reference only | Example configurations |
 
 ## Development Workflow Architecture
@@ -157,19 +165,30 @@ Claude Code/Flow   flyctl ssh console   API Keys (Fly secrets) ←→ Project Fi
 
 ## Extension System Architecture
 
+Sindri uses **Extension API v1.0** with manifest-based activation for managing development tools and environments.
+
 ### Extension Lifecycle
 
-1. **Discovery**: Scripts in `/workspace/scripts/extensions.d/`
-2. **Ordering**: Alphabetical execution (use prefixes: `10-`, `20-`, etc.)
-3. **Phases**: `pre-*`, regular, `post-*` execution order
-4. **Libraries**: Access to common utilities in `/workspace/scripts/lib/`
+1. **Discovery**: Extension scripts stored as `.sh.example` files in `/workspace/scripts/extensions.d/`
+2. **Activation**: Users activate extensions via `extension-manager activate <name>` which adds them to the manifest
+3. **Manifest Processing**: The `active-extensions.conf` file controls which extensions install and their execution order
+4. **Installation**: `extension-manager install <name>` runs the extension's API functions in sequence:
+   - `prerequisites()` - Check system requirements
+   - `install()` - Install packages and tools
+   - `configure()` - Post-installation configuration
+5. **Validation**: `extension-manager validate <name>` runs smoke tests via the `validate()` function
+6. **Status Tracking**: Each extension implements `status()` and `remove()` for lifecycle management
 
 ### Extension Categories
 
-- **Language Tools**: Rust, Go, Python, etc.
-- **Infrastructure**: Docker, Kubernetes, Terraform
-- **Databases**: PostgreSQL, MongoDB, Redis clients
-- **Custom Tools**: Project-specific tooling
+Extensions are organized by capability:
+
+- **Language Tools**: nodejs, python, rust, golang, ruby, php, dotnet, jvm
+- **Infrastructure**: docker, infra-tools (Terraform, Ansible, kubectl)
+- **Cloud Platforms**: cloud-tools (AWS, Azure, GCP CLIs)
+- **AI Development**: ai-tools, claude-config, agent-manager
+- **Development Tools**: nodejs-devtools, playwright, monitoring
+- **Workspace Tools**: workspace-structure, ssh-environment, tmux-workspace
 
 ## Security Architecture
 

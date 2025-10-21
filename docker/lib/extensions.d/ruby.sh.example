@@ -10,6 +10,10 @@
 # - Node.js and Yarn for Rails asset pipeline
 # - CI mode detection for lightweight installs
 
+# Source shared extension library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
+
 # ============================================================================
 # METADATA
 # ============================================================================
@@ -19,25 +23,8 @@ EXT_VERSION="1.0.0"
 EXT_DESCRIPTION="Ruby with rbenv, Rails, and Sinatra"
 EXT_CATEGORY="language"
 
-# ============================================================================
-# COMMON UTILITIES
-# ============================================================================
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$(dirname "$SCRIPT_DIR")"
-
-if [[ -f "$LIB_DIR/common.sh" ]]; then
-  source "$LIB_DIR/common.sh"
-elif [[ -f "/workspace/scripts/lib/common.sh" ]]; then
-  source "/workspace/scripts/lib/common.sh"
-else
-  print_status() { echo "[INFO] $1"; }
-  print_success() { echo "[SUCCESS] $1"; }
-  print_error() { echo "[ERROR] $1" >&2; }
-  print_warning() { echo "[WARNING] $1"; }
-  print_debug() { [[ "${DEBUG:-}" == "true" ]] && echo "[DEBUG] $1"; }
-  command_exists() { command -v "$1" >/dev/null 2>&1; }
-fi
+# Initialize extension environment
+extension_init
 
 # ============================================================================
 # PREREQUISITES
@@ -127,8 +114,15 @@ install() {
     ruby_versions=("3.4.5" "3.3.9")
   fi
 
+  # Optimize Ruby compilation with parallel jobs
+  local cpu_count
+  cpu_count=$(nproc 2>/dev/null || echo "2")
+  export MAKE_OPTS="-j$cpu_count"
+  export RUBY_BUILD_CACHE_PATH="$HOME/.rbenv/cache"
+  mkdir -p "$RUBY_BUILD_CACHE_PATH"
+
   for version in "${ruby_versions[@]}"; do
-    print_debug "Installing Ruby $version..."
+    print_debug "Installing Ruby $version (using $cpu_count parallel jobs)..."
     if rbenv install "$version" 2>/dev/null; then
       print_debug "✓ Ruby $version installed"
     else
@@ -540,8 +534,10 @@ remove() {
     echo ""
   fi
 
-  read -p "Continue with Ruby removal? (y/N): " -r
-  [[ ! $REPLY =~ ^[Yy]$ ]] && print_status "Cancelled" && return 1
+  if ! prompt_confirmation "Continue with Ruby removal?"; then
+    print_status "Removal cancelled"
+    return 1
+  fi
 
   # Remove rbenv
   if [[ -d "$HOME/.rbenv" ]]; then
@@ -551,12 +547,10 @@ remove() {
   fi
 
   # Remove aliases
-  if grep -q "# Ruby aliases" "$HOME/.bashrc" 2>/dev/null; then
-    sed -i '/# Ruby aliases/,/^$/d' "$HOME/.bashrc"
-  fi
+  cleanup_bashrc "# Ruby aliases"
 
   # Remove rbenv from bashrc
-  grep -q "# ${EXT_NAME}" "$HOME/.bashrc" 2>/dev/null && sed -i "/# ${EXT_NAME}/,+2d" "$HOME/.bashrc"
+  cleanup_bashrc "# ${EXT_NAME}"
 
   # Remove configs
   rm -f "$HOME/.rubocop.yml"
@@ -571,15 +565,4 @@ remove() {
 # MAIN EXECUTION
 # ============================================================================
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  command="${1:-status}"
-  case "$command" in
-    prerequisites|install|configure|validate|status|remove)
-      "$command" && exit 0 || exit 1
-      ;;
-    *)
-      echo "Usage: $0 {prerequisites|install|configure|validate|status|remove}"
-      exit 1
-      ;;
-  esac
-fi
+extension_main "$@"
