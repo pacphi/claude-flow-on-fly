@@ -48,3 +48,12 @@ disable=SC2087
 
 # SC1037: Braces are required for positionals over 9 - false positive for dollar amounts in strings
 disable=SC1037
+
+# SC2317: Command appears to be unreachable - false positive for sourced library functions
+disable=SC2317
+
+# SC2059: Don't use variables in printf format string - intentional for colored output
+disable=SC2059
+
+# SC2046: Quote to prevent word splitting - handled case-by-case, many intentional uses
+disable=SC2046
