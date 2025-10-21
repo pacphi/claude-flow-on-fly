@@ -449,8 +449,13 @@ validate() {
   done
   print_status "Development gems: $gems_found/${#gems[@]}"
 
-  [[ "$all_valid" == "true" ]] && print_success "Validation passed" || print_error "Validation failed"
-  return $([ "$all_valid" == "true" ] && echo 0 || echo 1)
+  if [[ "$all_valid" == "true" ]]; then
+    print_success "Validation passed"
+    return 0
+  else
+    print_error "Validation failed"
+    return 1
+  fi
 }
 
 # ============================================================================
@@ -505,7 +510,10 @@ check_dependent_extensions() {
     local ext_name=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
     [[ "$ext_name" == "$EXT_NAME" ]] && continue
     local ext_file="$SCRIPT_DIR/${ext_name}.sh"
-    [[ ! -f "$ext_file" ]] && ext_file="$SCRIPT_DIR/"*"-${ext_name}.sh"
+    if [[ ! -f "$ext_file" ]]; then
+      local matches=("$SCRIPT_DIR/"*"-${ext_name}.sh")
+      ext_file="${matches[0]}"
+    fi
     [[ ! -f "$ext_file" ]] && continue
     for cmd in "${provided_commands[@]}"; do
       if grep -q "$cmd" "$ext_file" 2>/dev/null; then
@@ -525,7 +533,8 @@ check_dependent_extensions() {
 remove() {
   print_warning "Uninstalling Ruby..."
 
-  local dependent_exts=($(check_dependent_extensions "ruby" "gem" "bundle" "rails"))
+  local dependent_exts=()
+  mapfile -t dependent_exts < <(check_dependent_extensions "ruby" "gem" "bundle" "rails")
   if [[ ${#dependent_exts[@]} -gt 0 ]]; then
     print_warning "The following extensions depend on Ruby and may stop working:"
     for ext in "${dependent_exts[@]}"; do

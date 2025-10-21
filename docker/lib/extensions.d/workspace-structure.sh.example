@@ -292,7 +292,7 @@ remove() {
   for dir in "${dirs_to_remove[@]}"; do
     if [[ -d "$WORKSPACE_DIR/$dir" ]]; then
       print_status "Removing: $dir"
-      rm -rf "$WORKSPACE_DIR/$dir"
+      rm -rf "${WORKSPACE_DIR:?}/$dir"
     fi
   done
 

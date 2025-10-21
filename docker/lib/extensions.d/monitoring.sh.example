@@ -343,7 +343,10 @@ check_dependent_extensions() {
 
     # Find the extension file
     local ext_file="$SCRIPT_DIR/${ext_name}.sh"
-    [[ ! -f "$ext_file" ]] && ext_file="$SCRIPT_DIR/"*"-${ext_name}.sh"
+    if [[ ! -f "$ext_file" ]]; then
+      local matches=("$SCRIPT_DIR/"*"-${ext_name}.sh")
+      ext_file="${matches[0]}"
+    fi
     [[ ! -f "$ext_file" ]] && continue
 
     # Check if extension references any of the provided commands
@@ -366,7 +369,8 @@ remove() {
   print_warning "Uninstalling monitoring tools..."
 
   # Check for dependent extensions
-  local dependent_exts=($(check_dependent_extensions "claude-monitor" "claude-usage" "uv"))
+  local dependent_exts=()
+  mapfile -t dependent_exts < <(check_dependent_extensions "claude-monitor" "claude-usage" "uv")
 
   if [[ ${#dependent_exts[@]} -gt 0 ]]; then
     print_warning "The following active extensions depend on monitoring tools and may stop working:"

@@ -427,7 +427,29 @@ jobs:
 
           # Start it back up for cleanup
           flyctl machine start $machine_id --app $app_name
-          sleep 15
+
+          # Wait for machine to fully restart with verification
+          echo "Waiting for machine to restart..."
+          sleep 45
+
+          # Verify machine is running before proceeding to cleanup
+          max_attempts=5
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Checking machine status (attempt $attempt/$max_attempts)..."
+            if flyctl status --app $app_name | grep -q "started"; then
+              echo "✅ Machine fully restarted and ready for cleanup"
+              break
+            else
+              echo "⚠️  Machine not ready, waiting..."
+              sleep 10
+              attempt=$((attempt + 1))
+            fi
+          done
+
+          if [ $attempt -gt $max_attempts ]; then
+            echo "⚠️  Machine may not be fully started, but proceeding with cleanup"
+          fi
 
       - name: Test basic extension workflow
         if: success()

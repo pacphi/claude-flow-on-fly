@@ -324,7 +324,11 @@ validate() {
     fi
   fi
 
-  [[ "$all_valid" == "true" ]] && print_success "Validation passed" || print_warning "Validation completed with warnings"
+  if [[ "$all_valid" == "true" ]]; then
+    print_success "Validation passed"
+  else
+    print_warning "Validation completed with warnings"
+  fi
   return 0
 }
 
