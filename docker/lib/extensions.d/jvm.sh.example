@@ -4,7 +4,7 @@
 #
 # This extension installs JVM development environment with:
 # - SDKMAN for managing JVM SDKs
-# - Java (LTS versions: 21, 17, 11)
+# - Java (LTS versions: 24, 21, 17, 11)
 # - Build tools (Maven, Gradle)
 # - Languages (Kotlin, Scala, Clojure)
 # - Frameworks (Spring Boot, Micronaut)
@@ -82,6 +82,7 @@ install() {
   # Install Java versions
   print_status "Installing Java SDKs..."
   local java_versions=(
+    "24.0.2-librca"    # Current LTS (Liberica)
     "21.0.7-librca"    # LTS version (Liberica)
     "17.0.16-librca"   # Previous LTS
     "11.0.28-librca"   # Extended LTS
@@ -97,7 +98,7 @@ install() {
   done
 
   # Set default Java version
-  sdk default java 21.0.7-librca 2>/dev/null
+  sdk default java 24.0.2-librca 2>/dev/null
 
   # Install build tools
   print_status "Installing JVM build tools..."
@@ -230,6 +231,7 @@ configure() {
 alias j11='sdk use java 11.0.28-librca'
 alias j17='sdk use java 17.0.16-librca'
 alias j21='sdk use java 21.0.7-librca'
+alias j24='sdk use java 24.0.2-librca'
 alias jv='java -version'
 
 # Maven aliases
