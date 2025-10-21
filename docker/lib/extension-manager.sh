@@ -327,6 +327,11 @@ call_extension_function() {
     if ! declare -F "$function_name" >/dev/null 2>&1; then
         print_error "Function '$function_name' not found in extension '$ext_name'"
         return 1
+    fi
+
+    # Call the function with provided arguments
+    "$function_name" "${args[@]}"
+}
 
 # ============================================================================
 # COMMAND FUNCTIONS (Manifest-based)
