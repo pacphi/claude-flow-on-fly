@@ -125,9 +125,12 @@ tmp/
 
 # Database Files
 *.db
+*.db-journal
+*.db-wal
 *.sqlite
 *.sqlite3
-*.db-journal
+*.sqlite-journal
+*.sqlite-wal
 
 # Cloud and Volume Data
 workspace-backup*
@@ -214,3 +217,26 @@ projects/private/
 
 # Common functions (in scripts directory)
 !scripts/lib
+
+# Extension activation manifest (user-specific)
+docker/lib/extensions.d/active-extensions.conf
+
+# Claude Flow generated files
+.claude/settings.local.json
+.mcp.json
+.swarm/
+.hive-mind/
+.claude-flow/
+claude-flow.config.json
+memory/
+coordination/
+memory/claude-flow-data.json
+memory/sessions/*
+!memory/sessions/README.md
+memory/agents/*
+!memory/agents/README.md
+coordination/memory_bank/*
+coordination/subtasks/*
+coordination/orchestration/*
+claude-flow
+hive-mind-prompt-*.txt

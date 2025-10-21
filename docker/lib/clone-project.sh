@@ -266,9 +266,11 @@ CLAUDE_EOF
     fi
 
     # Initialize Claude Flow if available
-    if command_exists claude-flow || command_exists npx; then
+    if command_exists npx; then
         print_status "Initializing Claude Flow..."
         npx claude-flow@alpha init --force 2>/dev/null || true
+    else
+        print_debug "Skipping Claude Flow initialization (npx not available)"
     fi
 
     # Initialize agent-flow if available

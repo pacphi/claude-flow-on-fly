@@ -1,127 +1,195 @@
 #!/bin/bash
-# post-50-cleanup.sh.example - Post-installation cleanup and optimization
-# Rename this file to post-50-cleanup.sh to enable
+# post-cleanup.sh.example - Post-installation cleanup and optimization
+# Extension API v1.0
+#
+# This extension performs cleanup operations after all other extensions are installed.
+# It clears caches, removes temporary files, sets permissions, and creates a tools summary.
+# Add this to the END of your active-extensions.conf manifest for automatic cleanup.
 
-# Source common utilities
-source /workspace/scripts/lib/common.sh
+# ============================================================================
+# METADATA
+# ============================================================================
 
-print_status "Running post-installation cleanup..."
+EXT_NAME="post-cleanup"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="Post-installation cleanup and system optimization"
+EXT_CATEGORY="utility"
 
-# Clean package manager caches
-print_header "Cleaning Package Manager Caches"
+# ============================================================================
+# COMMON UTILITIES
+# ============================================================================
 
-# System package managers
-if command_exists apt-get; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(dirname "$SCRIPT_DIR")"
+
+if [[ -f "$LIB_DIR/common.sh" ]]; then
+  source "$LIB_DIR/common.sh"
+elif [[ -f "/workspace/scripts/lib/common.sh" ]]; then
+  source "/workspace/scripts/lib/common.sh"
+else
+  print_status() { echo "[INFO] $1"; }
+  print_success() { echo "[SUCCESS] $1"; }
+  print_error() { echo "[ERROR] $1" >&2; }
+  print_warning() { echo "[WARNING] $1"; }
+  print_debug() { [[ "${DEBUG:-}" == "true" ]] && echo "[DEBUG] $1"; }
+  command_exists() { command -v "$1" >/dev/null 2>&1; }
+fi
+
+# ============================================================================
+# PREREQUISITES
+# ============================================================================
+
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
+
+  # No hard prerequisites - cleanup is optional
+  # Check for tools used in reporting
+  local tools_available=0
+  for tool in df free du; do
+    command_exists "$tool" && ((tools_available++))
+  done
+
+  if [[ $tools_available -gt 0 ]]; then
+    print_success "System reporting tools available: $tools_available/3"
+  else
+    print_warning "No system reporting tools found"
+  fi
+
+  print_success "Prerequisites met (cleanup can run)"
+  return 0
+}
+
+# ============================================================================
+# INSTALL
+# ============================================================================
+
+install() {
+  print_status "Installing ${EXT_NAME}..."
+  print_status "This extension has no installation requirements"
+  print_success "Nothing to install"
+  return 0
+}
+
+# ============================================================================
+# CONFIGURE
+# ============================================================================
+
+configure() {
+  print_status "Running post-installation cleanup and optimization..."
+
+  # Clean package manager caches
+  print_status "Cleaning package manager caches..."
+
+  # System package managers
+  if command_exists apt-get; then
     print_debug "Cleaning apt cache..."
-    sudo apt-get autoremove -y 2>/dev/null
-    sudo apt-get autoclean 2>/dev/null
-fi
+    sudo apt-get autoremove -y 2>/dev/null || true
+    sudo apt-get autoclean 2>/dev/null || true
+  fi
 
-# JavaScript/Node.js
-if command_exists npm; then
+  # JavaScript/Node.js
+  if command_exists npm; then
     print_debug "Cleaning npm cache..."
-    npm cache clean --force 2>/dev/null
-fi
+    npm cache clean --force 2>/dev/null || true
+  fi
 
-if command_exists yarn; then
+  if command_exists yarn; then
     print_debug "Cleaning yarn cache..."
     yarn cache clean 2>/dev/null || true
-fi
+  fi
 
-if command_exists pnpm; then
+  if command_exists pnpm; then
     print_debug "Cleaning pnpm cache..."
     pnpm store prune 2>/dev/null || true
-fi
+  fi
 
-# Python
-if command_exists pip3; then
+  # Python
+  if command_exists pip3; then
     print_debug "Cleaning pip cache..."
     pip3 cache purge 2>/dev/null || true
-fi
+  fi
 
-if command_exists poetry; then
+  if command_exists poetry; then
     print_debug "Cleaning poetry cache..."
     poetry cache clear pypi --all -n 2>/dev/null || true
-fi
+  fi
 
-if command_exists pipenv; then
+  if command_exists pipenv; then
     print_debug "Cleaning pipenv cache..."
     pipenv --clear 2>/dev/null || true
-fi
+  fi
 
-# Rust
-if command_exists cargo; then
+  # Rust
+  if command_exists cargo; then
     print_debug "Cleaning cargo cache..."
-    # Clean old registry cache
     rm -rf ~/.cargo/registry/cache 2>/dev/null || true
     rm -rf ~/.cargo/git/checkouts 2>/dev/null || true
-    # If cargo-cache is installed, use it
     if cargo --list | grep -q "cache"; then
-        cargo cache --autoclean 2>/dev/null || true
+      cargo cache --autoclean 2>/dev/null || true
     fi
-fi
+  fi
 
-# Go
-if command_exists go; then
+  # Go
+  if command_exists go; then
     print_debug "Cleaning go module cache..."
     go clean -modcache 2>/dev/null || true
-fi
+  fi
 
-# JVM (Maven, Gradle)
-if command_exists mvn; then
-    print_debug "Cleaning Maven cache..."
+  # JVM (Maven, Gradle)
+  if command_exists mvn; then
+    print_debug "Cleaning Maven snapshots..."
     rm -rf ~/.m2/repository/*-SNAPSHOT 2>/dev/null || true
-fi
+  fi
 
-if command_exists gradle; then
+  if command_exists gradle; then
     print_debug "Cleaning Gradle cache..."
     rm -rf ~/.gradle/caches/build-cache-* 2>/dev/null || true
-fi
+  fi
 
-# PHP
-if command_exists composer; then
+  # PHP
+  if command_exists composer; then
     print_debug "Cleaning Composer cache..."
     composer clear-cache 2>/dev/null || true
-fi
+  fi
 
-# Ruby
-if command_exists gem; then
+  # Ruby
+  if command_exists gem; then
     print_debug "Cleaning Ruby gem cache..."
     gem cleanup 2>/dev/null || true
-fi
+  fi
 
-if command_exists bundle; then
+  if command_exists bundle; then
     print_debug "Cleaning Bundler cache..."
     bundle clean --force 2>/dev/null || true
-fi
+  fi
 
-# .NET
-if command_exists dotnet; then
+  # .NET
+  if command_exists dotnet; then
     print_debug "Cleaning .NET NuGet cache..."
     dotnet nuget locals all --clear 2>/dev/null || true
-fi
+  fi
 
-# Docker
-if command_exists docker; then
+  # Docker
+  if command_exists docker; then
     print_debug "Cleaning Docker system..."
     docker system prune -f 2>/dev/null || true
-fi
+  fi
 
-# Remove temporary files
-print_debug "Removing temporary files..."
-rm -rf /tmp/* 2>/dev/null || true
-rm -rf ~/.cache/pip/* 2>/dev/null || true
+  # Remove temporary files
+  print_debug "Removing temporary files..."
+  rm -rf /tmp/* 2>/dev/null || true
+  rm -rf ~/.cache/pip/* 2>/dev/null || true
 
-# Set proper permissions on workspace
-print_debug "Setting workspace permissions..."
-sudo chown -R developer:developer /workspace 2>/dev/null || true
-chmod -R 755 /workspace/scripts 2>/dev/null || true
+  # Set proper permissions on workspace
+  print_debug "Setting workspace permissions..."
+  sudo chown -R developer:developer /workspace 2>/dev/null || true
+  chmod -R 755 /workspace/scripts 2>/dev/null || true
 
-# Create a comprehensive summary of installed tools
-print_status "Creating comprehensive tools summary..."
+  # Create comprehensive tools summary
+  print_status "Creating comprehensive tools summary..."
 
-summary_file="/workspace/.installed-tools.txt"
-{
+  local summary_file="/workspace/.installed-tools.txt"
+  {
     echo "# Installed Development Tools"
     echo "# Generated on $(date)"
     echo "# =========================================="
@@ -140,9 +208,6 @@ summary_file="/workspace/.installed-tools.txt"
     command_exists npm && echo "- npm: $(npm --version)"
     command_exists yarn && echo "- Yarn: $(yarn --version 2>/dev/null)"
     command_exists pnpm && echo "- pnpm: $(pnpm --version 2>/dev/null)"
-    command_exists prettier && echo "- Prettier: $(prettier --version 2>/dev/null)"
-    command_exists eslint && echo "- ESLint: $(eslint --version 2>/dev/null | head -n1)"
-    command_exists typescript && echo "- TypeScript: $(tsc --version 2>/dev/null)"
     echo
 
     echo "## Programming Languages"
@@ -150,188 +215,201 @@ summary_file="/workspace/.installed-tools.txt"
     command_exists python3 && echo "- Python: $(python3 --version)"
     command_exists pip3 && echo "- pip: $(pip3 --version | head -n1)"
     command_exists poetry && echo "- Poetry: $(poetry --version 2>/dev/null)"
-    command_exists pipenv && echo "- Pipenv: $(pipenv --version 2>/dev/null)"
-    command_exists virtualenv && echo "- virtualenv: $(virtualenv --version 2>/dev/null)"
-    command_exists black && echo "- Black: $(black --version 2>/dev/null | head -n1)"
-    command_exists flake8 && echo "- Flake8: $(flake8 --version 2>/dev/null | head -n1)"
-    command_exists mypy && echo "- mypy: $(mypy --version 2>/dev/null)"
-    command_exists pytest && echo "- pytest: $(pytest --version 2>/dev/null | head -n1)"
-    command_exists jupyter && echo "- Jupyter: $(jupyter --version 2>/dev/null | grep ^jupyter | head -n1)"
-    command_exists ipython && echo "- IPython: $(ipython --version 2>/dev/null)"
+    command_exists uv && echo "- uv: $(uv --version 2>/dev/null)"
     echo
 
     echo "### Rust"
     command_exists rustc && echo "- Rust: $(rustc --version)"
     command_exists cargo && echo "- Cargo: $(cargo --version)"
     command_exists rustup && echo "- rustup: $(rustup --version 2>/dev/null | head -n1)"
-    command_exists rust-analyzer && echo "- rust-analyzer: Installed"
     command_exists rg && echo "- ripgrep: $(rg --version | head -n1)"
-    command_exists fd && echo "- fd-find: $(fd --version 2>/dev/null)"
-    command_exists bat && echo "- bat: $(bat --version 2>/dev/null)"
-    command_exists exa && echo "- exa: $(exa --version 2>/dev/null | head -n1)"
-    command_exists tokei && echo "- tokei: $(tokei --version 2>/dev/null)"
     echo
 
     echo "### Go"
     command_exists go && echo "- Go: $(go version)"
-    command_exists gopls && echo "- gopls: $(gopls version 2>/dev/null | head -n1 | cut -d' ' -f2)"
-    command_exists dlv && echo "- Delve debugger: $(dlv version 2>/dev/null | head -n1)"
-    command_exists golangci-lint && echo "- golangci-lint: $(golangci-lint --version 2>/dev/null | head -n1)"
-    command_exists air && echo "- Air (live reload): $(air -v 2>/dev/null | head -n1)"
+    command_exists gopls && echo "- gopls: $(gopls version 2>/dev/null | head -n1)"
     echo
 
     echo "### JVM Languages"
     [ -d "$HOME/.sdkman" ] && echo "- SDKMAN: Installed"
     command_exists java && echo "- Java: $(java -version 2>&1 | head -n1)"
-    command_exists javac && echo "- javac: $(javac -version 2>&1)"
     command_exists mvn && echo "- Maven: $(mvn --version 2>/dev/null | head -n1)"
     command_exists gradle && echo "- Gradle: $(gradle --version 2>/dev/null | grep ^Gradle)"
-    command_exists kotlin && echo "- Kotlin: $(kotlin -version 2>/dev/null | head -n1)"
-    command_exists kotlinc && echo "- kotlinc: $(kotlinc -version 2>/dev/null | head -n1)"
-    command_exists scala && echo "- Scala: $(scala -version 2>&1 | head -n1)"
-    command_exists sbt && echo "- sbt: $(sbt --version 2>/dev/null | head -n1)"
-    command_exists clojure && echo "- Clojure: $(clojure --version 2>/dev/null)"
-    command_exists lein && echo "- Leiningen: $(lein --version 2>/dev/null | head -n1)"
-    command_exists jbang && echo "- JBang: $(jbang --version 2>/dev/null)"
-    command_exists spring && echo "- Spring Boot CLI: $(spring --version 2>/dev/null)"
-    command_exists mn && echo "- Micronaut CLI: $(mn --version 2>/dev/null | head -n1)"
     echo
 
     echo "### PHP"
     command_exists php && echo "- PHP: $(php --version | head -n1)"
     command_exists composer && echo "- Composer: $(composer --version 2>/dev/null | head -n1)"
     command_exists symfony && echo "- Symfony CLI: $(symfony version 2>/dev/null | head -n1)"
-    command_exists phpstan && echo "- PHPStan: $(phpstan --version 2>/dev/null)"
-    command_exists psalm && echo "- Psalm: $(psalm --version 2>/dev/null)"
-    command_exists phpunit && echo "- PHPUnit: $(phpunit --version 2>/dev/null | head -n1)"
-    command_exists php-cs-fixer && echo "- PHP CS Fixer: $(php-cs-fixer --version 2>/dev/null | head -n1)"
     echo
 
     echo "### Ruby"
     [ -d "$HOME/.rbenv" ] && echo "- rbenv: Installed"
     command_exists ruby && echo "- Ruby: $(ruby --version)"
-    command_exists gem && echo "- gem: $(gem --version)"
     command_exists bundler && echo "- Bundler: $(bundler --version 2>/dev/null)"
     command_exists rails && echo "- Rails: $(rails --version 2>/dev/null)"
-    command_exists rake && echo "- Rake: $(rake --version 2>/dev/null)"
-    command_exists rubocop && echo "- RuboCop: $(rubocop --version 2>/dev/null)"
-    command_exists rspec && echo "- RSpec: $(rspec --version 2>/dev/null | head -n1)"
-    command_exists pry && echo "- Pry: Installed"
-    command_exists foreman && echo "- Foreman: Installed"
-    command_exists puma && echo "- Puma: $(puma --version 2>/dev/null | head -n1)"
     echo
 
     echo "### .NET"
     command_exists dotnet && echo "- .NET SDK: $(dotnet --version)"
-    echo "  Installed SDKs:"
     if command_exists dotnet; then
-        dotnet --list-sdks 2>/dev/null | head -3 | sed 's/^/    - /'
+      echo "  Installed SDKs:"
+      dotnet --list-sdks 2>/dev/null | head -3 | sed 's/^/    - /'
     fi
-    command_exists nuget && echo "- NuGet CLI: Installed"
-    dotnet tool list -g 2>/dev/null | grep -q dotnet-ef && echo "- Entity Framework Core: Installed"
-    dotnet tool list -g 2>/dev/null | grep -q dotnet-format && echo "- dotnet-format: Installed"
     echo
 
     echo "## DevOps & Infrastructure"
     echo "### Containers & Orchestration"
     command_exists docker && echo "- Docker: $(docker --version)"
     command_exists docker-compose && echo "- Docker Compose: $(docker-compose --version 2>/dev/null | head -n1)"
-    command_exists dive && echo "- Dive: $(dive --version 2>/dev/null | head -n1)"
-    command_exists ctop && echo "- ctop: Installed"
     command_exists kubectl && echo "- kubectl: $(kubectl version --client --short 2>/dev/null)"
     command_exists helm && echo "- Helm: $(helm version --short 2>/dev/null)"
-    command_exists k9s && echo "- k9s: $(k9s version --short 2>/dev/null | head -n1)"
-    command_exists kubectx && echo "- kubectx/kubens: Installed"
     echo
 
     echo "### Infrastructure as Code"
     command_exists terraform && echo "- Terraform: $(terraform version | head -n1)"
     command_exists pulumi && echo "- Pulumi: $(pulumi version 2>/dev/null)"
-    command_exists crossplane && echo "- Crossplane CLI: $(crossplane --version 2>/dev/null | head -n1)"
+    command_exists ansible && echo "- Ansible: $(ansible --version 2>/dev/null | head -n1)"
     echo
 
-    echo "### Carvel Tools"
-    command_exists kapp && echo "- kapp: $(kapp version 2>/dev/null | head -n1)"
-    command_exists ytt && echo "- ytt: $(ytt version 2>/dev/null)"
-    command_exists kbld && echo "- kbld: $(kbld version 2>/dev/null)"
-    command_exists vendir && echo "- vendir: $(vendir version 2>/dev/null)"
-    command_exists imgpkg && echo "- imgpkg: $(imgpkg version 2>/dev/null)"
+    echo "### Cloud CLIs"
+    command_exists aws && echo "- AWS CLI: $(aws --version 2>&1 | head -n1)"
+    command_exists az && echo "- Azure CLI: $(az --version 2>/dev/null | grep ^azure-cli)"
+    command_exists gcloud && echo "- Google Cloud SDK: $(gcloud --version 2>/dev/null | head -n1)"
     echo
 
-    echo "## Database Tools"
-    command_exists psql && echo "- PostgreSQL client: $(psql --version)"
-    command_exists mysql && echo "- MySQL client: $(mysql --version 2>/dev/null | head -n1)"
-    command_exists sqlite3 && echo "- SQLite: $(sqlite3 --version)"
-    command_exists redis-cli && echo "- Redis client: $(redis-cli --version)"
-    command_exists mongosh && echo "- MongoDB Shell: $(mongosh --version 2>/dev/null)"
-    echo
-
-    echo "## Installed Extensions"
-    if [ -d "/workspace/scripts/extensions.d" ]; then
-        echo "### Active Extensions:"
-        for ext in /workspace/scripts/extensions.d/*.sh; do
-            if [ -f "$ext" ]; then
-                basename="$(basename "$ext")"
-                [[ ! "$basename" =~ \.example$ ]] && echo "  - $basename"
-            fi
-        done
-        echo
-        echo "### Available Extensions (not active):"
-        for ext in /workspace/scripts/extensions.d/*.sh.example; do
-            if [ -f "$ext" ]; then
-                basename="$(basename "$ext" .example)"
-                echo "  - $basename (rename to activate)"
-            fi
-        done
+    echo "## Active Extensions"
+    if [ -f "/workspace/scripts/extensions.d/active-extensions.conf" ]; then
+      while IFS= read -r line; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// }" ]] && continue
+        local ext_name=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        echo "- $ext_name"
+      done < "/workspace/scripts/extensions.d/active-extensions.conf"
     fi
     echo
 
-} > "$summary_file"
+  } > "$summary_file"
 
-# Update system status script to show cleanup info
-if [ -f "/workspace/scripts/system-status.sh" ]; then
-    print_debug "Tools summary saved to $summary_file"
-fi
+  print_success "Tools summary saved to $summary_file"
 
-# Run final system optimization
-print_status "Running system optimization..."
+  # Run final system optimization
+  print_status "Running final system optimization..."
 
-# Update locate database if available
-if command_exists updatedb; then
+  # Update locate database if available
+  if command_exists updatedb; then
     sudo updatedb 2>/dev/null || true
-fi
+  fi
 
-# Sync filesystem
-sync
+  # Sync filesystem
+  sync
 
-print_success "Post-installation cleanup completed"
-print_status "System ready for development!"
+  print_success "Post-installation cleanup completed"
+  return 0
+}
 
-# Show system statistics after cleanup
-print_header "System Statistics After Cleanup"
+# ============================================================================
+# VALIDATE
+# ============================================================================
 
-if command_exists df; then
+validate() {
+  print_status "Validating cleanup results..."
+
+  local all_valid=true
+
+  # Check if summary file was created
+  if [[ -f "/workspace/.installed-tools.txt" ]]; then
+    local tool_count=$(grep -c "^-" "/workspace/.installed-tools.txt" 2>/dev/null || echo 0)
+    print_success "Tools summary created: $tool_count tools documented"
+  else
+    print_warning "Tools summary not found"
+    all_valid=false
+  fi
+
+  # Check disk space
+  if command_exists df; then
+    local workspace_usage
+    workspace_usage=$(df -h /workspace 2>/dev/null | awk 'NR==2 {print $5}' | sed 's/%//')
+    if [[ -n "$workspace_usage" ]] && [[ $workspace_usage -lt 90 ]]; then
+      print_success "Workspace disk usage: ${workspace_usage}%"
+    else
+      print_warning "Workspace disk usage high: ${workspace_usage}%"
+    fi
+  fi
+
+  [[ "$all_valid" == "true" ]] && print_success "Validation passed" || print_warning "Validation completed with warnings"
+  return 0
+}
+
+# ============================================================================
+# STATUS
+# ============================================================================
+
+status() {
+  print_status "Checking cleanup status..."
+
+  # Show system statistics
+  if command_exists df; then
     print_status "Disk usage:"
-    df -h /workspace | awk 'NR==2 {print "  Workspace: " $3 " used / " $2 " total (" $5 " full)"}'
-    df -h / | awk 'NR==2 {print "  System: " $3 " used / " $2 " total (" $5 " full)"}'
-fi
+    df -h /workspace 2>/dev/null | awk 'NR==2 {print "  Workspace: " $3 " used / " $2 " total (" $5 " full)"}'
+    df -h / 2>/dev/null | awk 'NR==2 {print "  System: " $3 " used / " $2 " total (" $5 " full)"}'
+  fi
 
-if command_exists free; then
+  if command_exists free; then
     echo
     print_status "Memory usage:"
     free -h | awk 'NR==2 {print "  Total: " $2 ", Used: " $3 ", Free: " $4 ", Available: " $7}'
+  fi
+
+  # Count installed tools
+  echo
+  if [[ -f "/workspace/.installed-tools.txt" ]]; then
+    local tool_count=$(grep -c "^-" "/workspace/.installed-tools.txt" 2>/dev/null || echo 0)
+    print_success "Tools summary: $tool_count tools documented"
+    print_status "Summary location: /workspace/.installed-tools.txt"
+  else
+    print_warning "Tools summary not found (run configure to create)"
+  fi
+
+  return 0
+}
+
+# ============================================================================
+# REMOVE
+# ============================================================================
+
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+
+  # Remove tools summary
+  if [[ -f "/workspace/.installed-tools.txt" ]]; then
+    read -p "Remove tools summary file? (y/N): " -r
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      rm -f "/workspace/.installed-tools.txt"
+      print_success "Tools summary removed"
+    else
+      print_status "Tools summary preserved"
+    fi
+  fi
+
+  print_success "Cleanup extension removed"
+  print_status "Note: This doesn't undo the cleanup operations"
+  return 0
+}
+
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  command="${1:-status}"
+  case "$command" in
+    prerequisites|install|configure|validate|status|remove)
+      "$command" && exit 0 || exit 1
+      ;;
+    *)
+      echo "Usage: $0 {prerequisites|install|configure|validate|status|remove}"
+      exit 1
+      ;;
+  esac
 fi
-
-# Count installed tools
-echo
-print_status "Tool installation summary:"
-tool_count=0
-[ -f "$summary_file" ] && tool_count=$(grep -c "^-" "$summary_file" 2>/dev/null || echo 0)
-echo "  Total tools installed: $tool_count"
-
-# Show cache sizes cleaned
-echo
-print_status "Cache cleanup summary:"
-echo "  Package manager caches cleared"
-echo "  Temporary files removed"
-echo "  Docker system pruned (if available)"

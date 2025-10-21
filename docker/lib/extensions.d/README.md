@@ -1,91 +1,613 @@
-# Extension System
+# Extension System v1.0
 
-This directory contains example extension scripts for customizing your development environment. Extensions are
-automatically executed during the `vm-configure.sh` process.
+Sindri uses a manifest-based extension system to manage development tools and environments. Extensions follow a standardized API with explicit dependency management and activation control.
 
-## How Extensions Work
+## Overview
 
-1. **Naming Convention**: Extensions are executed in alphabetical order
-2. **Execution Phases**: Use prefixes to control when extensions run:
-   - `pre-*.sh` - Run before main tool installation
-   - `*.sh` - Run during main installation phase
-   - `post-*.sh` - Run after all main tools are installed
+**Extension API v1.0** provides:
+- **Manifest-based activation**: Control which extensions install via `active-extensions.conf`
+- **Standardized API**: All extensions implement 6 required functions
+- **Dependency management**: Explicit prerequisites checking before installation
+- **CLI management**: `extension-manager` tool for activation and installation
+- **Idempotent operations**: Safe to re-run installations
+- **Clean removal**: Proper uninstall with dependency warnings
+
+## Quick Start
+
+```bash
+# List all available extensions
+extension-manager list
+
+# Activate an extension (adds to manifest)
+extension-manager activate nodejs
+
+# Install activated extension
+extension-manager install nodejs
+
+# Or install all activated extensions
+extension-manager install-all
+
+# Check installation status
+extension-manager status nodejs
+
+# Validate installation
+extension-manager validate nodejs
+```
+
+## Extension API v1.0
+
+All extensions must implement these 6 functions:
+
+### 1. `prerequisites()`
+**Purpose**: Check system requirements before installation
+
+**Returns**: `0` if all prerequisites met, `1` otherwise
+
+**Checks**:
+- Required system packages
+- Commands available in PATH
+- Disk space and memory
+- Network connectivity
+- Dependent extensions
+
+**Example**:
+```bash
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
+
+  if ! command_exists curl; then
+    print_error "curl is required but not installed"
+    return 1
+  fi
+
+  print_success "All prerequisites met"
+  return 0
+}
+```
+
+### 2. `install()`
+**Purpose**: Install packages and tools
+
+**Returns**: `0` on success, `1` on failure
+
+**Actions**:
+- Download and install packages
+- Compile from source if needed
+- Verify installation success
+- Handle already-installed gracefully
+
+**Example**:
+```bash
+install() {
+  print_status "Installing ${EXT_NAME}..."
+
+  if command_exists rust; then
+    print_warning "Rust already installed"
+    return 0
+  fi
+
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+  print_success "Rust installed successfully"
+  return 0
+}
+```
+
+### 3. `configure()`
+**Purpose**: Post-installation configuration
+
+**Returns**: `0` on success, `1` on failure
+
+**Actions**:
+- Add to PATH in .bashrc
+- Create configuration files
+- Set environment variables
+- Create SSH wrappers for non-interactive sessions
+
+**Example**:
+```bash
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+
+  if ! grep -q "cargo/bin" "$HOME/.bashrc"; then
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> "$HOME/.bashrc"
+    print_success "Added cargo to PATH"
+  fi
+
+  return 0
+}
+```
+
+### 4. `validate()`
+**Purpose**: Run smoke tests to verify installation
+
+**Returns**: `0` if valid, `1` if validation fails
+
+**Tests**:
+- Command availability
+- Version checks
+- Basic functionality tests
+- Configuration validation
+
+**Example**:
+```bash
+validate() {
+  print_status "Validating ${EXT_NAME}..."
+
+  if ! command_exists rustc; then
+    print_error "rustc command not found"
+    return 1
+  fi
+
+  print_success "Rust: $(rustc --version)"
+  return 0
+}
+```
+
+### 5. `status()`
+**Purpose**: Display current installation state
+
+**Returns**: `0` if installed, `1` if not installed
+
+**Shows**:
+- Installed version
+- Configuration status
+- Component availability
+- Helpful diagnostics
+
+**Example**:
+```bash
+status() {
+  print_status "Checking ${EXT_NAME} status..."
+
+  if ! command_exists rustc; then
+    print_warning "Rust is not installed"
+    return 1
+  fi
+
+  print_success "Rust: $(rustc --version)"
+  print_success "Cargo: $(cargo --version)"
+  return 0
+}
+```
+
+### 6. `remove()`
+**Purpose**: Uninstall and clean up
+
+**Returns**: `0` on success, `1` on failure
+
+**Actions**:
+- Check for dependent extensions
+- Prompt for confirmation
+- Remove packages and files
+- Clean up configuration
+- Remove PATH modifications
+
+**Example**:
+```bash
+remove() {
+  print_warning "Uninstalling ${EXT_NAME}..."
+
+  read -p "Remove Rust toolchain? (y/N): " -r
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    return 1
+  fi
+
+  rustup self uninstall -y
+  print_success "Rust uninstalled"
+  return 0
+}
+```
+
+## Available Extensions
+
+Extensions are organized by category in the activation manifest.
+
+### Core Infrastructure
+- **workspace-structure** - Base /workspace directory structure
+- **nodejs** - Node.js LTS via NVM (Node Version Manager)
+- **ssh-environment** - SSH wrappers for non-interactive sessions
+
+### Claude AI
+- **claude-config** - Claude Code CLI with developer configuration
+- **nodejs-devtools** - TypeScript, ESLint, Prettier, nodemon, goalie
+
+### Development Tools
+- **monitoring** - System monitoring tools (htop, ncdu, glances)
+- **playwright** - Browser automation testing framework
+- **tmux-workspace** - Tmux session manager
+- **agent-manager** - Claude Code agent management
+- **context-loader** - Context management for Claude
+
+### Programming Languages
+- **python** - Python 3.13 with pip, venv, uv
+- **rust** - Rust toolchain with cargo, clippy, rustfmt
+- **golang** - Go 1.24 with gopls, delve, golangci-lint
+- **ruby** - Ruby 3.4/3.3 with rbenv, Rails, Bundler
+- **php** - PHP 8.3 with Composer, Symfony CLI
+- **jvm** - SDKMAN with Java, Kotlin, Scala, Maven, Gradle
+- **dotnet** - .NET SDK 9.0/8.0 with ASP.NET Core
+
+### Infrastructure & Cloud
+- **docker** - Docker Engine with compose, dive, ctop
+- **infra-tools** - Terraform, Ansible, kubectl, Helm, Carvel, Pulumi
+- **cloud-tools** - AWS, Azure, GCP, Oracle, DigitalOcean CLIs
+- **ai-tools** - AI coding assistants (Codex, Gemini, Ollama, Fabric, Plandex)
+
+### Post-Installation
+- **post-cleanup** - Clean caches, set permissions, create tools summary (run LAST)
+
+## Activation Manifest
+
+Extensions are controlled via `/workspace/scripts/extensions.d/active-extensions.conf`:
+
+```bash
+# Core extensions (always first)
+workspace-structure
+nodejs
+ssh-environment
+
+# Claude AI
+claude-config
+nodejs-devtools
+
+# Languages
+python
+golang
+
+# Infrastructure
+docker
+infra-tools
+
+# Post-installation (always last)
+post-cleanup
+```
+
+**Order matters**: Extensions execute top to bottom. List dependencies before dependents.
+
+## Extension Manager
+
+The `extension-manager` CLI tool manages extension lifecycle:
+
+### List Extensions
+```bash
+# Show all available extensions
+extension-manager list
+
+# Shows: [ACTIVE] or [inactive] status for each extension
+```
+
+### Activate Extension
+```bash
+# Add to manifest (doesn't install yet)
+extension-manager activate nodejs
+extension-manager activate claude-config
+```
+
+### Install Extension
+```bash
+# Install single extension
+extension-manager install nodejs
+
+# Install all activated extensions
+extension-manager install-all
+```
+
+### Check Status
+```bash
+# Show installation status
+extension-manager status nodejs
+
+# Shows version and component availability
+```
+
+### Validate Installation
+```bash
+# Run smoke tests
+extension-manager validate nodejs
+
+# Returns 0 if valid, 1 if issues found
+```
+
+### Uninstall Extension
+```bash
+# Remove extension and clean up
+extension-manager uninstall nodejs
+
+# Checks for dependent extensions first
+```
+
+### Reorder Priority
+```bash
+# Change execution order in manifest
+extension-manager reorder nodejs 5
+
+# Moves nodejs to position 5
+```
 
 ## Creating Extensions
 
-1. Create a script file in this directory (e.g., `50-rust.sh`)
-2. Make it executable: `chmod +x 50-rust.sh`
-3. Source common utilities: `source /workspace/scripts/lib/common.sh`
-4. Use print functions for consistent output
-
-## Example Extension
-
+### 1. Copy Template
 ```bash
-#!/bin/bash
-# 50-rust.sh - Install Rust toolchain
-
-# Source common utilities for print functions
-source /workspace/scripts/lib/common.sh
-
-print_status "Installing Rust toolchain..."
-
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-source $HOME/.cargo/env
-
-# Install additional tools
-cargo install cargo-watch cargo-edit
-
-print_success "Rust toolchain installed successfully"
+cp template.sh.example my-extension.sh.example
 ```
 
-## Core Extensions
+### 2. Update Metadata
+```bash
+#!/bin/bash
+# my-extension.sh.example - Brief description
+# Extension API v1.0
 
-### Required Core Extension
+EXT_NAME="my-extension"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="What this extension provides"
+EXT_CATEGORY="utility"  # utility, language, infrastructure
+```
 
-- `00-init.sh` - **Core environment initialization** (Required, pre-installed)
-  - Automatically installed during VM configuration
-  - Provides foundation for all development workflows
-  - Components:
-    - **Turbo Flow**: Playwright, TypeScript, monitoring tools, validation
-    - **Agent Manager**: Claude Code agent system with discovery utilities
-    - **Tmux Workspace**: Multi-window development environment
-    - **Context Management**: Claude Flow integration and context loading
-    - **Workspace Aliases**: Unified command aliases system
-  - Creates complete project structure and development environment
-  - All subsequent extensions build on this foundation
+### 3. Source Common Utilities
+```bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(dirname "$SCRIPT_DIR")"
 
-## Available Examples
+if [[ -f "$LIB_DIR/common.sh" ]]; then
+  source "$LIB_DIR/common.sh"
+elif [[ -f "/workspace/scripts/lib/common.sh" ]]; then
+  source "/workspace/scripts/lib/common.sh"
+else
+  # Minimal fallback
+  print_status() { echo "[INFO] $1"; }
+  print_success() { echo "[SUCCESS] $1"; }
+  print_error() { echo "[ERROR] $1" >&2; }
+  print_warning() { echo "[WARNING] $1"; }
+  print_debug() { [[ "${DEBUG:-}" == "true" ]] && echo "[DEBUG] $1"; }
+  command_exists() { command -v "$1" >/dev/null 2>&1; }
+fi
+```
 
-### Language & Runtime Environments
+### 4. Implement Required Functions
+Implement all 6 API functions: `prerequisites()`, `install()`, `configure()`, `validate()`, `status()`, `remove()`
 
-- `10-rust.sh.example` - Rust toolchain installation
-- `20-golang.sh.example` - Go toolchain installation
-- `40-jvm.sh.example` - JVM languages (Java, Kotlin, Scala, Clojure) with SDKMAN
-- `50-php.sh.example` - PHP 8.3 and Symfony framework development
-- `60-ruby.sh.example` - Ruby with Rails and Sinatra frameworks
-- `70-dotnet.sh.example` - .NET SDK with ASP.NET Core and development tools
+### 5. Add Main Execution Block
+```bash
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  command="${1:-status}"
 
-### Tools & Utilities
+  case "$command" in
+    prerequisites|install|configure|validate|status|remove)
+      if "$command"; then
+        exit 0
+      else
+        exit 1
+      fi
+      ;;
+    *)
+      echo "Usage: $0 {prerequisites|install|configure|validate|status|remove}"
+      exit 1
+      ;;
+  esac
+fi
+```
 
-- `30-docker.sh.example` - Docker tools installation
-- `80-infra-tools.sh.example` - Curated infrastructure tooling
-- `85-cloud-tools.sh.example` - Curated cloud provider CLIs
-- `87-ai-tools.sh.example` - AI CLI tools and coding assistants (Codex, Gemini, Copilot, Ollama, Fabric, etc.)
-- `post-50-cleanup.sh.example` - Post-installation cleanup
+### 6. Test Extension
+```bash
+# Test each function individually
+./my-extension.sh.example prerequisites
+./my-extension.sh.example install
+./my-extension.sh.example configure
+./my-extension.sh.example validate
+./my-extension.sh.example status
+
+# Or use extension-manager
+extension-manager activate my-extension
+extension-manager install my-extension
+extension-manager validate my-extension
+```
 
 ## Best Practices
 
-1. **Use numbered prefixes** (10-, 20-, etc.) to control execution order
-2. **Source common.sh** for consistent logging and utilities
-3. **Handle errors gracefully** - don't exit on minor failures
-4. **Check for existing installations** before attempting to install
-5. **Use appropriate print functions** for user feedback
+### 1. Idempotent Operations
+Extensions must be safe to re-run:
+```bash
+install() {
+  if command_exists my-tool; then
+    print_warning "Already installed"
+    return 0
+  fi
+
+  # Install logic here
+}
+```
+
+### 2. Explicit Dependencies
+Declare dependencies in `prerequisites()`:
+```bash
+prerequisites() {
+  if ! command_exists npm; then
+    print_error "nodejs extension required"
+    print_status "Run: extension-manager activate nodejs"
+    return 1
+  fi
+  return 0
+}
+```
+
+### 3. Graceful Error Handling
+Don't exit on minor failures:
+```bash
+install() {
+  npm install -g tool1 || print_warning "tool1 failed"
+  npm install -g tool2 || print_warning "tool2 failed"
+
+  # Return success if at least one tool installed
+  command_exists tool1 || command_exists tool2
+}
+```
+
+### 4. Consistent Logging
+Use provided print functions:
+- `print_status` - Informational messages
+- `print_success` - Success messages
+- `print_error` - Error messages
+- `print_warning` - Warning messages
+- `print_debug` - Debug output (only when DEBUG=true)
+
+### 5. User-Space Installation
+Avoid sudo when possible:
+```bash
+# Good: User-space installation
+npm config set prefix "$HOME/.npm-global"
+
+# Avoid: System-wide installation requiring sudo
+sudo npm install -g package
+```
+
+### 6. SSH Session Support
+Create wrappers for non-interactive SSH:
+```bash
+configure() {
+  if command_exists create_tool_wrapper 2>/dev/null; then
+    create_tool_wrapper "my-tool" "$(which my-tool)"
+  fi
+}
+```
+
+### 7. Clean Configuration
+Add comments when modifying .bashrc:
+```bash
+echo "" >> "$HOME/.bashrc"
+echo "# ${EXT_NAME} - description" >> "$HOME/.bashrc"
+echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> "$HOME/.bashrc"
+```
+
+### 8. Manifest Ordering
+Consider dependencies when ordering in manifest:
+```bash
+# Good: nodejs before claude-config
+nodejs
+claude-config
+
+# Bad: claude-config will fail prerequisites
+claude-config
+nodejs
+```
 
 ## Debugging
 
-Set `DEBUG=true` environment variable to see detailed execution logs:
-
+### Enable Debug Output
 ```bash
-DEBUG=true /workspace/scripts/vm-configure.sh --extensions-only
+# Set DEBUG environment variable
+DEBUG=true extension-manager install nodejs
+
+# Or for full vm-configure
+DEBUG=true /workspace/scripts/vm-configure.sh
 ```
+
+### Test Individual Functions
+```bash
+# Run specific function
+bash -x my-extension.sh.example install
+
+# Check prerequisites only
+my-extension.sh.example prerequisites && echo "OK" || echo "FAIL"
+```
+
+### Check Logs
+```bash
+# Extension-manager logs to stdout/stderr
+extension-manager install nodejs 2>&1 | tee install.log
+
+# Check what's activated
+cat /workspace/scripts/extensions.d/active-extensions.conf
+```
+
+### Validate Manually
+```bash
+# Check installation state
+extension-manager status my-extension
+
+# Run validation tests
+extension-manager validate my-extension
+
+# List all active extensions
+extension-manager list | grep ACTIVE
+```
+
+## Migration from Old System
+
+If you have custom extensions using the old numbered prefix system (e.g., `50-my-tool.sh`):
+
+### 1. Rename File
+```bash
+mv 50-my-tool.sh my-tool.sh.example
+```
+
+### 2. Add Metadata
+Add `EXT_NAME`, `EXT_VERSION`, `EXT_DESCRIPTION`, `EXT_CATEGORY` at the top.
+
+### 3. Wrap in Functions
+Convert script body into `install()` function. Add other 5 API functions.
+
+### 4. Activate in Manifest
+```bash
+extension-manager activate my-tool
+```
+
+### 5. Test
+```bash
+extension-manager validate my-tool
+```
+
+## Troubleshooting
+
+### Extension Won't Activate
+```bash
+# Check file exists
+ls -l /workspace/scripts/lib/extensions.d/my-extension.sh.example
+
+# Check file permissions
+chmod +x my-extension.sh.example
+
+# Check syntax
+bash -n my-extension.sh.example
+```
+
+### Prerequisites Fail
+```bash
+# Run prerequisites manually
+./my-extension.sh.example prerequisites
+
+# Check what's missing
+extension-manager status dependency-name
+```
+
+### Installation Fails
+```bash
+# Enable debug mode
+DEBUG=true extension-manager install my-extension
+
+# Check disk space
+df -h /workspace
+
+# Check network
+curl -I https://github.com
+```
+
+### Validation Fails
+```bash
+# See what failed
+extension-manager validate my-extension
+
+# Check command availability
+which expected-command
+
+# Check PATH
+echo $PATH
+```
+
+## Reference
+
+- **Extension Template**: `template.sh.example` - Complete reference implementation
+- **Extension Manager**: `/workspace/scripts/lib/extension-manager.sh` - CLI tool source
+- **Active Manifest**: `/workspace/scripts/extensions.d/active-extensions.conf` - Activation list
+- **Common Functions**: `/workspace/scripts/lib/common.sh` - Shared utilities
+- **Documentation**: `/workspace/projects/active/sindri/CLAUDE.md` - Full project docs

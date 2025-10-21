@@ -357,17 +357,43 @@ create_legacy_project() {
 
     case $project_type in
         node)
-            npm init -y
+            if command_exists npm; then
+                npm init -y
+            else
+                print_warning "npm not available, creating basic package.json"
+                echo '{"name": "'"$PROJECT_NAME"'", "version": "1.0.0"}' > package.json
+            fi
             ;;
         python)
-            python3 -m venv venv 2>/dev/null || true
+            if command_exists python3; then
+                python3 -m venv venv 2>/dev/null || true
+            else
+                print_warning "python3 not available, skipping venv creation"
+            fi
             touch requirements.txt
             ;;
         go)
-            go mod init "$PROJECT_NAME" 2>/dev/null || echo "module $PROJECT_NAME" > go.mod
+            if command_exists go; then
+                go mod init "$PROJECT_NAME" 2>/dev/null || echo "module $PROJECT_NAME" > go.mod
+            else
+                print_warning "go not available, creating basic go.mod"
+                echo "module $PROJECT_NAME" > go.mod
+            fi
             ;;
         rust)
-            cargo init --name "$PROJECT_NAME" 2>/dev/null || {
+            if command_exists cargo; then
+                cargo init --name "$PROJECT_NAME" 2>/dev/null || {
+                    {
+                        echo "[package]"
+                        echo "name = \"$PROJECT_NAME\""
+                        echo "version = \"0.1.0\""
+                        echo "edition = \"2021\""
+                    } > Cargo.toml
+                    mkdir -p src
+                    echo "fn main() { println!(\"Hello, world!\"); }" > src/main.rs
+                }
+            else
+                print_warning "cargo not available, creating basic Cargo.toml"
                 {
                     echo "[package]"
                     echo "name = \"$PROJECT_NAME\""
@@ -376,7 +402,7 @@ create_legacy_project() {
                 } > Cargo.toml
                 mkdir -p src
                 echo "fn main() { println!(\"Hello, world!\"); }" > src/main.rs
-            }
+            fi
             ;;
         web)
             mkdir -p src css js
@@ -516,13 +542,15 @@ if command_exists uvx || command_exists uv; then
 fi
 
 # Initialize Claude Flow if available
-if command_exists claude-flow || command_exists npx; then
+if command_exists npx; then
     print_status "Initializing Claude Flow..."
     if npx claude-flow@alpha init --force 2>/dev/null; then
         print_success "Claude Flow initialized"
     else
         print_debug "Claude Flow initialization skipped"
     fi
+else
+    print_debug "Skipping Claude Flow initialization (npx not available)"
 fi
 
 # Initialize agent-flow if available

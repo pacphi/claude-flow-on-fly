@@ -45,6 +45,22 @@ Thanks for the inspiration [Marcus Patman](https://github.com/marcuspat)!
 - **Systematic Validation**: Structured approach to code quality
 - **Best Practices**: Following established development patterns
 
+### 🔧 Extension System v1.0
+
+- **Manifest-Based Activation**: Control which tools install via `active-extensions.conf`
+- **Standardized API**: All extensions implement 6 required functions (prerequisites, install, configure, validate, status, remove)
+- **CLI Management**: Use `extension-manager` for activating, installing, and managing extensions
+- **Dependency Management**: Explicit prerequisite checking before installation
+- **Idempotent Operations**: Safe to re-run installations
+- **Clean Removal**: Proper uninstall with dependency warnings
+
+**Available Extensions:**
+- Core: `workspace-structure`, `nodejs`, `ssh-environment`
+- Claude AI: `claude-config`, `nodejs-devtools`, `agent-manager`, `context-loader`
+- Languages: `python`, `rust`, `golang`, `ruby`, `php`, `jvm`, `dotnet`
+- Infrastructure: `docker`, `infra-tools`, `cloud-tools`, `ai-tools`
+- Tools: `monitoring`, `tmux-workspace`, `playwright`
+
 ## Quick Start
 
 ### 1. Deploy to Fly.io
@@ -75,7 +91,7 @@ ssh developer@my-claude-env.fly.dev -p 10022
 /workspace/scripts/vm-configure.sh
 
 # Validate the installation
-/workspace/scripts/validate-setup.sh
+/workspace/scripts/lib/validate-setup.sh
 ```
 
 ### 3. Start Development
@@ -83,6 +99,11 @@ ssh developer@my-claude-env.fly.dev -p 10022
 ```bash
 # Authenticate Claude Code
 claude
+
+# Activate and install required extensions
+extension-manager activate agent-manager
+extension-manager activate tmux-workspace
+extension-manager install-all
 
 # Start the tmux workspace
 tmux-workspace
@@ -98,9 +119,17 @@ cf-swarm "Build a modern web application with authentication"
 
 ### Agent Management
 
+**Prerequisites**: Requires the `agent-manager` extension to be activated and installed.
+
+```bash
+# Activate and install the agent-manager extension
+extension-manager activate agent-manager
+extension-manager install agent-manager
+```
+
 For complete agent management including installation, search, discovery, custom sources, and development, see **[AGENTS.md](AGENTS.md)**.
 
-Key commands:
+Key commands (available after agent-manager extension is installed):
 
 - `agent-install` - Install all configured agents
 - `agent-find <term>` - Search for specific agents
@@ -125,7 +154,7 @@ validate-context
 
 #### Context Hierarchy
 
-1. **Global Context** (`/workspace/context/global/`)
+1. **Global Context** (`/workspace/context/`)
    - `CLAUDE.md`: Core configuration and rules
    - `CCFOREVER.md`: Quality assurance protocols
 
@@ -154,6 +183,14 @@ context-hierarchy
 ```
 
 ### Tmux Workspace
+
+**Prerequisites**: Requires the `tmux-workspace` extension to be activated and installed.
+
+```bash
+# Activate and install the tmux-workspace extension
+extension-manager activate tmux-workspace
+extension-manager install tmux-workspace
+```
 
 #### Starting the Workspace
 
@@ -239,7 +276,7 @@ tmux-resume-workspace # Smart workspace resumption
 
 ```bash
 # Basic setup validation
-/workspace/scripts/validate-setup.sh
+/workspace/scripts/lib/validate-setup.sh
 
 # Context system validation
 validate-context
@@ -290,7 +327,7 @@ npm run typecheck          # Validate types
 npm run build              # Ensure compilation
 
 # Use basic validation script
-/workspace/scripts/validate-setup.sh
+/workspace/scripts/lib/validate-setup.sh
 ```
 
 ### 4. Visual Testing (Frontend)
@@ -309,8 +346,8 @@ npx playwright test --ui
 |------|---------|----------|
 | `agents-config.yaml` | Agent sources | `/workspace/config/` |
 | `tmux.conf` | Tmux configuration | `/workspace/config/` |
-| `CLAUDE.md` | Global context | `/workspace/context/global/` |
-| `CCFOREVER.md` | Quality assurance | `/workspace/context/global/` |
+| `CLAUDE.md` | Global context | `/workspace/context/` |
+| `CCFOREVER.md` | Quality assurance | `/workspace/context/` |
 
 ### Environment Variables
 
@@ -372,11 +409,11 @@ monitor-claude            # Start usage monitoring
 # Check network connectivity
 curl -I https://api.github.com
 
-# Validate configuration
-agent-manager validate
+# Validate agent configuration
+agent-validate
 
 # Re-run installation
-agent-install --source awesome-claude-code-subagents
+agent-install
 ```
 
 #### 2. Context Not Loading
@@ -424,7 +461,7 @@ tail -20 /workspace/logs/system.log
 1. **Run Setup Validation**
 
    ```bash
-   /workspace/scripts/validate-setup.sh
+   /workspace/scripts/lib/validate-setup.sh
    ```
 
 2. **Check System Status**
@@ -473,7 +510,7 @@ Customize global context for your organization:
 
 ```bash
 # Edit global context
-nano /workspace/context/global/CLAUDE.md
+nano /workspace/context/CLAUDE.md
 
 # Add organization-specific rules
 # Update development standards
@@ -510,7 +547,7 @@ nano /workspace/context/global/CLAUDE.md
 /workspace/scripts/vm-configure.sh
 
 # Validate migration
-/workspace/scripts/validate-setup.sh
+/workspace/scripts/lib/validate-setup.sh
 ```
 
 ### From Local Turbo-Flow-Claude
@@ -520,7 +557,7 @@ nano /workspace/context/global/CLAUDE.md
 cp /path/to/your/agents/*.md /workspace/agents/
 
 # Copy your context customizations
-cp /path/to/your/CLAUDE.md /workspace/context/global/
+cp /path/to/your/CLAUDE.md /workspace/context/
 
 # Update agents config to include your sources
 nano /workspace/config/agents-config.yaml
@@ -532,7 +569,7 @@ nano /workspace/config/agents-config.yaml
 - **Examples**: `/workspace/projects/templates/`
 - **Logs**: `/workspace/logs/`
 - **Configuration**: `/workspace/config/`
-- **Validation**: `/workspace/scripts/validate-setup.sh`
+- **Validation**: `/workspace/scripts/lib/validate-setup.sh`
 
 For issues and contributions, see the project repository.
 

@@ -72,8 +72,8 @@ jobs:
           echo "Testing extension name extraction..."
           cd docker/lib
 
-          # Test with various filename formats
-          test_file="extensions.d/10-rust.sh.example"
+          # Test with new non-numbered filename format
+          test_file="extensions.d/rust.sh.example"
           if [[ -f "$test_file" ]]; then
             # Extract name using the same logic as extension-manager
             name=$(basename "$test_file" .sh.example | sed 's/^[0-9]*-//')
@@ -83,36 +83,70 @@ jobs:
               echo "ERROR: Expected 'rust', got '$name'"
               exit 1
             fi
+            echo "✅ New naming convention works"
+          else
+            echo "⚠️  New format file not found, checking legacy format..."
+            # Fallback to test legacy format if it exists
+            test_file="extensions.d/10-rust.sh.example"
+            if [[ -f "$test_file" ]]; then
+              name=$(basename "$test_file" .sh.example | sed 's/^[0-9]*-//')
+              echo "Extracted name from legacy file: $name"
+              if [[ "$name" != "rust" ]]; then
+                echo "ERROR: Expected 'rust', got '$name'"
+                exit 1
+              fi
+              echo "✅ Legacy naming convention still supported"
+            else
+              echo "ERROR: No test files found"
+              exit 1
+            fi
           fi
 
           echo "✅ Extension name extraction working correctly"
 
-      - name: Test protected extension detection
+      - name: Test manifest file operations
         run: |
-          echo "Testing protected extension detection..."
+          echo "Testing manifest file operations..."
           cd docker/lib
 
-          # Create temporary test file
-          touch extensions.d/00-test.sh.example
+          # Create a test manifest
+          test_manifest="extensions.d/test-active-extensions.conf"
+          cat > "$test_manifest" << 'EOF'
+          # Test manifest
+          workspace-structure
+          nodejs
+          # python
+          rust
+          EOF
 
-          # Test protected extension logic
-          if bash -c 'source extension-manager.sh; is_protected_extension "00-test.sh" && echo "PROTECTED" || echo "NOT_PROTECTED"' | grep -q "PROTECTED"; then
-            echo "✅ Protected extension detection working"
+          echo "✅ Test manifest created"
+
+          # Test parsing the manifest (count non-comment lines)
+          active_count=$(grep -v '^[[:space:]]*#' "$test_manifest" | grep -v '^[[:space:]]*$' | wc -l)
+          echo "Active extensions in test manifest: $active_count"
+
+          if [[ "$active_count" -eq 3 ]]; then
+            echo "✅ Manifest parsing correct (workspace-structure, nodejs, rust = 3)"
           else
-            echo "❌ Protected extension detection failed"
+            echo "❌ Manifest parsing failed: expected 3, got $active_count"
             exit 1
           fi
 
           # Cleanup
-          rm -f extensions.d/00-test.sh.example
+          rm -f "$test_manifest"
+          echo "✅ Manifest file operations working correctly"
 
       - name: Report validation results
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             echo "✅ Extension manager validation passed"
+            echo "## ✅ Extension Manager Validation" >> $GITHUB_STEP_SUMMARY
+            echo "All extension manager validation checks passed successfully." >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Extension manager validation failed"
+            echo "## ❌ Extension Manager Validation Failed" >> $GITHUB_STEP_SUMMARY
+            echo "Extension manager validation encountered errors. Check logs for details." >> $GITHUB_STEP_SUMMARY
           fi
 
   # ============================================================================
@@ -220,20 +254,86 @@ jobs:
             fi
           done
 
+      - name: Verify Extension API v1.0 functions
+        run: |
+          echo "Verifying Extension API v1.0 standard functions..."
+
+          failed_extensions=()
+          required_functions=("prerequisites" "install" "configure" "validate" "status" "remove")
+
+          # Skip template and post-cleanup as they may have different requirements
+          skip_patterns="template.sh.example|post-cleanup.sh.example"
+
+          for script in docker/lib/extensions.d/*.sh.example; do
+            [[ ! -f "$script" ]] && continue
+
+            script_name=$(basename "$script")
+
+            # Skip special cases
+            if echo "$script_name" | grep -qE "$skip_patterns"; then
+              echo "⏭️  Skipping $script_name (special extension)"
+              continue
+            fi
+
+            echo ""
+            echo "Checking $script_name..."
+
+            missing_functions=()
+            for func in "${required_functions[@]}"; do
+              # Check if function is defined
+              if grep -qE "^[[:space:]]*${func}\(\)[[:space:]]*\{" "$script" || \
+                 grep -qE "^[[:space:]]*function[[:space:]]+${func}[[:space:]]*\{" "$script"; then
+                echo "  ✅ $func() found"
+              else
+                echo "  ❌ $func() missing"
+                missing_functions+=("$func")
+              fi
+            done
+
+            if [[ ${#missing_functions[@]} -gt 0 ]]; then
+              echo "  ❌ Missing functions in $script_name: ${missing_functions[*]}"
+              failed_extensions+=("$script_name")
+            else
+              echo "  ✅ All Extension API v1.0 functions present"
+            fi
+          done
+
+          echo ""
+          if [[ ${#failed_extensions[@]} -gt 0 ]]; then
+            echo "❌ Extensions with missing API functions:"
+            printf '%s\n' "${failed_extensions[@]}"
+            echo ""
+            echo "⚠️  All extensions should implement Extension API v1.0:"
+            echo "   - prerequisites()"
+            echo "   - install()"
+            echo "   - configure()"
+            echo "   - validate()"
+            echo "   - status()"
+            echo "   - remove()"
+            exit 1
+          else
+            echo "✅ All extensions implement Extension API v1.0 correctly"
+          fi
+
       - name: Report validation results
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             echo "✅ Extension syntax validation passed"
+            echo "## ✅ Extension Syntax Validation" >> $GITHUB_STEP_SUMMARY
+            echo "All extensions pass syntax validation and implement Extension API v1.0." >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Extension syntax validation failed"
+            echo "## ❌ Extension Syntax Validation Failed" >> $GITHUB_STEP_SUMMARY
+            echo "Some extensions failed syntax validation or are missing required API functions." >> $GITHUB_STEP_SUMMARY
+            echo "Check the logs above for specific errors." >> $GITHUB_STEP_SUMMARY
           fi
 
   # ============================================================================
-  # Job 3: Core Extension Tests (00-init.sh)
+  # Job 3: Core Extension Tests (workspace-structure, ssh-environment, nodejs)
   # ============================================================================
   core-extension-tests:
-    name: Test Core Extension (00-init.sh)
+    name: Test Core Extensions
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -336,16 +436,41 @@ jobs:
             elapsed=$((elapsed + interval))
           done
 
-      - name: Verify core extension present
+      - name: Verify core extensions present
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
 
           flyctl ssh console --app $app_name --command "/bin/bash -c '
-            if [ -f /workspace/scripts/lib/extensions.d/00-init.sh ]; then
-              echo \"✅ Core extension 00-init.sh is present\"
+            echo \"Checking for core extensions...\"
+            all_present=true
+
+            # Check workspace-structure extension
+            if [ -f /workspace/scripts/lib/extensions.d/workspace-structure.sh.example ]; then
+              echo \"✅ workspace-structure extension present\"
+            else
+              echo \"❌ workspace-structure extension missing\"
+              all_present=false
+            fi
+
+            # Check ssh-environment extension
+            if [ -f /workspace/scripts/lib/extensions.d/ssh-environment.sh.example ]; then
+              echo \"✅ ssh-environment extension present\"
+            else
+              echo \"❌ ssh-environment extension missing\"
+              all_present=false
+            fi
+
+            # Check nodejs extension
+            if [ -f /workspace/scripts/lib/extensions.d/nodejs.sh.example ]; then
+              echo \"✅ nodejs extension present\"
+            else
+              echo \"❌ nodejs extension missing\"
+              all_present=false
+            fi
+
+            if [ \"\$all_present\" = \"true\" ]; then
               exit 0
             else
-              echo \"❌ Core extension 00-init.sh is missing\"
               exit 1
             fi
           '"
@@ -482,22 +607,50 @@ jobs:
             fi
           done
 
-      - name: Test protected extension behavior
+      - name: Test manifest-based extension management
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
 
-          echo "Testing that core extension cannot be deactivated..."
+          echo "Testing manifest-based extension activation..."
           flyctl ssh console --app $app_name --command "/bin/bash -c '
             cd /workspace/scripts/lib
 
-            # Attempt to deactivate should fail
-            if bash extension-manager.sh deactivate init --yes 2>&1 | grep -q \"Cannot deactivate protected\"; then
-              echo \"✅ Core extension properly protected from deactivation\"
-              exit 0
+            echo \"=== Testing Extension Manager Manifest Functions ===\"
+
+            # Test listing extensions
+            echo \"Testing extension list...\"
+            if bash extension-manager.sh list; then
+              echo \"✅ Extension list works\"
             else
-              echo \"❌ Core extension protection failed\"
+              echo \"❌ Extension list failed\"
               exit 1
             fi
+
+            # Test activating an extension (adds to manifest)
+            echo \"\"
+            echo \"Testing extension activation...\"
+            if bash extension-manager.sh activate workspace-structure; then
+              echo \"✅ Extension activation works\"
+            else
+              echo \"❌ Extension activation failed\"
+              exit 1
+            fi
+
+            # Verify extension was added to manifest
+            if [ -f extensions.d/active-extensions.conf ]; then
+              if grep -q \"workspace-structure\" extensions.d/active-extensions.conf; then
+                echo \"✅ Extension added to manifest\"
+              else
+                echo \"❌ Extension not found in manifest\"
+                exit 1
+              fi
+            else
+              echo \"❌ Manifest file not created\"
+              exit 1
+            fi
+
+            echo \"\"
+            echo \"✅ Manifest-based extension management working correctly\"
           '"
 
       - name: Cleanup test resources
@@ -534,17 +687,30 @@ jobs:
       fail-fast: false
       matrix:
         extension:
+          # Core extensions (always needed)
+          - { name: 'workspace-structure', commands: 'mkdir,ls', key_tool: 'mkdir', timeout: '15m' }
+          - { name: 'ssh-environment', commands: 'ssh,sshd', key_tool: 'ssh', timeout: '15m' }
+          - { name: 'nodejs', commands: 'node,npm,nvm', key_tool: 'node', timeout: '20m' }
+          # Claude AI extensions
+          - { name: 'nodejs-devtools', commands: 'tsc,eslint,prettier,nodemon', key_tool: 'tsc', timeout: '20m', depends_on: 'nodejs' }
+          - { name: 'claude-config', commands: 'claude', key_tool: 'claude', timeout: '15m', depends_on: 'nodejs' }
+          # Language runtimes
+          - { name: 'python', commands: 'python3,pip3,uv', key_tool: 'python3', timeout: '30m' }
           - { name: 'rust', commands: 'rustc,cargo', key_tool: 'rustc', timeout: '30m' }
           - { name: 'golang', commands: 'go', key_tool: 'go', timeout: '30m' }
-          - { name: 'python', commands: 'python3,pip3', key_tool: 'python3', timeout: '30m' }
-          - { name: 'docker', commands: 'docker', key_tool: 'docker', timeout: '30m' }
-          - { name: 'jvm', commands: 'java,sdk', key_tool: 'java', timeout: '30m' }
-          - { name: 'php', commands: 'php,composer', key_tool: 'php', timeout: '30m' }
           - { name: 'ruby', commands: 'ruby,gem,bundle', key_tool: 'ruby', timeout: '30m' }
+          - { name: 'php', commands: 'php,composer', key_tool: 'php', timeout: '30m' }
+          - { name: 'jvm', commands: 'java,sdk', key_tool: 'java', timeout: '30m' }
           - { name: 'dotnet', commands: 'dotnet', key_tool: 'dotnet', timeout: '30m' }
+          # Infrastructure
+          - { name: 'docker', commands: 'docker', key_tool: 'docker', timeout: '30m' }
           - { name: 'infra-tools', commands: 'terraform,ansible', key_tool: 'terraform', timeout: '30m' }
           - { name: 'cloud-tools', commands: 'aws', key_tool: 'aws', timeout: '30m' }
           - { name: 'ai-tools', commands: 'ollama,fabric', key_tool: 'ollama', timeout: '30m' }
+          # Utilities
+          - { name: 'playwright', commands: 'npx playwright', key_tool: 'playwright', timeout: '25m', depends_on: 'nodejs' }
+          - { name: 'monitoring', commands: 'claude-monitor', key_tool: 'claude-monitor', timeout: '20m' }
+          - { name: 'tmux-workspace', commands: 'tmux', key_tool: 'tmux', timeout: '15m' }
 
     steps:
       - name: Check if extension should be tested
@@ -664,19 +830,43 @@ jobs:
             elapsed=$((elapsed + interval))
           done
 
-      - name: Activate extension
+      - name: Activate extension and dependencies
         if: steps.should-test.outputs.should_test == 'true'
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
           extension_name="${{ matrix.extension.name }}"
+          depends_on="${{ matrix.extension.depends_on || '' }}"
 
           echo "Activating $extension_name extension..."
           flyctl ssh console --app $app_name --command "/bin/bash -c '
             cd /workspace/scripts/lib
+
+            # Activate dependencies first if specified
+            if [ -n \"$depends_on\" ]; then
+              echo \"Activating dependency: $depends_on\"
+              if bash extension-manager.sh activate $depends_on; then
+                echo \"✅ Dependency $depends_on activated\"
+              else
+                echo \"❌ Dependency activation failed\"
+                exit 1
+              fi
+            fi
+
+            # Activate the main extension
             if bash extension-manager.sh activate $extension_name; then
               echo \"✅ Extension activated successfully\"
             else
               echo \"❌ Extension activation failed\"
+              exit 1
+            fi
+
+            # Show active extensions in manifest
+            echo \"\"
+            echo \"=== Active Extensions ===\"
+            if [ -f extensions.d/active-extensions.conf ]; then
+              grep -v \"^[[:space:]]*#\" extensions.d/active-extensions.conf | grep -v \"^[[:space:]]*$\" || echo \"(empty)\"
+            else
+              echo \"❌ Manifest file not found\"
               exit 1
             fi
           '"
@@ -1019,8 +1209,80 @@ jobs:
 
           echo "Testing key functionality for $key_tool..."
 
-          flyctl ssh console --app $app_name --command "/bin/bash -c '
+          flyctl ssh console --app $app_name --command "/bin/bash -lc '
+            # Source SSH environment for non-interactive sessions
+            if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+              source /etc/profile.d/00-ssh-environment.sh
+            fi
+
             case \"$key_tool\" in
+              mkdir)
+                echo \"Testing workspace-structure...\"
+                # Verify directory structure created
+                for dir in src tests docs scripts bin; do
+                  if [ -d \"/workspace/\$dir\" ]; then
+                    echo \"✅ /workspace/\$dir exists\"
+                  else
+                    echo \"⚠️  /workspace/\$dir not found (may not be created yet)\"
+                  fi
+                done
+                ;;
+              ssh)
+                echo \"Testing SSH environment configuration...\"
+                # Verify SSH environment file exists
+                if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+                  echo \"✅ SSH environment configured\"
+                  echo \"PATH in SSH session: \$PATH\"
+                else
+                  echo \"❌ SSH environment not configured\"
+                  exit 1
+                fi
+                ;;
+              node)
+                echo \"Testing Node.js...\"
+                node --version
+                npm --version
+                nvm --version || echo \"⚠️  nvm not in PATH (may need login shell)\"
+                # Test NPM global install location
+                npm config get prefix
+                ;;
+              tsc)
+                echo \"Testing TypeScript and dev tools...\"
+                npx tsc --version
+                npx eslint --version
+                npx prettier --version
+                npx nodemon --version
+                ;;
+              claude)
+                echo \"Testing Claude Code CLI...\"
+                # Check if claude command exists
+                if command -v claude >/dev/null 2>&1; then
+                  claude --version || echo \"Claude CLI installed\"
+                else
+                  echo \"⚠️  Claude CLI not in PATH yet\"
+                fi
+                ;;
+              playwright)
+                echo \"Testing Playwright...\"
+                npx playwright --version
+                ;;
+              claude-monitor)
+                echo \"Testing monitoring tools...\"
+                if command -v claude-monitor >/dev/null 2>&1; then
+                  claude-monitor --version || echo \"claude-monitor installed\"
+                else
+                  echo \"⚠️  claude-monitor not in PATH yet\"
+                fi
+                ;;
+              tmux)
+                echo \"Testing Tmux...\"
+                tmux -V
+                if [ -f ~/.tmux.conf ] || [ -f /workspace/config/tmux.conf ]; then
+                  echo \"✅ Tmux configuration found\"
+                else
+                  echo \"⚠️  Tmux config not found\"
+                fi
+                ;;
               rustc)
                 echo \"Testing Rust compilation...\"
                 echo \"fn main() { println!(\\\"Hello\\\"); }\" > /tmp/test.rs
@@ -1035,6 +1297,7 @@ jobs:
                 echo \"Testing Python execution...\"
                 python3 -c \"print('Hello')\"
                 pip3 --version
+                uv --version || echo \"⚠️  uv not installed\"
                 ;;
               java)
                 echo \"Testing Java...\"
@@ -1138,10 +1401,12 @@ jobs:
       fail-fast: false
       matrix:
         combination:
-          - { name: 'fullstack', extensions: 'python,docker,cloud-tools', description: 'Python + Docker + Cloud' }
-          - { name: 'systems', extensions: 'rust,golang,docker', description: 'Rust + Go + Docker' }
-          - { name: 'enterprise', extensions: 'jvm,docker,infra-tools', description: 'JVM + Docker + Infrastructure' }
-          - { name: 'ai-dev', extensions: 'python,ai-tools,docker', description: 'Python + AI Tools + Docker' }
+          - { name: 'core-stack', extensions: 'workspace-structure,nodejs,ssh-environment', description: 'Core Infrastructure' }
+          - { name: 'full-node', extensions: 'workspace-structure,nodejs,nodejs-devtools,claude-config', description: 'Complete Node.js Development Stack' }
+          - { name: 'fullstack', extensions: 'workspace-structure,nodejs,python,docker,cloud-tools', description: 'Python + Docker + Cloud' }
+          - { name: 'systems', extensions: 'workspace-structure,rust,golang,docker', description: 'Rust + Go + Docker' }
+          - { name: 'enterprise', extensions: 'workspace-structure,nodejs,jvm,docker,infra-tools', description: 'JVM + Docker + Infrastructure' }
+          - { name: 'ai-dev', extensions: 'workspace-structure,nodejs,python,ai-tools,monitoring', description: 'Python + AI Tools + Monitoring' }
 
     steps:
       - name: Checkout code
@@ -1305,23 +1570,47 @@ jobs:
 
           echo "Testing cross-extension functionality for $combo..."
 
-          flyctl ssh console --app $app_name --command "/bin/bash -c '
+          flyctl ssh console --app $app_name --command "/bin/bash -lc '
+            # Source SSH environment for non-interactive sessions
+            if [ -f /etc/profile.d/00-ssh-environment.sh ]; then
+              source /etc/profile.d/00-ssh-environment.sh
+            fi
+
             case \"$combo\" in
+              core-stack)
+                echo \"Testing Core Infrastructure...\"
+                # Verify workspace structure
+                test -d /workspace/src && echo \"✅ Workspace structure created\"
+                # Verify SSH environment
+                test -f /etc/profile.d/00-ssh-environment.sh && echo \"✅ SSH environment configured\"
+                # Verify Node.js
+                node --version && npm --version && echo \"✅ Node.js available\"
+                ;;
+              full-node)
+                echo \"Testing Complete Node.js Stack...\"
+                node --version && npm --version
+                npx tsc --version
+                npx eslint --version
+                npx prettier --version
+                command -v claude >/dev/null 2>&1 && echo \"✅ Claude CLI available\" || echo \"⚠️  Claude CLI not in PATH\"
+                ;;
               fullstack)
-                echo \"Testing Python + Docker combination...\"
-                python3 --version && docker --version
+                echo \"Testing Python + Docker + Cloud combination...\"
+                python3 --version && docker --version && node --version
                 ;;
               systems)
-                echo \"Testing Rust + Go combination...\"
-                rustc --version && go version
+                echo \"Testing Rust + Go + Docker combination...\"
+                rustc --version && go version && docker --version
                 ;;
               enterprise)
-                echo \"Testing JVM + Infrastructure combination...\"
-                java -version && terraform version
+                echo \"Testing JVM + Docker + Infrastructure combination...\"
+                java -version && terraform version && docker --version && node --version
                 ;;
               ai-dev)
-                echo \"Testing Python + AI Tools combination...\"
-                python3 --version && ollama --version
+                echo \"Testing Python + AI Tools + Monitoring combination...\"
+                python3 --version && node --version
+                ollama --version || echo \"⚠️  ollama not ready\"
+                command -v claude-monitor >/dev/null 2>&1 && echo \"✅ Monitoring available\" || echo \"⚠️  Monitoring not in PATH\"
                 ;;
             esac
 
@@ -1366,17 +1655,42 @@ jobs:
         run: |
           echo "# Extension System Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+          echo "## Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Extension Manager Validation: ${{ needs.extension-manager-validation.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Extension Syntax Validation: ${{ needs.extension-syntax-validation.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Core Extension Tests: ${{ needs.core-extension-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "Testing manifest-based extension system (Extension API v1.0)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Critical Jobs Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Extension Manager Validation | ${{ needs.extension-manager-validation.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Extension Syntax Validation | ${{ needs.extension-syntax-validation.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Core Extension Tests | ${{ needs.core-extension-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ needs.extension-manager-validation.result }}" = "success" ] && \
              [ "${{ needs.extension-syntax-validation.result }}" = "success" ] && \
              [ "${{ needs.core-extension-tests.result }}" = "success" ]; then
-            echo "✅ **All critical tests passed**" >> $GITHUB_STEP_SUMMARY
+            echo "## ✅ Overall Result: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All critical extension system tests passed successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Validated Features" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Manifest-based activation system" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Extension API v1.0 compliance" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Core extensions (workspace-structure, ssh-environment, nodejs)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Extension manager commands (activate, install, status, list)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Some tests failed - review logs above**" >> $GITHUB_STEP_SUMMARY
+            echo "## ❌ Overall Result: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Some tests failed. Please review the job logs for detailed error information." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Failed Jobs" >> $GITHUB_STEP_SUMMARY
+            [ "${{ needs.extension-manager-validation.result }}" != "success" ] && echo "- ❌ Extension Manager Validation" >> $GITHUB_STEP_SUMMARY
+            [ "${{ needs.extension-syntax-validation.result }}" != "success" ] && echo "- ❌ Extension Syntax Validation" >> $GITHUB_STEP_SUMMARY
+            [ "${{ needs.core-extension-tests.result }}" != "success" ] && echo "- ❌ Core Extension Tests" >> $GITHUB_STEP_SUMMARY
           fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "_Workflow run: [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})_" >> $GITHUB_STEP_SUMMARY

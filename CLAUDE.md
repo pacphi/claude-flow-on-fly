@@ -28,11 +28,15 @@ flyctl deploy --strategy immediate --wait-timeout 60s  # Skip health checks
 ### On-VM Commands
 
 ```bash
-/workspace/scripts/vm-configure.sh      # Complete environment setup
-claude                                   # Authenticate Claude Code
-npx claude-flow@alpha init --force      # Initialize Claude Flow in project
-new-project <name> [--type <type>]      # Create new project with enhancements
-clone-project <url> [options]            # Clone and enhance repository
+/workspace/scripts/vm-configure.sh                # Complete environment setup
+/workspace/scripts/vm-configure.sh --extension <name>  # Install specific extension
+extension-manager list                            # List available extensions
+extension-manager activate <name>                 # Activate extension
+extension-manager install <name>                  # Install extension
+claude                                            # Authenticate Claude Code
+npx claude-flow@alpha init --force               # Initialize Claude Flow in project
+new-project <name> [--type <type>]               # Create new project with enhancements
+clone-project <url> [options]                    # Clone and enhance repository
 ```
 
 ## Key Directories
@@ -66,6 +70,151 @@ clone-project https://github.com/user/repo --feature my-feature
 # - Create CLAUDE.md context
 # - Initialize Claude Flow
 # - Install dependencies
+```
+
+## Extension System (v1.0)
+
+Sindri uses a manifest-based extension system to manage development tools and environments.
+
+### Extension Management
+
+```bash
+# List all available extensions
+extension-manager list
+
+# Activate an extension (adds to manifest)
+extension-manager activate <name>
+
+# Install an extension (runs prerequisites, install, configure)
+extension-manager install <name>
+
+# Check extension status
+extension-manager status <name>
+
+# Validate extension installation
+extension-manager validate <name>
+
+# Uninstall extension
+extension-manager uninstall <name>
+
+# Install all active extensions
+extension-manager install-all
+
+# Reorder extension priority
+extension-manager reorder <name> <position>
+```
+
+### Available Extensions
+
+**Core Environment:**
+- `workspace-structure` - Base directory structure
+- `nodejs` - Node.js LTS via NVM (Node Version Manager) with npm
+- `ssh-environment` - SSH wrappers for non-interactive sessions
+
+**Claude AI:**
+- `claude-config` - Claude Code CLI with developer configuration (requires nodejs)
+- `nodejs-devtools` - TypeScript, ESLint, Prettier, nodemon, goalie (requires nodejs)
+
+**Development Tools:**
+- `python` - Python 3.13 with pip, venv, uv
+- `rust` - Rust toolchain with cargo, clippy, rustfmt
+- `golang` - Go 1.24 with gopls, delve, golangci-lint
+- `ruby` - Ruby 3.4/3.3 with rbenv, Rails, Bundler
+- `php` - PHP 8.3 with Composer, Symfony CLI
+- `jvm` - SDKMAN with Java, Kotlin, Scala, Maven, Gradle
+- `dotnet` - .NET SDK 9.0/8.0 with ASP.NET Core
+
+**Infrastructure:**
+- `docker` - Docker Engine with compose, dive, ctop
+- `infra-tools` - Terraform, Ansible, kubectl, Helm
+- `cloud-tools` - AWS, Azure, GCP, Oracle, DigitalOcean CLIs
+- `ai-tools` - AI coding assistants (Codex, Gemini, Ollama, etc.)
+
+**Monitoring & Utilities:**
+- `monitoring` - System monitoring tools
+- `tmux-workspace` - Tmux session management
+- `playwright` - Browser automation testing
+- `agent-manager` - Claude Code agent management
+- `context-loader` - Context system for Claude
+
+### Activation Manifest
+
+Extensions are executed in the order listed in `/workspace/scripts/extensions.d/active-extensions.conf`.
+
+Example manifest:
+```
+# Core extensions (always first)
+workspace-structure
+nodejs
+ssh-environment
+
+# Language runtimes
+python
+golang
+rust
+
+# Infrastructure tools
+docker
+infra-tools
+```
+
+### Extension API
+
+Each extension implements 6 standard functions:
+- `prerequisites()` - Check system requirements
+- `install()` - Install packages and tools
+- `configure()` - Post-install configuration
+- `validate()` - Run smoke tests
+- `status()` - Check installation state
+- `remove()` - Uninstall and cleanup
+
+### Node.js Development Stack
+
+Sindri provides multiple extensions for Node.js development:
+
+**nodejs** (Core - NVM approach):
+```bash
+extension-manager activate nodejs
+extension-manager install nodejs
+```
+Provides:
+- Node.js LTS via NVM (v0.40.3)
+- Multiple Node version support
+- npm with user-space global packages
+- No sudo required for global installs
+
+**nodejs-devtools** (Optional):
+```bash
+extension-manager activate nodejs-devtools
+extension-manager install nodejs-devtools
+```
+Provides:
+- TypeScript (`tsc`, `ts-node`)
+- ESLint with TypeScript support
+- Prettier code formatter
+- nodemon for auto-reload
+- goalie AI research assistant
+
+**claude-config** (Recommended):
+```bash
+extension-manager activate claude-config
+extension-manager install claude-config
+```
+Provides:
+- Claude Code CLI (`claude` command)
+- Global preferences (~/.claude/CLAUDE.md)
+- Auto-formatting hooks (Prettier, TypeScript)
+- Authentication management
+
+**Typical Setup**:
+```bash
+# Activate all three
+extension-manager activate nodejs
+extension-manager activate claude-config
+extension-manager activate nodejs-devtools
+
+# Install in dependency order
+extension-manager install-all
 ```
 
 ## Testing and Validation
@@ -151,7 +300,7 @@ goalie --help                        # View available options
 
 ### AI CLI Tools
 
-Additional AI coding assistants available via the `87-ai-tools.sh` extension:
+Additional AI coding assistants available via the `ai-tools` extension:
 
 #### Autonomous Coding Agents
 

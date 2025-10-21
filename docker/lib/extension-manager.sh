@@ -1,5 +1,6 @@
 #!/bin/bash
 # extension-manager.sh - Manage extension scripts activation and deactivation
+# Extension API v1.0 - Manifest-based activation with install/uninstall support
 # This script provides comprehensive management of extension scripts in the extensions.d directory
 
 # Determine script location
@@ -20,21 +21,38 @@ else
     GREEN='\033[0;32m'
     YELLOW='\033[1;33m'
     BLUE='\033[0;34m'
+    CYAN='\033[0;36m'
     NC='\033[0m'
 
     print_status() { echo -e "${BLUE}[INFO]${NC} $1"; }
     print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
     print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
     print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+    print_debug() { [[ "${DEBUG:-}" == "true" ]] && echo -e "[DEBUG] $1"; }
 
     EXTENSIONS_BASE="./extensions.d"
 fi
+
+# Activation manifest file location (colocated with extensions)
+if [[ -f "$EXTENSIONS_BASE/active-extensions.conf" ]]; then
+    MANIFEST_FILE="$EXTENSIONS_BASE/active-extensions.conf"
+elif [[ -f "/workspace/scripts/extensions.d/active-extensions.conf" ]]; then
+    MANIFEST_FILE="/workspace/scripts/extensions.d/active-extensions.conf"
+else
+    # Default location
+    MANIFEST_FILE="$EXTENSIONS_BASE/active-extensions.conf"
+fi
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
 
 # Function to extract extension name from filename
 get_extension_name() {
     local filename="$1"
     local base=$(basename "$filename" .sh.example)
     # Remove leading numbers and dash (e.g., "10-rust" -> "rust")
+    # This handles legacy naming and new naming without prefixes
     echo "$base" | sed 's/^[0-9]*-//'
 }
 
@@ -98,41 +116,278 @@ create_backup() {
     fi
 }
 
-# Function to list all extensions
-list_extensions() {
-    print_status "Available extensions in $EXTENSIONS_BASE:"
-    echo ""
+# ============================================================================
+# MANIFEST MANAGEMENT FUNCTIONS
+# ============================================================================
 
-    local found_any=false
+# Read active extensions from manifest file
+# Returns array of extension names in order
+read_manifest() {
+    local extensions=()
 
-    # Check if directory exists
-    if [[ ! -d "$EXTENSIONS_BASE" ]]; then
-        print_error "Extensions directory not found: $EXTENSIONS_BASE"
+    if [[ ! -f "$MANIFEST_FILE" ]]; then
+        print_debug "Manifest file not found: $MANIFEST_FILE"
+        return 0
+    fi
+
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// }" ]] && continue
+
+        # Trim whitespace
+        local ext_name=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        [[ -n "$ext_name" ]] && extensions+=("$ext_name")
+    done < "$MANIFEST_FILE"
+
+    printf '%s\n' "${extensions[@]}"
+}
+
+# Check if extension is in manifest
+is_in_manifest() {
+    local ext_name="$1"
+
+    if [[ ! -f "$MANIFEST_FILE" ]]; then
         return 1
     fi
 
-    # Iterate through all .example files
-    for example_file in "$EXTENSIONS_BASE"/*.sh.example; do
-        # Skip if no files match
-        [[ ! -f "$example_file" ]] && continue
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// }" ]] && continue
 
-        found_any=true
-        local filename=$(basename "$example_file")
-        local name=$(get_extension_name "$filename")
-        local base_filename="${filename%.example}"
+        local manifest_name=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [[ "$manifest_name" == "$ext_name" ]]; then
+            return 0
+        fi
+    done < "$MANIFEST_FILE"
 
-        # Check protection status
-        local protected_marker=""
-        if is_protected_extension "$base_filename"; then
-            protected_marker=" ${CYAN}[PROTECTED]${NC}"
+    return 1
+}
+
+# Add extension to manifest
+add_to_manifest() {
+    local ext_name="$1"
+
+    # Create manifest if it doesn't exist
+    if [[ ! -f "$MANIFEST_FILE" ]]; then
+        mkdir -p "$(dirname "$MANIFEST_FILE")"
+        cat > "$MANIFEST_FILE" << 'EOF'
+# Active Extensions Configuration
+# Extensions are executed in the order listed below
+EOF
+    fi
+
+    # Check if already in manifest
+    if is_in_manifest "$ext_name"; then
+        print_warning "Extension '$ext_name' is already in manifest"
+        return 1
+    fi
+
+    # Add to manifest
+    echo "$ext_name" >> "$MANIFEST_FILE"
+    print_success "Added '$ext_name' to activation manifest"
+    return 0
+}
+
+# Remove extension from manifest
+remove_from_manifest() {
+    local ext_name="$1"
+
+    if [[ ! -f "$MANIFEST_FILE" ]]; then
+        print_error "Manifest file not found: $MANIFEST_FILE"
+        return 1
+    fi
+
+    # Check if in manifest
+    if ! is_in_manifest "$ext_name"; then
+        print_warning "Extension '$ext_name' is not in manifest"
+        return 1
+    fi
+
+    # Remove from manifest (create temp file to preserve comments)
+    local temp_file=$(mktemp)
+    while IFS= read -r line; do
+        # Keep comments and empty lines
+        if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "${line// }" ]]; then
+            echo "$line" >> "$temp_file"
+            continue
         fi
 
-        if is_activated "$example_file"; then
-            echo -e "  ${GREEN}✓${NC} $name ($base_filename) - ${GREEN}activated${NC}${protected_marker}"
-        else
-            echo -e "  ${YELLOW}○${NC} $name ($filename) - ${YELLOW}not activated${NC}${protected_marker}"
+        # Check if this line matches extension name
+        local manifest_name=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [[ "$manifest_name" != "$ext_name" ]]; then
+            echo "$line" >> "$temp_file"
+        fi
+    done < "$MANIFEST_FILE"
+
+    mv "$temp_file" "$MANIFEST_FILE"
+    print_success "Removed '$ext_name' from activation manifest"
+    return 0
+}
+
+# Get position of extension in manifest
+get_manifest_position() {
+    local ext_name="$1"
+    local position=1
+
+    if [[ ! -f "$MANIFEST_FILE" ]]; then
+        return 1
+    fi
+
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// }" ]] && continue
+
+        local manifest_name=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [[ "$manifest_name" == "$ext_name" ]]; then
+            echo "$position"
+            return 0
+        fi
+        ((position++))
+    done < "$MANIFEST_FILE"
+
+    return 1
+}
+
+# ============================================================================
+# EXTENSION DISCOVERY FUNCTIONS
+# ============================================================================
+
+# Find extension file by name
+find_extension_file() {
+    local ext_name="$1"
+
+    # Try exact match first (new naming: rust.sh.example)
+    if [[ -f "$EXTENSIONS_BASE/${ext_name}.sh.example" ]]; then
+        echo "$EXTENSIONS_BASE/${ext_name}.sh.example"
+        return 0
+    fi
+
+    # Try with numeric prefixes (legacy naming: 10-rust.sh.example)
+    for example_file in "$EXTENSIONS_BASE"/*-${ext_name}.sh.example; do
+        if [[ -f "$example_file" ]]; then
+            echo "$example_file"
+            return 0
         fi
     done
+
+    # Try pattern match
+    for example_file in "$EXTENSIONS_BASE"/*.sh.example; do
+        [[ ! -f "$example_file" ]] && continue
+        local name=$(get_extension_name "$(basename "$example_file")")
+        if [[ "$name" == "$ext_name" ]]; then
+            echo "$example_file"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# Get activated extension file (without .example)
+get_activated_file() {
+    local ext_name="$1"
+    local example_file
+
+    example_file=$(find_extension_file "$ext_name")
+    if [[ -z "$example_file" ]]; then
+        return 1
+    fi
+
+    echo "${example_file%.example}"
+    return 0
+}
+
+# ============================================================================
+# EXTENSION EXECUTION FUNCTIONS
+# ============================================================================
+
+# Call a function from an extension if it exists
+call_extension_function() {
+    local ext_name="$1"
+    local function_name="$2"
+    shift 2
+    local args=("$@")
+
+    # Find and source the extension file
+    local activated_file
+    activated_file=$(get_activated_file "$ext_name")
+
+    if [[ -z "$activated_file" ]] || [[ ! -f "$activated_file" ]]; then
+        print_error "Extension '$ext_name' is not activated"
+        return 1
+    fi
+
+    # Source the extension
+    source "$activated_file"
+
+    # Check if function exists
+    if ! declare -F "$function_name" >/dev/null 2>&1; then
+        print_error "Function '$function_name' not found in extension '$ext_name'"
+        return 1
+
+# ============================================================================
+# COMMAND FUNCTIONS (Manifest-based)
+# ============================================================================
+
+# Function to list all extensions with manifest status
+list_extensions() {
+    print_status "Available extensions in $EXTENSIONS_BASE:"
+    print_status "Manifest: $MANIFEST_FILE"
+    echo ""
+
+    local found_any=false
+    local active_extensions=()
+
+    # Read active extensions from manifest
+    if [[ -f "$MANIFEST_FILE" ]]; then
+        mapfile -t active_extensions < <(read_manifest)
+    fi
+
+    # Show activated extensions first (in manifest order)
+    if [[ ${#active_extensions[@]} -gt 0 ]]; then
+        print_success "Active Extensions (in execution order):"
+        local position=1
+        for ext_name in "${active_extensions[@]}"; do
+            local example_file
+            example_file=$(find_extension_file "$ext_name")
+            if [[ -n "$example_file" ]]; then
+                local filename=$(basename "$example_file")
+                echo -e "  ${position}. ${GREEN}✓${NC} $ext_name ($filename)"
+                found_any=true
+                ((position++))
+            else
+                echo -e "  ${position}. ${RED}✗${NC} $ext_name ${RED}[NOT FOUND]${NC}"
+                ((position++))
+            fi
+        done
+        echo ""
+    fi
+
+    # Show available but inactive extensions
+    print_status "Available Extensions (not activated):"
+    local inactive_found=false
+    for example_file in "$EXTENSIONS_BASE"/*.sh.example; do
+        [[ ! -f "$example_file" ]] && continue
+        found_any=true
+
+        local name=$(get_extension_name "$(basename "$example_file")")
+        local filename=$(basename "$example_file")
+
+        # Skip if in manifest
+        if is_in_manifest "$name"; then
+            continue
+        fi
+
+        echo -e "  ${YELLOW}○${NC} $name ($filename)"
+        inactive_found=true
+    done
+
+    if [[ "$inactive_found" == "false" ]]; then
+        echo "  (none)"
+    fi
 
     if [[ "$found_any" == "false" ]]; then
         print_warning "No extension examples found in $EXTENSIONS_BASE"
@@ -140,253 +395,388 @@ list_extensions() {
     fi
 
     echo ""
-    print_status "Use 'extension-manager activate <name>' to activate an extension"
-    print_status "Use 'extension-manager deactivate <name>' to deactivate an extension"
-    print_status "Use 'extension-manager activate-all' to activate all extensions"
-    print_status "Use 'extension-manager deactivate-all' to deactivate all non-protected extensions"
+    print_status "Commands:"
+    echo "  extension-manager activate <name>     # Add to manifest and copy to active"
+    echo "  extension-manager deactivate <name>   # Remove from manifest"
+    echo "  extension-manager install <name>      # Run install + configure"
+    echo "  extension-manager uninstall <name>    # Run remove"
+    echo "  extension-manager validate <name>     # Run validation tests"
+    echo "  extension-manager status <name>       # Check installation status"
+    echo "  extension-manager reorder <name> <pos> # Change execution order"
 }
 
-# Function to activate a single extension
+# Function to activate a single extension (add to manifest + copy file)
 activate_extension() {
     local extension_name="$1"
     local found=false
     local activated=false
 
-    # Search for matching extension
-    for example_file in "$EXTENSIONS_BASE"/*.sh.example; do
-        [[ ! -f "$example_file" ]] && continue
+    # Find the extension
+    local example_file
+    example_file=$(find_extension_file "$extension_name")
 
-        local name=$(get_extension_name "$(basename "$example_file")")
-
-        if [[ "$name" == "$extension_name" ]]; then
-            found=true
-            local activated_file="${example_file%.example}"
-            local filename=$(basename "$activated_file")
-
-            # Check if already activated
-            if [[ -f "$activated_file" ]]; then
-                print_warning "Extension '$extension_name' ($filename) is already activated"
-                return 1
-            fi
-
-            # Copy and make executable
-            print_status "Activating extension '$extension_name' ($filename)..."
-
-            if cp "$example_file" "$activated_file"; then
-                chmod +x "$activated_file"
-                print_success "Extension '$extension_name' activated: $filename"
-                activated=true
-            else
-                print_error "Failed to activate extension '$extension_name'"
-                return 1
-            fi
-
-            break
-        fi
-    done
-
-    if [[ "$found" == "false" ]]; then
+    if [[ -z "$example_file" ]]; then
         print_error "Extension '$extension_name' not found"
         echo "Available extensions:"
-        for example_file in "$EXTENSIONS_BASE"/*.sh.example; do
-            [[ -f "$example_file" ]] && echo "  - $(get_extension_name "$(basename "$example_file")")"
+        for ef in "$EXTENSIONS_BASE"/*.sh.example; do
+            [[ -f "$ef" ]] && echo "  - $(get_extension_name "$(basename "$ef")")"
         done
+        return 1
+    fi
+
+    found=true
+    local activated_file="${example_file%.example}"
+    local filename=$(basename "$activated_file")
+
+    # Add to manifest
+    if ! add_to_manifest "$extension_name"; then
+        # Already in manifest, just ensure file exists
+        if [[ -f "$activated_file" ]]; then
+            print_status "Extension '$extension_name' already activated"
+            return 0
+        fi
+    fi
+
+    # Copy file and make executable
+    print_status "Activating extension '$extension_name' ($filename)..."
+
+    if cp "$example_file" "$activated_file"; then
+        chmod +x "$activated_file"
+        print_success "Extension '$extension_name' activated: $filename"
+        print_status "To install: extension-manager install $extension_name"
+        activated=true
+    else
+        print_error "Failed to activate extension '$extension_name'"
+        # Remove from manifest if file copy failed
+        remove_from_manifest "$extension_name"
         return 1
     fi
 
     return 0
 }
 
-# Function to activate all extensions
-activate_all_extensions() {
-    print_status "Activating all available extensions..."
-    echo ""
-
-    local activated_count=0
-    local skipped_count=0
-    local failed_count=0
-
-    for example_file in "$EXTENSIONS_BASE"/*.sh.example; do
-        [[ ! -f "$example_file" ]] && continue
-
-        local activated_file="${example_file%.example}"
-        local filename=$(basename "$activated_file")
-        local name=$(get_extension_name "$filename")
-
-        # Check if already activated
-        if [[ -f "$activated_file" ]]; then
-            print_warning "Skipping '$name' ($filename) - already activated"
-            ((skipped_count++))
-            continue
-        fi
-
-        # Copy and make executable
-        if cp "$example_file" "$activated_file"; then
-            chmod +x "$activated_file"
-            print_success "Activated '$name' ($filename)"
-            ((activated_count++))
-        else
-            print_error "Failed to activate '$name' ($filename)"
-            ((failed_count++))
-        fi
-    done
-
-    echo ""
-    print_status "Summary:"
-    [[ $activated_count -gt 0 ]] && print_success "  Activated: $activated_count"
-    [[ $skipped_count -gt 0 ]] && print_warning "  Skipped (already active): $skipped_count"
-    [[ $failed_count -gt 0 ]] && print_error "  Failed: $failed_count"
-
-    [[ $failed_count -eq 0 ]] && return 0 || return 1
-}
-
-# Function to deactivate a single extension
+# Function to deactivate a single extension (remove from manifest, optionally delete file)
 deactivate_extension() {
     local extension_name="$1"
-    local backup_flag="${2:-}"
-    local yes_flag="${3:-}"
-    local found=false
+    local delete_file="${2:-no}"  # yes|no
 
-    # Search for matching activated extension
-    for example_file in "$EXTENSIONS_BASE"/*.sh.example; do
-        [[ ! -f "$example_file" ]] && continue
-
-        local name=$(get_extension_name "$(basename "$example_file")")
-
-        if [[ "$name" == "$extension_name" ]]; then
-            found=true
-            local activated_file="${example_file%.example}"
-            local filename=$(basename "$activated_file")
-
-            # Check if extension is protected
-            if is_protected_extension "$filename"; then
-                print_error "Cannot deactivate protected extension '$extension_name' ($filename)"
-                print_warning "Extension 00-init is the core system initialization script and cannot be deactivated"
-                return 1
-            fi
-
-            # Check if extension is activated
-            if [[ ! -f "$activated_file" ]]; then
-                print_warning "Extension '$extension_name' ($filename) is not activated"
-                return 1
-            fi
-
-            # Check if file has been modified
-            local modified=false
-            if file_has_been_modified "$activated_file"; then
-                modified=true
-                print_warning "Extension '$extension_name' has been modified from the original"
-            fi
-
-            # Confirm deactivation if not using --yes flag
-            if [[ "$yes_flag" != "--yes" ]]; then
-                echo -n "Are you sure you want to deactivate '$extension_name'? (y/N): "
-                read -r response
-                if [[ ! "$response" =~ ^[Yy]$ ]]; then
-                    print_status "Deactivation cancelled"
-                    return 1
-                fi
-            fi
-
-            # Create backup if requested or if file was modified
-            if [[ "$backup_flag" == "--backup" ]] || [[ "$modified" == "true" ]]; then
-                create_backup "$activated_file"
-            fi
-
-            # Remove the activated file
-            if rm "$activated_file"; then
-                print_success "Extension '$extension_name' deactivated"
-            else
-                print_error "Failed to deactivate extension '$extension_name'"
-                return 1
-            fi
-
-            break
-        fi
-    done
-
-    if [[ "$found" == "false" ]]; then
-        print_error "Extension '$extension_name' not found"
-        echo "Available extensions:"
-        for example_file in "$EXTENSIONS_BASE"/*.sh.example; do
-            [[ -f "$example_file" ]] && echo "  - $(get_extension_name "$(basename "$example_file")")"
-        done
+    # Remove from manifest
+    if ! remove_from_manifest "$extension_name"; then
         return 1
     fi
 
+    # Optionally delete the activated file
+    if [[ "$delete_file" == "yes" ]]; then
+        local activated_file
+        activated_file=$(get_activated_file "$extension_name")
+
+        if [[ -n "$activated_file" ]] && [[ -f "$activated_file" ]]; then
+            if rm "$activated_file"; then
+                print_success "Removed activated file: $(basename "$activated_file")"
+            else
+                print_warning "Failed to remove activated file"
+            fi
+        fi
+    else
+        print_status "Activated file preserved (use 'rm' to delete if needed)"
+    fi
+
+    print_success "Extension '$extension_name' deactivated"
     return 0
 }
 
-# Function to deactivate all extensions
-deactivate_all_extensions() {
-    local backup_flag="${1:-}"
-    local yes_flag="${2:-}"
+# Function to install an extension (prerequisites + install + configure)
+install_extension() {
+    local ext_name="$1"
 
-    print_status "Deactivating all non-protected extensions..."
+    print_status "Installing extension: $ext_name"
     echo ""
 
-    # Confirm deactivation if not using --yes flag
-    if [[ "$yes_flag" != "--yes" ]]; then
-        echo -n "Are you sure you want to deactivate all non-protected extensions? (y/N): "
-        read -r response
-        if [[ ! "$response" =~ ^[Yy]$ ]]; then
-            print_status "Deactivation cancelled"
-            return 1
-        fi
+    # Check if extension exists and is activated
+    local activated_file
+    activated_file=$(get_activated_file "$ext_name")
+
+    if [[ -z "$activated_file" ]] || [[ ! -f "$activated_file" ]]; then
+        print_error "Extension '$ext_name' is not activated"
+        print_status "Activate it first: extension-manager activate $ext_name"
+        return 1
     fi
 
-    local deactivated_count=0
-    local skipped_count=0
-    local protected_count=0
+    # Source the extension
+    source "$activated_file"
+
+    # Run prerequisites check
+    print_status "Checking prerequisites..."
+    if declare -F prerequisites >/dev/null 2>&1; then
+        if ! prerequisites; then
+            print_error "Prerequisites not met for '$ext_name'"
+            return 1
+        fi
+    else
+        print_warning "No prerequisites() function found"
+    fi
+
+    # Run install
+    print_status "Running installation..."
+    if declare -F install >/dev/null 2>&1; then
+        if ! install; then
+            print_error "Installation failed for '$ext_name'"
+            return 1
+        fi
+    else
+        print_error "No install() function found in '$ext_name'"
+        return 1
+    fi
+
+    # Run configure
+    print_status "Running configuration..."
+    if declare -F configure >/dev/null 2>&1; then
+        if ! configure; then
+            print_warning "Configuration had issues for '$ext_name'"
+        fi
+    else
+        print_warning "No configure() function found"
+    fi
+
+    print_success "Extension '$ext_name' installed successfully"
+    print_status "Run validation: extension-manager validate $ext_name"
+    return 0
+}
+
+# Function to uninstall an extension (remove)
+uninstall_extension() {
+    local ext_name="$1"
+
+    print_status "Uninstalling extension: $ext_name"
+    echo ""
+
+    # Check if extension exists and is activated
+    local activated_file
+    activated_file=$(get_activated_file "$ext_name")
+
+    if [[ -z "$activated_file" ]] || [[ ! -f "$activated_file" ]]; then
+        print_error "Extension '$ext_name' is not activated"
+        return 1
+    fi
+
+    # Source the extension
+    source "$activated_file"
+
+    # Run remove
+    if declare -F remove >/dev/null 2>&1; then
+        if ! remove; then
+            print_error "Uninstallation failed for '$ext_name'"
+            return 1
+        fi
+    else
+        print_error "No remove() function found in '$ext_name'"
+        return 1
+    fi
+
+    print_success "Extension '$ext_name' uninstalled successfully"
+    return 0
+}
+
+# Function to validate an extension
+validate_extension() {
+    local ext_name="$1"
+
+    print_status "Validating extension: $ext_name"
+    echo ""
+
+    # Check if extension exists and is activated
+    local activated_file
+    activated_file=$(get_activated_file "$ext_name")
+
+    if [[ -z "$activated_file" ]] || [[ ! -f "$activated_file" ]]; then
+        print_error "Extension '$ext_name' is not activated"
+        return 1
+    fi
+
+    # Source the extension
+    source "$activated_file"
+
+    # Run validate
+    if declare -F validate >/dev/null 2>&1; then
+        if validate; then
+            print_success "Validation passed for '$ext_name'"
+            return 0
+        else
+            print_error "Validation failed for '$ext_name'"
+            return 1
+        fi
+    else
+        print_warning "No validate() function found in '$ext_name'"
+        return 1
+    fi
+}
+
+# Function to check status of an extension
+status_extension() {
+    local ext_name="$1"
+
+    print_status "Checking status: $ext_name"
+    echo ""
+
+    # Check if extension exists and is activated
+    local activated_file
+    activated_file=$(get_activated_file "$ext_name")
+
+    if [[ -z "$activated_file" ]] || [[ ! -f "$activated_file" ]]; then
+        print_warning "Extension '$ext_name' is not activated"
+        return 1
+    fi
+
+    # Check if in manifest
+    if is_in_manifest "$ext_name"; then
+        local position
+        position=$(get_manifest_position "$ext_name")
+        print_success "Active in manifest (position: $position)"
+    else
+        print_warning "File exists but not in manifest"
+    fi
+
+    # Source the extension
+    source "$activated_file"
+
+    # Run status
+    if declare -F status >/dev/null 2>&1; then
+        if status; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        print_warning "No status() function found in '$ext_name'"
+        return 1
+    fi
+}
+
+# Function to install all active extensions
+install_all_extensions() {
+    print_status "Installing all active extensions..."
+    echo ""
+
+    local active_extensions=()
+    mapfile -t active_extensions < <(read_manifest)
+
+    if [[ ${#active_extensions[@]} -eq 0 ]]; then
+        print_warning "No extensions in activation manifest"
+        print_status "Add extensions with: extension-manager activate <name>"
+        return 0
+    fi
+
+    local installed_count=0
     local failed_count=0
 
-    for activated_file in "$EXTENSIONS_BASE"/*.sh; do
-        [[ ! -f "$activated_file" ]] && continue
-
-        local filename=$(basename "$activated_file")
-        local name=$(get_extension_name "$filename")
-
-        # Check if extension is protected
-        if is_protected_extension "$filename"; then
-            print_warning "Skipping protected extension '$name' ($filename)"
-            ((protected_count++))
-            continue
-        fi
-
-        # Check if corresponding .example exists
-        local example_file="${activated_file}.example"
-        if [[ ! -f "$example_file" ]]; then
-            print_warning "Skipping '$name' ($filename) - no example file found"
-            ((skipped_count++))
-            continue
-        fi
-
-        # Check if file has been modified
-        if file_has_been_modified "$activated_file"; then
-            print_warning "Extension '$name' has been modified from the original"
-            if [[ "$backup_flag" == "--backup" ]]; then
-                create_backup "$activated_file"
-            fi
-        fi
-
-        # Remove the activated file
-        if rm "$activated_file"; then
-            print_success "Deactivated '$name' ($filename)"
-            ((deactivated_count++))
+    for ext_name in "${active_extensions[@]}"; do
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        if install_extension "$ext_name"; then
+            ((installed_count++))
         else
-            print_error "Failed to deactivate '$name' ($filename)"
             ((failed_count++))
+            print_error "Failed to install: $ext_name"
         fi
+        echo ""
     done
 
-    echo ""
-    print_status "Summary:"
-    [[ $deactivated_count -gt 0 ]] && print_success "  Deactivated: $deactivated_count"
-    [[ $protected_count -gt 0 ]] && print_warning "  Protected (skipped): $protected_count"
-    [[ $skipped_count -gt 0 ]] && print_warning "  Skipped (no example): $skipped_count"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    print_status "Installation Summary:"
+    print_success "  Installed: $installed_count"
     [[ $failed_count -gt 0 ]] && print_error "  Failed: $failed_count"
 
     [[ $failed_count -eq 0 ]] && return 0 || return 1
+}
+
+# Function to validate all active extensions
+validate_all_extensions() {
+    print_status "Validating all active extensions..."
+    echo ""
+
+    local active_extensions=()
+    mapfile -t active_extensions < <(read_manifest)
+
+    if [[ ${#active_extensions[@]} -eq 0 ]]; then
+        print_warning "No extensions in activation manifest"
+        return 0
+    fi
+
+    local validated_count=0
+    local failed_count=0
+
+    for ext_name in "${active_extensions[@]}"; do
+        if validate_extension "$ext_name"; then
+            ((validated_count++))
+        else
+            ((failed_count++))
+        fi
+        echo ""
+    done
+
+    print_status "Validation Summary:"
+    print_success "  Passed: $validated_count"
+    [[ $failed_count -gt 0 ]] && print_error "  Failed: $failed_count"
+
+    [[ $failed_count -eq 0 ]] && return 0 || return 1
+}
+
+# Function to reorder extension in manifest
+reorder_extension() {
+    local ext_name="$1"
+    local new_position="$2"
+
+    if [[ ! "$new_position" =~ ^[0-9]+$ ]]; then
+        print_error "Position must be a number"
+        return 1
+    fi
+
+    if ! is_in_manifest "$ext_name"; then
+        print_error "Extension '$ext_name' is not in manifest"
+        return 1
+    fi
+
+    # Read all extensions
+    local extensions=()
+    mapfile -t extensions < <(read_manifest)
+
+    # Remove the extension from current position
+    local filtered=()
+    for ext in "${extensions[@]}"; do
+        [[ "$ext" != "$ext_name" ]] && filtered+=("$ext")
+    done
+
+    # Insert at new position (1-indexed)
+    local result=()
+    local inserted=false
+    for i in "${!filtered[@]}"; do
+        if [[ $((i + 1)) -eq $new_position ]]; then
+            result+=("$ext_name")
+            inserted=true
+        fi
+        result+=("${filtered[$i]}")
+    done
+
+    # If position is after end, append
+    if [[ "$inserted" == "false" ]]; then
+        result+=("$ext_name")
+    fi
+
+    # Write back to manifest
+    local temp_file=$(mktemp)
+
+    # Preserve header comments
+    if [[ -f "$MANIFEST_FILE" ]]; then
+        grep '^#' "$MANIFEST_FILE" > "$temp_file" || true
+    fi
+
+    # Add extensions in new order
+    for ext in "${result[@]}"; do
+        echo "$ext" >> "$temp_file"
+    done
+
+    mv "$temp_file" "$MANIFEST_FILE"
+    print_success "Moved '$ext_name' to position $new_position"
+    return 0
 }
 
 # Function to show help
@@ -394,36 +784,65 @@ show_help() {
     cat << EOF
 Usage: $(basename "$0") [COMMAND] [OPTIONS]
 
-Manage activation of extension scripts in the extensions.d directory.
+Manage extension scripts with manifest-based activation and lifecycle management.
+Extension API v1.0
 
 Commands:
-  list                     List all available extensions and their status
-  activate <name>          Activate a specific extension by name
-  activate-all             Activate all available extensions
-  deactivate <name>        Deactivate a specific extension by name
-  deactivate-all           Deactivate all non-protected extensions
+  list                     List all extensions with manifest status
+  activate <name>          Add extension to manifest and activate
+  deactivate <name>        Remove extension from manifest
+
+  install <name>           Install extension (prerequisites + install + configure)
+  uninstall <name>         Uninstall extension (remove packages and config)
+  validate <name>          Run extension validation tests
+  status <name>            Check extension installation status
+
+  install-all              Install all active extensions in manifest order
+  validate-all             Validate all active extensions
+
+  reorder <name> <pos>     Change extension execution order in manifest
   help                     Show this help message
 
 Options:
-  --backup                 Create backup before deactivation (automatic for modified files)
-  --yes                    Skip confirmation prompts
+  --yes                    Skip confirmation prompts (for install/uninstall)
 
 Examples:
-  $(basename "$0") list                         # Show all extensions
-  $(basename "$0") activate rust                # Activate the Rust extension
-  $(basename "$0") activate-all                 # Activate all extensions
-  $(basename "$0") deactivate python            # Deactivate Python extension
-  $(basename "$0") deactivate python --backup   # Deactivate with backup
-  $(basename "$0") deactivate-all --yes         # Deactivate all without prompts
+  # List all extensions and show activation status
+  $(basename "$0") list
 
-Extensions are identified by their base name without the number prefix.
-For example, '10-rust.sh.example' is referred to as 'rust'.
+  # Activate and install an extension
+  $(basename "$0") activate rust
+  $(basename "$0") install rust
 
-Protected Extensions:
-  Extension 00-init is the core system initialization script and cannot be deactivated.
-  This script combines Turbo Flow, Agent Manager, Tmux Workspace, and Context Management.
+  # Check status and validate
+  $(basename "$0") status rust
+  $(basename "$0") validate rust
 
-Note: Activated extensions will be executed during VM configuration.
+  # Uninstall and deactivate
+  $(basename "$0") uninstall rust
+  $(basename "$0") deactivate rust
+
+  # Change execution order
+  $(basename "$0") reorder python 1       # Move python to first position
+
+  # Install all active extensions
+  $(basename "$0") install-all
+  $(basename "$0") validate-all
+
+Manifest File:
+  Location: $MANIFEST_FILE
+  Extensions execute in the order listed in the manifest.
+
+Extension Structure:
+  Each extension must implement these functions:
+    - prerequisites()  Check requirements before install
+    - install()        Install packages and tools
+    - configure()      Post-install configuration
+    - validate()       Run smoke tests
+    - status()         Check current installation state
+    - remove()         Uninstall packages and cleanup
+
+Note: Extensions are files in $EXTENSIONS_BASE
 EOF
 }
 
@@ -444,41 +863,59 @@ main() {
             fi
             activate_extension "$1"
             ;;
-        activate-all)
-            activate_all_extensions
-            ;;
         deactivate)
             if [[ -z "$1" ]]; then
                 print_error "Extension name required"
-                echo "Usage: extension-manager deactivate <extension-name> [--backup] [--yes]"
+                echo "Usage: extension-manager deactivate <extension-name>"
                 exit 1
             fi
-            local extension_name="$1"
-            local backup_flag=""
-            local yes_flag=""
-            shift
-            while [[ $# -gt 0 ]]; do
-                case "$1" in
-                    --backup) backup_flag="--backup" ;;
-                    --yes) yes_flag="--yes" ;;
-                    *) print_warning "Unknown option: $1" ;;
-                esac
-                shift
-            done
-            deactivate_extension "$extension_name" "$backup_flag" "$yes_flag"
+            deactivate_extension "$1"
             ;;
-        deactivate-all)
-            local backup_flag=""
-            local yes_flag=""
-            while [[ $# -gt 0 ]]; do
-                case "$1" in
-                    --backup) backup_flag="--backup" ;;
-                    --yes) yes_flag="--yes" ;;
-                    *) print_warning "Unknown option: $1" ;;
-                esac
-                shift
-            done
-            deactivate_all_extensions "$backup_flag" "$yes_flag"
+        install)
+            if [[ -z "$1" ]]; then
+                print_error "Extension name required"
+                echo "Usage: extension-manager install <extension-name>"
+                exit 1
+            fi
+            install_extension "$1"
+            ;;
+        uninstall)
+            if [[ -z "$1" ]]; then
+                print_error "Extension name required"
+                echo "Usage: extension-manager uninstall <extension-name>"
+                exit 1
+            fi
+            uninstall_extension "$1"
+            ;;
+        validate)
+            if [[ -z "$1" ]]; then
+                print_error "Extension name required"
+                echo "Usage: extension-manager validate <extension-name>"
+                exit 1
+            fi
+            validate_extension "$1"
+            ;;
+        status)
+            if [[ -z "$1" ]]; then
+                print_error "Extension name required"
+                echo "Usage: extension-manager status <extension-name>"
+                exit 1
+            fi
+            status_extension "$1"
+            ;;
+        install-all)
+            install_all_extensions
+            ;;
+        validate-all)
+            validate_all_extensions
+            ;;
+        reorder)
+            if [[ -z "$1" ]] || [[ -z "$2" ]]; then
+                print_error "Extension name and position required"
+                echo "Usage: extension-manager reorder <extension-name> <position>"
+                exit 1
+            fi
+            reorder_extension "$1" "$2"
             ;;
         help|--help|-h)
             show_help

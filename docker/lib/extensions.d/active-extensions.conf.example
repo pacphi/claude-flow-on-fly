@@ -1,0 +1,122 @@
+# Active Extensions Configuration
+# ============================================================================
+# Extensions execute in the order listed below.
+# Uncomment lines to activate extensions.
+# Lines starting with # are comments and are ignored.
+#
+# To activate an extension:
+#   extension-manager activate <extension-name>
+#
+# To manage this file manually:
+#   - Uncomment the extension name to activate
+#   - Comment out or remove lines to deactivate
+#   - Reorder lines to change execution priority
+# ============================================================================
+
+# ============================================================================
+# CORE INFRASTRUCTURE (recommended - always install first)
+# ============================================================================
+
+# Creates /workspace directory structure (src, tests, docs, scripts, etc.)
+workspace-structure
+
+# Configures SSH daemon for non-interactive sessions (required for CI/CD)
+ssh-environment
+
+# ============================================================================
+# FOUNDATIONAL LANGUAGES (install at least one)
+# ============================================================================
+
+# Node.js LTS via NVM and npm (required by many tools)
+nodejs
+
+# Python 3 and pip (required by monitoring and many tools)
+# python
+
+# ============================================================================
+# CLAUDE AI (recommended)
+# ============================================================================
+
+# Claude Code CLI with developer configuration (depends on nodejs)
+# Creates ~/.claude/CLAUDE.md and ~/.claude/settings.json with hooks
+# claude-config
+
+# ============================================================================
+# DEVELOPMENT TOOLS (optional - uncomment as needed)
+# ============================================================================
+
+# Node.js development tools: TypeScript, ESLint, Prettier, nodemon, goalie (depends on nodejs)
+# nodejs-devtools
+
+# Browser automation with Playwright and Chromium (depends on nodejs)
+# playwright
+
+# Claude monitoring and usage tracking tools (depends on python, nodejs)
+# monitoring
+
+# Agent manager for Claude Code agents (depends on curl, jq)
+# agent-manager
+
+# Tmux workspace management with helper scripts
+# tmux-workspace
+
+# Context management utilities for Claude Code
+# context-loader
+
+# ============================================================================
+# ADDITIONAL LANGUAGES (uncomment as needed)
+# ============================================================================
+
+# Rust toolchain with cargo
+# rust
+
+# Go programming language
+# golang
+
+# Docker and Docker Compose
+# docker
+
+# JVM languages (Java, Kotlin, Scala)
+# jvm
+
+# PHP and Composer
+# php
+
+# Ruby and Bundler
+# ruby
+
+# .NET Core SDK
+# dotnet
+
+# ============================================================================
+# INFRASTRUCTURE & CLOUD TOOLS (uncomment as needed)
+# ============================================================================
+
+# Infrastructure tools (Terraform, Ansible, K8s tools)
+# infra-tools
+
+# Cloud CLI tools (AWS, GCP, Azure)
+# cloud-tools
+
+# AI coding assistants and tools
+# ai-tools
+
+# ============================================================================
+# POST-INSTALLATION (optional - run this LAST)
+# ============================================================================
+
+# Clean caches, set permissions, create tools summary
+# Run this LAST for optimal cleanup after all other extensions
+# post-cleanup
+
+# ============================================================================
+# NOTES
+# ============================================================================
+# - Order matters: extensions execute top to bottom
+# - Dependencies are checked in prerequisites()
+# - Use extension-manager commands for management:
+#     extension-manager list              # Show all extensions
+#     extension-manager activate <name>   # Add to manifest
+#     extension-manager install <name>    # Install activated extension
+#     extension-manager install-all       # Install all activated
+# ============================================================================

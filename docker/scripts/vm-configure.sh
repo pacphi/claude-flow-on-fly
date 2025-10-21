@@ -16,7 +16,6 @@ fi
 # Source libraries
 source "$LIB_DIR/common.sh"
 source "$LIB_DIR/workspace.sh"
-source "$LIB_DIR/tools.sh"
 source "$LIB_DIR/git.sh"
 source "$LIB_DIR/gh.sh"
 
@@ -78,10 +77,24 @@ run_interactive_setup() {
     # Git configuration
     setup_git
 
-    # Optional: Set up additional tools
+    # Extension activation and installation
     echo
-    if confirm "Install additional development tools? (eslint, prettier, etc.)" "n"; then
-        install_dev_tools
+    if [[ -f "$LIB_DIR/extension-manager.sh" ]]; then
+        if confirm "Review and activate extensions?" "y"; then
+            echo
+            bash "$LIB_DIR/extension-manager.sh" list
+            echo
+            print_status "Activate extensions using: extension-manager activate <name>"
+            echo
+            read -p "Press Enter when ready to continue..."
+        fi
+
+        echo
+        if confirm "Install all activated extensions?" "y"; then
+            bash "$LIB_DIR/extension-manager.sh" install-all
+        fi
+    else
+        print_warning "Extension manager not found - skipping extension setup"
     fi
 
     echo
@@ -98,7 +111,6 @@ main() {
 
     # Parse command line arguments
     local interactive=false
-    local skip_claude_install=false
     local extensions_only=false
     local specific_extension=""
 
@@ -106,10 +118,6 @@ main() {
         case $1 in
             --interactive)
                 interactive=true
-                shift
-                ;;
-            --skip-claude)
-                skip_claude_install=true
                 shift
                 ;;
             --extensions-only)
@@ -130,22 +138,31 @@ Usage: $0 [OPTIONS]
 
 Options:
   --interactive       Run interactive configuration prompts
-  --skip-claude       Skip Claude Code/Flow installation
-  --extensions-only   Only run extension scripts
-  --extension <name>  Run a specific activated extension by name
+  --extensions-only   Only install active extensions from manifest
+  --extension <name>  Install a specific extension by name
   --help              Show this help message
 
 This script configures the development environment inside the Fly.io VM.
 Run this after connecting to your VM via SSH or IDE.
 
-Extension System:
-  Place custom installation scripts in $EXTENSIONS_DIR/
-  Scripts are executed in alphabetical order during configuration.
-  Use prefixes: pre-*, *, post-* to control execution phase.
+Extension System (v1.0 - Manifest-based):
+  Extensions are managed via activation manifest and the extension-manager tool.
+  Active extensions are listed in: docker/lib/extensions.d/active-extensions.conf
+  Extensions execute in the order listed in the manifest.
+
+  Managing Extensions:
+    extension-manager list              # Show all available extensions
+    extension-manager activate <name>   # Add to manifest and activate
+    extension-manager install <name>    # Install extension
+    extension-manager status <name>     # Check installation status
+    extension-manager validate <name>   # Run validation tests
 
   For --extension option:
-  Extension must be activated first using:
-    extension-manager.sh activate <extension-name>
+    Extension must be activated first using:
+      extension-manager activate <extension-name>
+
+  Note: Claude Code is now managed via the 'claude-config' extension.
+        To skip Claude Code installation, simply don't activate the extension.
 EOF
                 exit 0
                 ;;
@@ -166,82 +183,46 @@ EOF
 
     # Handle specific extension mode
     if [[ -n "$specific_extension" ]]; then
-        print_status "Running specific extension: $specific_extension"
+        print_status "Installing specific extension: $specific_extension"
 
         # Ensure workspace structure exists
         setup_workspace_structure
 
-        # Source extension-manager to use its functions
+        # Use extension-manager to install the extension
         if [[ -f "$LIB_DIR/extension-manager.sh" ]]; then
-            source "$LIB_DIR/extension-manager.sh"
+            if bash "$LIB_DIR/extension-manager.sh" install "$specific_extension"; then
+                print_success "Extension '$specific_extension' installed successfully"
+                return 0
+            else
+                print_error "Extension '$specific_extension' installation failed"
+                exit 1
+            fi
         else
             print_error "Extension manager not found at $LIB_DIR/extension-manager.sh"
             exit 1
         fi
-
-        # Check if extension is activated
-        local extension_found=false
-        local extension_activated=false
-        local extension_file=""
-
-        # Look for the extension
-        for example_file in "$EXTENSIONS_DIR"/*.sh.example; do
-            [[ ! -f "$example_file" ]] && continue
-
-            local name=$(get_extension_name "$(basename "$example_file")")
-
-            if [[ "$name" == "$specific_extension" ]]; then
-                extension_found=true
-                extension_file="${example_file%.example}"
-
-                if [[ -f "$extension_file" ]]; then
-                    extension_activated=true
-                fi
-                break
-            fi
-        done
-
-        if [[ "$extension_found" == false ]]; then
-            print_error "Extension '$specific_extension' not found"
-            print_status "Available extensions:"
-            for example_file in "$EXTENSIONS_DIR"/*.sh.example; do
-                [[ -f "$example_file" ]] && echo "  - $(get_extension_name "$(basename "$example_file")")"
-            done
-            exit 1
-        fi
-
-        if [[ "$extension_activated" == false ]]; then
-            print_warning "Extension '$specific_extension' is not activated"
-            print_status "To activate it, run: extension-manager.sh activate $specific_extension"
-            print_status "Or use the extension-manager alias in the VM: extension-manager activate $specific_extension"
-            exit 1
-        fi
-
-        # Run the specific extension
-        print_status "Executing extension: $(basename "$extension_file")"
-        if bash "$extension_file"; then
-            print_success "Extension '$specific_extension' completed successfully"
-        else
-            print_error "Extension '$specific_extension' failed with exit code $?"
-            exit 1
-        fi
-
-        return 0
     fi
 
     # Handle extensions-only mode
     if [[ "$extensions_only" == true ]]; then
-        print_status "Running extensions only..."
+        print_status "Installing all active extensions..."
 
         # Ensure workspace structure exists
         setup_workspace_structure
 
-        # Run extension phases
-        run_extensions "pre-install"
-        run_extensions "install"
-        run_extensions "post-install"
-        print_success "Extensions completed"
-        return 0
+        # Install all active extensions from manifest
+        if [[ -f "$LIB_DIR/extension-manager.sh" ]]; then
+            if bash "$LIB_DIR/extension-manager.sh" install-all; then
+                print_success "All extensions installed successfully"
+                return 0
+            else
+                print_error "Some extensions failed to install"
+                exit 1
+            fi
+        else
+            print_error "Extension manager not found at $LIB_DIR/extension-manager.sh"
+            exit 1
+        fi
     fi
 
     # Run configuration steps
@@ -251,8 +232,6 @@ EOF
     if [[ -x "$SCRIPT_DIR/setup-motd.sh" ]]; then
         bash "$SCRIPT_DIR/setup-motd.sh"
     fi
-
-    setup_nodejs
 
     # Setup GitHub CLI early if token is available (needed for agent-manager)
     if [[ -n "$GITHUB_TOKEN" ]]; then
@@ -264,20 +243,17 @@ EOF
         print_status "To set: flyctl secrets set GITHUB_TOKEN=ghp_... -a <app-name>"
     fi
 
-    # Run pre-install extensions
-    run_extensions "pre-install"
-
-    if [[ "$skip_claude_install" != true ]]; then
-        install_claude_code
+    # Install all active extensions from manifest (skip in interactive mode)
+    # Extensions nodejs, claude-config, and nodejs-devtools are now handled via manifest
+    # In interactive mode, installation happens via user prompts in run_interactive_setup()
+    if [[ "$interactive" != true ]]; then
+        if [[ -f "$LIB_DIR/extension-manager.sh" ]]; then
+            print_status "Installing active extensions from manifest..."
+            bash "$LIB_DIR/extension-manager.sh" install-all || print_warning "Some extensions failed to install"
+        else
+            print_warning "Extension manager not found - skipping extensions"
+        fi
     fi
-
-    # Run main install extensions
-    run_extensions "install"
-
-    setup_claude_config
-
-    # Run post-install extensions
-    run_extensions "post-install"
 
     if [[ "$interactive" == true ]]; then
         run_interactive_setup

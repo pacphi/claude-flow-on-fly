@@ -1,0 +1,474 @@
+#!/bin/bash
+# nodejs.sh.example - Node.js and npm installation via NVM
+# Extension API v1.0
+#
+# This extension installs Node.js LTS and npm using NVM (Node Version Manager).
+# It provides the JavaScript runtime needed by Playwright, monitoring tools, and other extensions.
+# NVM allows easy switching between Node versions and user-space global package management.
+
+# ============================================================================
+# METADATA
+# ============================================================================
+
+EXT_NAME="nodejs"
+EXT_VERSION="2.0.0"
+EXT_DESCRIPTION="Node.js LTS and npm via NVM (Node Version Manager)"
+EXT_CATEGORY="language"
+
+# ============================================================================
+# COMMON UTILITIES
+# ============================================================================
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(dirname "$SCRIPT_DIR")"
+
+if [[ -f "$LIB_DIR/common.sh" ]]; then
+  source "$LIB_DIR/common.sh"
+elif [[ -f "/workspace/scripts/lib/common.sh" ]]; then
+  source "/workspace/scripts/lib/common.sh"
+else
+  print_status() { echo "[INFO] $1"; }
+  print_success() { echo "[SUCCESS] $1"; }
+  print_error() { echo "[ERROR] $1" >&2; }
+  print_warning() { echo "[WARNING] $1"; }
+  print_debug() { [[ "${DEBUG:-}" == "true" ]] && echo "[DEBUG] $1"; }
+  command_exists() { command -v "$1" >/dev/null 2>&1; }
+fi
+
+# ============================================================================
+# PREREQUISITES
+# ============================================================================
+
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
+
+  # Check for curl (required by NVM installer)
+  if ! command_exists curl; then
+    print_error "curl is required but not installed"
+    print_status "Install with: sudo apt-get install curl"
+    return 1
+  fi
+
+  # Check disk space (NVM + Node.js needs ~500MB)
+  local available_space
+  available_space=$(df -BM / | awk 'NR==2 {print $4}' | sed 's/M//')
+  if [[ $available_space -lt 600 ]]; then
+    print_warning "Low disk space: ${available_space}MB available (600MB recommended for NVM + Node)"
+  fi
+
+  print_success "All prerequisites met"
+  return 0
+}
+
+# ============================================================================
+# INSTALL
+# ============================================================================
+
+install() {
+  print_status "Installing Node Version Manager (NVM)..."
+
+  # Check if already installed
+  if [ -d "$HOME/.nvm" ]; then
+    print_warning "NVM already installed at $HOME/.nvm"
+    # Still verify Node is installed via NVM
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+    if command_exists node; then
+      print_success "Node.js: $(node -v) via NVM"
+      return 0
+    fi
+  fi
+
+  # Install NVM v0.40.3
+  local nvm_version="v0.40.3"
+  if ! curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_version}/install.sh" | bash; then
+    print_error "Failed to install NVM"
+    return 1
+  fi
+
+  # Load NVM
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+  # Install latest LTS Node.js
+  print_status "Installing Node.js LTS via NVM..."
+  if ! nvm install --lts; then
+    print_error "Failed to install Node.js via NVM"
+    return 1
+  fi
+
+  nvm use --lts
+  nvm alias default lts/*
+
+  # Update npm to latest
+  print_status "Updating npm to latest version..."
+  npm install -g npm@latest
+
+  # Verify installation
+  if ! command_exists node; then
+    print_error "Node.js installation failed - command not found after install"
+    return 1
+  fi
+
+  if ! command_exists npm; then
+    print_error "npm is not available after Node.js installation"
+    return 1
+  fi
+
+  print_success "Node.js $(node -v) and npm v$(npm -v) installed via NVM"
+  return 0
+}
+
+# ============================================================================
+# CONFIGURE
+# ============================================================================
+
+configure() {
+  print_status "Configuring Node.js..."
+
+  # Load NVM for configuration
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+  # Setup npm global directory in user space (avoid sudo for global packages)
+  local npm_global_dir="$HOME/.npm-global"
+
+  if [[ ! -d "$npm_global_dir" ]]; then
+    mkdir -p "$npm_global_dir"
+    npm config set prefix "$npm_global_dir"
+    print_success "npm global directory configured: $npm_global_dir"
+  fi
+
+  # Add NVM and npm global bin to PATH
+  local npm_bin_path="$npm_global_dir/bin"
+  if ! grep -q "NVM_DIR" "$HOME/.bashrc" 2>/dev/null; then
+    echo "" >> "$HOME/.bashrc"
+    echo "# ${EXT_NAME} - NVM (Node Version Manager)" >> "$HOME/.bashrc"
+    echo "export NVM_DIR=\"\$HOME/.nvm\"" >> "$HOME/.bashrc"
+    echo "[ -s \"\$NVM_DIR/nvm.sh\" ] && \\. \"\$NVM_DIR/nvm.sh\"" >> "$HOME/.bashrc"
+    echo "[ -s \"\$NVM_DIR/bash_completion\" ] && \\. \"\$NVM_DIR/bash_completion\"" >> "$HOME/.bashrc"
+    print_success "Added NVM loading to .bashrc"
+  fi
+
+  if [[ -d "$npm_bin_path" ]]; then
+    if ! grep -q "$npm_bin_path" "$HOME/.bashrc" 2>/dev/null; then
+      echo "" >> "$HOME/.bashrc"
+      echo "# ${EXT_NAME} - npm global packages" >> "$HOME/.bashrc"
+      echo "export PATH=\"$npm_bin_path:\$PATH\"" >> "$HOME/.bashrc"
+      print_success "Added npm global bin to PATH"
+    fi
+
+    # Export for current session
+    export PATH="$npm_bin_path:$PATH"
+  fi
+
+  # Setup SSH wrapper for node/npm/nvm
+  if command_exists node; then
+    local node_path=$(which node)
+    local npm_path=$(which npm)
+
+    if command_exists setup_tool_path 2>/dev/null; then
+      setup_tool_path "${EXT_NAME}" \
+        "export NVM_DIR=\"\$HOME/.nvm\"; [ -s \"\$NVM_DIR/nvm.sh\" ] && \\. \"\$NVM_DIR/nvm.sh\"; export PATH=\"$npm_bin_path:\$PATH\""
+    fi
+
+    if command_exists create_tool_wrapper 2>/dev/null; then
+      create_tool_wrapper "node" "$node_path"
+      create_tool_wrapper "npm" "$npm_path"
+      create_tool_wrapper "nvm" "$NVM_DIR/nvm.sh"
+    fi
+  fi
+
+  # Set npm to use less verbose output
+  npm config set loglevel warn 2>/dev/null || true
+
+  print_success "Node.js configuration completed"
+  return 0
+}
+
+# ============================================================================
+# VALIDATE
+# ============================================================================
+
+validate() {
+  print_status "Validating Node.js installation..."
+
+  local all_valid=true
+
+  # Load NVM for validation
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+  # Check NVM is installed
+  if [[ ! -d "$NVM_DIR" ]]; then
+    print_error "NVM directory not found at $NVM_DIR"
+    all_valid=false
+  else
+    print_success "NVM installed at $NVM_DIR"
+
+    # Verify NVM command works
+    if type nvm &>/dev/null; then
+      local nvm_version=$(nvm --version 2>/dev/null || echo "unknown")
+      print_success "NVM version: $nvm_version"
+    else
+      print_warning "NVM command not loaded (may need to reload shell)"
+    fi
+  fi
+
+  # Check node command
+  if ! command_exists node; then
+    print_error "node command not found"
+    all_valid=false
+  else
+    local node_version=$(node -v)
+    print_success "node: $node_version"
+
+    # Verify it can run JavaScript
+    local test_output
+    if test_output=$(node -e "console.log('test')" 2>&1); then
+      if [[ "$test_output" == "test" ]]; then
+        print_success "node can execute JavaScript"
+      else
+        print_error "node execution test failed"
+        all_valid=false
+      fi
+    else
+      print_error "node execution test failed"
+      all_valid=false
+    fi
+  fi
+
+  # Check npm command
+  if ! command_exists npm; then
+    print_error "npm command not found"
+    all_valid=false
+  else
+    local npm_version=$(npm -v)
+    print_success "npm: v$npm_version"
+
+    # Check npm can list packages
+    if npm list -g --depth=0 >/dev/null 2>&1; then
+      print_success "npm can list global packages"
+    else
+      print_warning "npm list command had issues (may be normal)"
+    fi
+  fi
+
+  # Check npm global directory
+  local npm_prefix=$(npm config get prefix 2>/dev/null || echo "")
+  if [[ -n "$npm_prefix" ]]; then
+    print_status "npm global prefix: $npm_prefix"
+  fi
+
+  # Test NVM version switching capability
+  if type nvm &>/dev/null; then
+    if nvm list 2>/dev/null | grep -q "lts"; then
+      print_success "NVM can manage Node versions"
+    fi
+  fi
+
+  if [[ "$all_valid" == "true" ]]; then
+    print_success "Validation passed"
+    return 0
+  else
+    print_error "Validation failed"
+    return 1
+  fi
+}
+
+# ============================================================================
+# STATUS
+# ============================================================================
+
+status() {
+  print_status "Checking Node.js status..."
+
+  # Load NVM
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+  # Check NVM
+  if [[ ! -d "$NVM_DIR" ]]; then
+    print_warning "NVM is not installed"
+    return 1
+  fi
+
+  if type nvm &>/dev/null; then
+    local nvm_version=$(nvm --version 2>/dev/null || echo "unknown")
+    print_success "NVM: v$nvm_version"
+  fi
+
+  # Check Node.js
+  if ! command_exists node; then
+    print_warning "Node.js is not installed"
+    return 1
+  fi
+
+  # Show versions
+  local node_version=$(node -v)
+  local npm_version=$(npm -v)
+
+  print_success "Node.js: $node_version (via NVM)"
+  print_success "npm: v$npm_version"
+
+  # Show current and available Node versions
+  if type nvm &>/dev/null; then
+    print_status "Current Node version: $(nvm current 2>/dev/null || echo 'unknown')"
+    local installed_versions
+    installed_versions=$(nvm list 2>/dev/null | grep -v "system" | wc -l || echo "0")
+    print_status "Installed Node versions: $installed_versions"
+  fi
+
+  # Show npm global directory
+  local npm_prefix=$(npm config get prefix 2>/dev/null || echo "unknown")
+  print_status "npm global prefix: $npm_prefix"
+
+  # Show global packages count
+  local global_count
+  global_count=$(npm list -g --depth=0 2>/dev/null | grep -c '^[├└]' || echo "0")
+  print_status "Global packages installed: $global_count"
+
+  return 0
+}
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+# Check which active extensions depend on this one
+check_dependent_extensions() {
+  local provided_commands=("$@")
+  local dependent_extensions=()
+
+  # Get manifest file location
+  local manifest_file="$SCRIPT_DIR/active-extensions.conf"
+  [[ ! -f "$manifest_file" ]] && manifest_file="/workspace/scripts/extensions.d/active-extensions.conf"
+
+  if [[ ! -f "$manifest_file" ]]; then
+    return 0
+  fi
+
+  # Read active extensions
+  while IFS= read -r line; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// }" ]] && continue
+
+    local ext_name=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    [[ "$ext_name" == "$EXT_NAME" ]] && continue
+
+    # Find the extension file
+    local ext_file="$SCRIPT_DIR/${ext_name}.sh"
+    [[ ! -f "$ext_file" ]] && ext_file="$SCRIPT_DIR/"*"-${ext_name}.sh"
+    [[ ! -f "$ext_file" ]] && continue
+
+    # Check if extension references any of the provided commands
+    for cmd in "${provided_commands[@]}"; do
+      if grep -q "$cmd" "$ext_file" 2>/dev/null; then
+        dependent_extensions+=("$ext_name")
+        break
+      fi
+    done
+  done < "$manifest_file"
+
+  printf '%s\n' "${dependent_extensions[@]}"
+}
+
+# ============================================================================
+# REMOVE
+# ============================================================================
+
+remove() {
+  print_warning "Uninstalling Node.js and NVM..."
+
+  # Check for dependent extensions
+  local dependent_exts=($(check_dependent_extensions "node" "npm" "npx" "nvm"))
+
+  if [[ ${#dependent_exts[@]} -gt 0 ]]; then
+    print_warning "The following active extensions depend on Node.js and may stop working:"
+    for ext in "${dependent_exts[@]}"; do
+      echo "  - $ext"
+    done
+    echo ""
+  fi
+
+  read -p "Continue with Node.js/NVM removal? (y/N): " -r
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    print_status "Removal cancelled"
+    return 1
+  fi
+
+  # Load NVM to uninstall Node versions
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+  # Uninstall Node versions via NVM
+  if type nvm &>/dev/null; then
+    print_status "Uninstalling Node versions via NVM..."
+    if nvm uninstall --lts 2>/dev/null; then
+      print_success "LTS Node version uninstalled"
+    fi
+  fi
+
+  # Remove NVM directory
+  if [[ -d "$NVM_DIR" ]]; then
+    print_status "Removing NVM directory..."
+    rm -rf "$NVM_DIR"
+    print_success "NVM directory removed"
+  else
+    print_warning "NVM is not installed"
+  fi
+
+  # Remove npm global directory
+  local npm_global_dir="$HOME/.npm-global"
+  if [[ -d "$npm_global_dir" ]]; then
+    print_warning "npm global directory exists: $npm_global_dir"
+    read -p "Remove npm global directory and all global packages? (y/N): " -r
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      rm -rf "$npm_global_dir"
+      print_success "npm global directory removed"
+    else
+      print_status "npm global directory preserved"
+    fi
+  fi
+
+  # Remove NVM loading from .bashrc
+  if grep -q "# ${EXT_NAME} - NVM" "$HOME/.bashrc" 2>/dev/null; then
+    sed -i "/# ${EXT_NAME} - NVM/,+3d" "$HOME/.bashrc"
+    print_success "Removed NVM loading from .bashrc"
+  fi
+
+  # Remove npm PATH modification
+  if grep -q "# ${EXT_NAME} - npm global packages" "$HOME/.bashrc" 2>/dev/null; then
+    sed -i "/# ${EXT_NAME} - npm global packages/,+1d" "$HOME/.bashrc"
+    print_success "Removed npm PATH modification from .bashrc"
+  fi
+
+  print_success "Node.js and NVM uninstalled"
+  print_warning "Restart your shell or run: source ~/.bashrc"
+
+  return 0
+}
+
+# ============================================================================
+# MAIN EXECUTION (for testing)
+# ============================================================================
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  command="${1:-status}"
+
+  case "$command" in
+    prerequisites|install|configure|validate|status|remove)
+      if "$command"; then
+        exit 0
+      else
+        exit 1
+      fi
+      ;;
+    *)
+      echo "Usage: $0 {prerequisites|install|configure|validate|status|remove}"
+      exit 1
+      ;;
+  esac
+fi
