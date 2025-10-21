@@ -11,39 +11,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2025-01-20
-
-### Changed - Major Rebrand to Sindri
-
-**Breaking Changes:**
-- **Product renamed from "Claude Code, Claude Flow, and Agentic Flow on Fly.io" to "Sindri"**
-- Default app name changed from `claude-dev-env` to `sindri-dev-env`
-- Default volume name changed from `claude_data` to `sindri_data`
-- SSH host aliases updated from `claude-dev` to `sindri-dev`
-- CI/CD test prefix changed from `claude-ci-test` to `sindri-ci-test`
-
-**About the Name:**
-Sindri (Old Norse: "spark") was a legendary dwarf blacksmith in Norse mythology, renowned as one of the greatest craftsmen who ever lived. Like its mythological namesake, Sindri forges powerful development environments from raw materials—transforming cloud infrastructure, AI tools, and developer workflows into a legendary platform for building software.
-
-**Migration Guide:**
-- Existing deployments continue to work without changes
-- For new deployments, use the updated default names
-- No functional changes - this is purely a branding update
-- SSH login now displays the Sindri ASCII art banner
-- All documentation and examples updated to reflect new naming
-
-### Added
-- ASCII art banner displayed on SSH login showcasing Sindri branding
-- Norse mythology background in README explaining the name choice
-- Setup script (setup-motd.sh) for customizable login banner
-
-### Updated
-- All documentation files (32 files) with Sindri branding
-- All deployment scripts with new default naming conventions
-- fly.toml configuration with updated app and volume names
-- Project-level CLAUDE.md with Sindri context
-- CI/CD workflow naming for consistency
-
 ## [1.0.0-beta.2] - 2025-09-30
 
 ### ✨ Features
