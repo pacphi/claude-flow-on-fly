@@ -266,7 +266,7 @@ find_extension_file() {
     fi
 
     # Try with numeric prefixes (legacy naming: 10-rust.sh.example)
-    for example_file in "$EXTENSIONS_BASE"/*-${ext_name}.sh.example; do
+    for example_file in "$EXTENSIONS_BASE"/*-"${ext_name}".sh.example; do
         if [[ -f "$example_file" ]]; then
             echo "$example_file"
             return 0
