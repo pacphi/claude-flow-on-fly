@@ -31,7 +31,7 @@ ssh-environment
 nodejs
 
 # Python 3 and pip (required by monitoring and many tools)
-# python
+python
 
 # ============================================================================
 # CLAUDE AI (recommended)
@@ -39,29 +39,29 @@ nodejs
 
 # Claude Code CLI with developer configuration (depends on nodejs)
 # Creates ~/.claude/CLAUDE.md and ~/.claude/settings.json with hooks
-# claude-config
+claude-config
 
 # ============================================================================
 # DEVELOPMENT TOOLS (optional - uncomment as needed)
 # ============================================================================
 
 # Node.js development tools: TypeScript, ESLint, Prettier, nodemon, goalie (depends on nodejs)
-# nodejs-devtools
+nodejs-devtools
 
 # Browser automation with Playwright and Chromium (depends on nodejs)
-# playwright
+playwright
 
 # Claude monitoring and usage tracking tools (depends on python, nodejs)
-# monitoring
+monitoring
 
 # Agent manager for Claude Code agents (depends on curl, jq)
-# agent-manager
+agent-manager
 
 # Tmux workspace management with helper scripts
-# tmux-workspace
+tmux-workspace
 
 # Context management utilities for Claude Code
-# context-loader
+context-loader
 
 # ============================================================================
 # ADDITIONAL LANGUAGES (uncomment as needed)
@@ -107,7 +107,7 @@ nodejs
 
 # Clean caches, set permissions, create tools summary
 # Run this LAST for optimal cleanup after all other extensions
-# post-cleanup
+post-cleanup
 
 # ============================================================================
 # NOTES

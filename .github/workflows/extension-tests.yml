@@ -1127,7 +1127,7 @@ jobs:
           APP_NAME: ${{ steps.app-name.outputs.app_name }}
           VOLUME_NAME: "test_data"
           VOLUME_SIZE: "20"
-          VM_MEMORY: "8192"
+          VM_MEMORY: "16384"
           CPU_KIND: "performance"
           CPU_COUNT: "4"
           CI_MODE: "true"

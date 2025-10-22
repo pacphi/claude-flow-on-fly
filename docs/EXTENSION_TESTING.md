@@ -4,7 +4,7 @@ This document describes the comprehensive testing system for VM extensions.
 
 ## Overview
 
-The extension testing workflow (`extension-tests.yml`) provides automated validation and functional testing
+The extension testing workflow [extension-tests](../.github/workflows/extension-tests.yml) provides automated validation and functional testing
 for all extensions in the `docker/lib/extensions.d/` directory. Extensions follow the **Extension API v1.0**
 specification with manifest-based activation via `active-extensions.conf`.
 
@@ -39,22 +39,7 @@ Validates all extension scripts for code quality:
 
 **When It Runs**: On every push/PR affecting extension files
 
-### 3. Core Extension Tests
-
-Validates essential workspace extensions:
-
-- **Deployment**: Deploys test VM with core extensions activated
-- **Component Verification**: Tests all core components:
-  - Workspace Structure (directory layout, permissions)
-  - Node.js Environment (NVM, npm, global packages)
-  - SSH Environment (wrappers for non-interactive sessions)
-  - Claude Config (CLI authentication, global preferences)
-- **Activation Manifest**: Verifies `active-extensions.conf` processing
-- **Directory Structure**: Validates workspace layout
-
-**When It Runs**: On push/PR (unless specific extension requested)
-
-### 4. Per-Extension Tests (Matrix)
+### 3. Per-Extension Tests (Matrix)
 
 Comprehensive testing for each extension individually using the Extension API v1.0:
 
@@ -91,7 +76,7 @@ For each extension using `extension-manager`:
 - On push/PR affecting extension files
 - On workflow dispatch (all or specific extension)
 
-### 5. Extension Combinations
+### 4. Extension Combinations
 
 Tests common extension combinations for conflicts using manifest-based activation:
 
@@ -134,9 +119,21 @@ Generates comprehensive test report summary:
 push:
   branches: [ main, develop ]
   paths:
-    - 'docker/lib/extensions.d/**'
-    - 'docker/lib/extension-manager.sh'
-    - 'docker/lib/common.sh'
+     # Deployment configuration
+      - 'fly.toml'
+      - 'Dockerfile'
+      # CI scripts
+      - 'scripts/prepare-fly-config.sh'
+      - 'scripts/lib/fly-common.sh'
+      # Extension system
+      - 'docker/lib/extensions.d/**'
+      - 'docker/lib/extension-manager.sh'
+      - 'docker/lib/common.sh'
+      - 'docker/lib/extensions-common.sh'
+      # VM configuration
+      - 'scripts/vm-configure.sh'
+      # Workflow itself
+      - '.github/workflows/extension-tests.yml'
 
 # On pull requests
 pull_request:
@@ -165,9 +162,8 @@ Different test jobs use different VM sizes:
 
 | Test Type | Memory | CPUs | Disk | Timeout |
 |-----------|--------|------|------|---------|
-| Core Extension | 2GB | 1 | 5GB | 45 min |
-| Per-Extension | 4GB | 2 | 10GB | 60 min |
-| Combinations | 8GB | 4 | 15GB | 90 min |
+| Per-Extension | 8GB | 4 | 20GB | 60 min |
+| Combinations | 16GB | 4 | 20GB | 90 min |
 
 ### Cost Considerations
 
@@ -222,23 +218,19 @@ When adding a new extension, ensure it will pass tests:
 ### 1. Create Extension File
 
 ```bash
-# Create example file
-vim docker/lib/extensions.d/90-newlang.sh.example
+# Get into extensions directory
+cd docker/lib/extensions.d
 
-# Follow template:
-#!/bin/bash
-# 90-newlang.sh.example - Install NewLang
+# Copy template
+# in this case we want to create a new extension to support R programming language
+cp template.sh.example r.sh.example
 
-source /workspace/scripts/lib/common.sh
+# Explore existing extensions to see how to structure and implement this new extension
 
-if command_exists newlang; then
-    print_warning "NewLang already installed"
-    return 0
-fi
+# Edit new example file
+vim docker/lib/extensions.d/r.sh.example
 
-print_status "Installing NewLang..."
-# Installation steps...
-print_success "NewLang installed"
+# Don't forget to add extension to end of active-extensions.conf to activate it
 ```
 
 ### 2. Add to Test Matrix
@@ -249,8 +241,8 @@ Update `.github/workflows/extension-tests.yml`:
 matrix:
   extension:
     # ... existing extensions ...
-    - { name: 'newlang', commands: 'newlang,newlang-cli',
-        key_tool: 'newlang', timeout: '20m' }
+    - { name: 'r', commands: 'R',
+        key_tool: 'r', timeout: '20m' }
 ```
 
 ### 3. Add Functionality Test
@@ -260,10 +252,9 @@ In the workflow, add test case:
 ```yaml
 case "$key_tool" in
   # ... existing cases ...
-  newlang)
-    echo "Testing NewLang..."
-    newlang --version
-    newlang-cli test-command
+  r)
+    echo "Testing R..."
+    R --version
     ;;
 esac
 ```
@@ -273,7 +264,7 @@ esac
 ```bash
 # On test VM
 cd /workspace/scripts/lib
-bash extension-manager.sh activate newlang
+bash extension-manager.sh activate r
 /workspace/scripts/vm-configure.sh --extensions-only
 ```
 

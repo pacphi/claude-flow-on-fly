@@ -15,7 +15,13 @@ Get your AI-powered development forge running in 5 minutes.
 # Clone and setup
 git clone https://github.com/pacphi/sindri.git
 cd sindri
+
+# Make sure shell scripts are executable
 chmod +x scripts/*.sh
+
+# Activate extensions
+# Copy example file, then edit (un/comment other extensions)
+cp docker/lib/extensions.d/active-extensions.conf.example docker/lib/extensions.d/active-extensions.conf
 
 # Deploy (takes ~3 minutes)
 ./scripts/vm-setup.sh --app-name my-sindri-dev --region sjc

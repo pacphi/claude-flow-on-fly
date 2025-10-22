@@ -228,7 +228,7 @@ Extensions are organized by category in the activation manifest.
 - **jvm** - SDKMAN with Java, Kotlin, Scala, Maven, Gradle
 - **dotnet** - .NET SDK 9.0/8.0 with ASP.NET Core
 
-### Infrastructure & Cloud
+### Infrastructure, Cloud, and AI
 - **docker** - Docker Engine with compose, dive, ctop
 - **infra-tools** - Terraform, Ansible, kubectl, Helm, Carvel, Pulumi
 - **cloud-tools** - AWS, Azure, GCP, Oracle, DigitalOcean CLIs
@@ -532,7 +532,7 @@ extension-manager validate my-extension
 extension-manager list | grep ACTIVE
 ```
 
-## Migration from Old System
+## Migration from legacy extensions
 
 If you have custom extensions using the old numbered prefix system (e.g., `50-my-tool.sh`):
 

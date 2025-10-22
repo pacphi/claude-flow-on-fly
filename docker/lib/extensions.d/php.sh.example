@@ -183,10 +183,36 @@ install() {
     "psy/psysh"
   )
 
+  local installed_tools=0
+  local skipped_tools=0
   for tool in "${php_tools[@]}"; do
-    print_debug "Installing $tool..."
-    composer global require "$tool" 2>/dev/null && print_debug "✓ $tool installed"
+    # Extract binary name from package name (e.g., "friendsofphp/php-cs-fixer" -> "php-cs-fixer")
+    local tool_binary
+    tool_binary=$(echo "$tool" | sed 's/.*\///')
+
+    # Check if tool is already installed in Composer global directories
+    if command_exists "$tool_binary" || \
+       [[ -f "$HOME/.composer/vendor/bin/$tool_binary" ]] || \
+       [[ -f "$HOME/.config/composer/vendor/bin/$tool_binary" ]]; then
+      print_debug "✓ $tool already installed, skipping"
+      ((skipped_tools++))
+    else
+      print_debug "Installing $tool..."
+      if composer global require "$tool" 2>/dev/null; then
+        print_debug "✓ $tool installed"
+        ((installed_tools++))
+      else
+        print_debug "⚠ $tool installation failed"
+      fi
+    fi
   done
+
+  if [[ $installed_tools -gt 0 ]]; then
+    print_status "Installed $installed_tools new PHP development tools"
+  fi
+  if [[ $skipped_tools -gt 0 ]]; then
+    print_debug "Skipped $skipped_tools already installed tools"
+  fi
 
   return 0
 }
@@ -359,12 +385,16 @@ validate() {
     print_error "composer not found"
     all_valid=false
   else
-    print_success "Composer: $(composer --version 2>&1 | head -n1)"
+    local composer_ver
+    composer_ver=$(timeout 3 composer --version 2>&1 | head -n1 || echo "version check timed out")
+    print_success "Composer: $composer_ver"
   fi
 
   # Check Symfony CLI
   if command_exists symfony; then
-    print_success "Symfony CLI: $(symfony version 2>&1 | head -n1)"
+    local symfony_ver
+    symfony_ver=$(timeout 3 symfony version 2>&1 | head -n1 || echo "version check timed out")
+    print_success "Symfony CLI: $symfony_ver"
   else
     print_warning "Symfony CLI not found"
   fi
@@ -407,8 +437,16 @@ status() {
   fi
 
   print_success "PHP: $(php -v | head -n1)"
-  command_exists composer && print_success "Composer: $(composer --version 2>&1 | head -n1)"
-  command_exists symfony && print_success "Symfony CLI: $(symfony version 2>&1 | head -n1)"
+  if command_exists composer; then
+    local composer_ver
+    composer_ver=$(timeout 3 composer --version 2>&1 | head -n1 || echo "version check timed out")
+    print_success "Composer: $composer_ver"
+  fi
+  if command_exists symfony; then
+    local symfony_ver
+    symfony_ver=$(timeout 3 symfony version 2>&1 | head -n1 || echo "version check timed out")
+    print_success "Symfony CLI: $symfony_ver"
+  fi
 
   # Show extensions
   print_status "Installed extensions:"

@@ -28,7 +28,7 @@ strategies.
   --cpu-count 2 \
   --memory 4096 \
   --volume-size 50 \
-  --region syd
+  --region sjc
 ```
 
 ### API Keys and Secrets

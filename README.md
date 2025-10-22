@@ -21,13 +21,20 @@ Like its mythological namesake, Sindri forges powerful development environments 
 ## ⚡ Quick Start
 
 ```bash
-# Clone and deploy
+# Clone
 git clone https://github.com/pacphi/sindri.git
 cd sindri
+
+# Activate extensions
+cp docker/lib/extensions.d/active-extensions.conf.example docker/lib/extensions.d/active-extensions.conf
+
+# Deploy
 ./scripts/vm-setup.sh --app-name my-sindri-dev --region sjc
 
-# Connect and configure
+# Connect
 ssh developer@my-sindri-dev.fly.dev -p 10022
+
+# Run configure script inside VM
 ./scripts/vm-configure.sh
 
 # Start developing
