@@ -187,6 +187,19 @@ jobs:
           echo "app_name=${APP_NAME}" >> $GITHUB_OUTPUT
           echo "Generated app name: ${APP_NAME}"
 
+      - name: Prepare fly.toml for testing
+        env:
+          APP_NAME: ${{ steps.app-name.outputs.app_name }}
+          VOLUME_NAME: "test_data"
+          VOLUME_SIZE: "5"
+          VM_MEMORY: "1024"
+          CPU_KIND: "shared"
+          CPU_COUNT: "1"
+          CI_MODE: "true"
+        run: |
+          # Use the configuration script in CI mode to prevent port conflicts
+          ./scripts/prepare-fly-config.sh --ci-mode
+
       - name: Deploy VM with retry logic
         timeout-minutes: 10
         run: |
