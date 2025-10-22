@@ -119,11 +119,19 @@ jobs:
         run: |
           echo "Running shellcheck on all shell scripts..."
 
-          # Find all shell scripts
-          scripts=$(find . -name "*.sh" -type f)
+          # Find all shell scripts (.sh and .sh.example files)
+          scripts=$(find . -name "*.sh" -o -name "*.sh.example" -type f | grep -v node_modules | grep -v .git)
 
           failed_scripts=()
           for script in $scripts; do
+            # Skip non-shell template files
+            case "$script" in
+              */templates/*.example|*/active-extensions.conf.example)
+                echo "Skipping non-shell template: $script"
+                continue
+                ;;
+            esac
+
             echo "Checking $script..."
             if ! shellcheck "$script"; then
               failed_scripts+=("$script")

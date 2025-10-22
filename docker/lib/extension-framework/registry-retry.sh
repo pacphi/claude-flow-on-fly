@@ -31,7 +31,7 @@ apt_update_retry() {
 apt_install_retry() {
   local max_attempts=${1:-3}
   shift
-  local packages="$@"
+  local packages="$*"
   local attempt=1
 
   while [ $attempt -le $max_attempts ]; do
@@ -63,7 +63,7 @@ apt_install_retry() {
 npm_install_retry() {
   local max_attempts=${1:-3}
   shift
-  local packages="$@"
+  local packages="$*"
   local attempt=1
 
   while [ $attempt -le $max_attempts ]; do
@@ -94,7 +94,7 @@ npm_install_retry() {
 pip_install_retry() {
   local max_attempts=${1:-3}
   shift
-  local packages="$@"
+  local packages="$*"
   local attempt=1
 
   while [ $attempt -le $max_attempts ]; do
@@ -127,7 +127,7 @@ wget_retry() {
   shift
   local url="$1"
   shift
-  local output_args="$@"
+  local output_args="$*"
   local attempt=1
 
   while [ $attempt -le $max_attempts ]; do

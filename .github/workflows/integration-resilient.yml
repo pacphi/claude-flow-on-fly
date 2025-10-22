@@ -10,6 +10,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
+
 jobs:
   integration-test:
     runs-on: ubuntu-latest
@@ -186,8 +189,6 @@ jobs:
 
       - name: Deploy VM with retry logic
         timeout-minutes: 10
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           source /tmp/retry_utils.sh
 
@@ -203,8 +204,6 @@ jobs:
 
       - name: Wait for machine readiness
         timeout-minutes: 5
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           source /tmp/retry_utils.sh
 
@@ -218,8 +217,6 @@ jobs:
 
       - name: Test SSH connectivity with retry
         timeout-minutes: 5
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           source /tmp/retry_utils.sh
 
@@ -234,8 +231,6 @@ jobs:
 
       - name: Test volume persistence with retry
         timeout-minutes: 5
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           source /tmp/retry_utils.sh
 
@@ -280,8 +275,6 @@ jobs:
 
       - name: Test extension system with retry
         timeout-minutes: 10
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           source /tmp/retry_utils.sh
 
@@ -318,8 +311,6 @@ jobs:
 
       - name: Cleanup test VM
         if: always()
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           source /tmp/retry_utils.sh
 
