@@ -35,7 +35,7 @@ extension_init() {
     fi
 
     # Source registry retry helpers if available
-    local registry_retry="$LIB_DIR/extension-framework/registry-retry.sh"
+    local registry_retry="$LIB_DIR/registry-retry.sh"
     if [[ -f "$registry_retry" ]]; then
         source "$registry_retry"
     fi

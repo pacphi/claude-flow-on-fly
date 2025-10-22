@@ -36,7 +36,7 @@ Implement comprehensive retry logic with exponential backoff at multiple layers:
 
 ### 1. Registry Retry Helper Library
 
-**Location**: `docker/lib/extension-framework/registry-retry.sh`
+**Location**: `docker/lib/registry-retry.sh`
 
 **Features**:
 - APT update/install retry with package repair
@@ -357,46 +357,6 @@ test-extension:
 
 ## Testing Strategy
 
-### Unit Testing Retry Functions
-
-**Test script**: `tests/test-registry-retry.sh`
-
-```bash
-#!/bin/bash
-source docker/lib/extension-framework/registry-retry.sh
-
-# Test APT retry with mock failure
-test_apt_retry() {
-  # Mock apt-get that fails twice then succeeds
-  apt-get() {
-    local count_file="/tmp/apt-test-count"
-    local count=$(cat "$count_file" 2>/dev/null || echo 0)
-    count=$((count + 1))
-    echo $count > "$count_file"
-
-    if [ $count -lt 3 ]; then
-      echo "Mock failure $count" >&2
-      return 1
-    fi
-
-    echo "Mock success"
-    return 0
-  }
-  export -f apt-get
-
-  rm -f /tmp/apt-test-count
-  if apt_install_retry 3 test-package; then
-    echo "✅ APT retry test passed"
-  else
-    echo "❌ APT retry test failed"
-    return 1
-  fi
-}
-
-# Run tests
-test_apt_retry
-```
-
 ### Integration Testing in CI
 
 **Current approach**:
@@ -508,7 +468,7 @@ Track the following to measure improvement:
 **Debug**:
 ```bash
 # Test retry function directly
-source docker/lib/extension-framework/registry-retry.sh
+source docker/lib/registry-retry.sh
 DEBUG=true apt_update_retry 3
 ```
 
