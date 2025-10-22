@@ -118,8 +118,22 @@ install() {
     print_warning "Composer already installed: $(composer --version 2>&1 | head -n1)"
   else
     print_status "Installing Composer..."
-    local EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+
+    # Download signature with timeout
+    local EXPECTED_CHECKSUM
+    EXPECTED_CHECKSUM=$(timeout 30 php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");' 2>/dev/null)
+
+    if [[ -z "$EXPECTED_CHECKSUM" ]]; then
+      print_error "Failed to fetch Composer installer signature (timeout or network error)"
+      return 1
+    fi
+
+    # Download installer with timeout using curl (more reliable than php copy)
+    if ! curl --max-time 60 -fsSL https://getcomposer.org/installer -o composer-setup.php; then
+      print_error "Failed to download Composer installer"
+      return 1
+    fi
+
     local ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
 
     if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then

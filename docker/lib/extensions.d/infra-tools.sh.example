@@ -92,7 +92,7 @@ install() {
     print_warning "Terraform already installed: $(terraform version | head -1)"
   else
     local TERRAFORM_VERSION="1.13.0"
-    if wget -q "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"; then
+    if wget --timeout=180 --tries=2 -q "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"; then
       unzip -q "terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
       sudo mv terraform /usr/local/bin/
       rm "terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
@@ -108,8 +108,8 @@ install() {
     print_warning "kubectl already installed"
   else
     local KUBECTL_VERSION
-    KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt 2>/dev/null)
-    if curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" 2>/dev/null; then
+    KUBECTL_VERSION=$(curl --max-time 30 --retry 2 -L -s https://dl.k8s.io/release/stable.txt 2>/dev/null)
+    if curl --max-time 120 --retry 2 -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" 2>/dev/null; then
       chmod +x kubectl
       sudo mv kubectl /usr/local/bin/
       print_success "kubectl installed"
@@ -123,9 +123,9 @@ install() {
   if command_exists helm; then
     print_warning "Helm already installed: $(helm version --short)"
   else
-    if curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 2>/dev/null; then
+    if curl --max-time 60 --retry 2 -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 2>/dev/null; then
       chmod 700 get_helm.sh
-      ./get_helm.sh 2>/dev/null
+      timeout 180 ./get_helm.sh 2>/dev/null
       rm get_helm.sh
       print_success "Helm installed"
     else
@@ -149,7 +149,7 @@ install() {
       ((carvel_installed++))
     else
       print_debug "Installing $tool..."
-      if wget -qO- "https://carvel.dev/install.sh" | bash -s -- "$tool" 2>/dev/null; then
+      if timeout 120 wget --timeout=90 -qO- "https://carvel.dev/install.sh" | bash -s -- "$tool" 2>/dev/null; then
         sudo mv "$tool" /usr/local/bin/ 2>/dev/null
         print_debug "✓ $tool installed"
         ((carvel_installed++))
@@ -165,7 +165,7 @@ install() {
   if command_exists crossplane; then
     print_warning "Crossplane CLI already installed"
   else
-    if curl -sL "https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh" | sh 2>/dev/null; then
+    if timeout 120 curl --max-time 90 -sL "https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh" | sh 2>/dev/null; then
       sudo mv crossplane /usr/local/bin/ 2>/dev/null
       print_success "Crossplane CLI installed"
     else
@@ -178,7 +178,7 @@ install() {
   if command_exists pulumi; then
     print_warning "Pulumi already installed: $(pulumi version)"
   else
-    if curl -fsSL https://get.pulumi.com | sh 2>/dev/null; then
+    if timeout 180 curl --max-time 150 -fsSL https://get.pulumi.com | sh 2>/dev/null; then
       export PATH=$PATH:$HOME/.pulumi/bin
       print_success "Pulumi installed"
     else
@@ -192,7 +192,7 @@ install() {
     print_warning "k9s already installed"
   else
     local K9S_VERSION="v0.32.5"
-    if wget -q "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz"; then
+    if wget --timeout=120 --tries=2 -q "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz"; then
       tar xzf k9s_Linux_amd64.tar.gz k9s
       sudo mv k9s /usr/local/bin/
       rm k9s_Linux_amd64.tar.gz
@@ -207,7 +207,7 @@ install() {
   if command_exists kubectx; then
     print_warning "kubectx/kubens already installed"
   else
-    if sudo git clone https://github.com/ahmetb/kubectx /opt/kubectx 2>/dev/null; then
+    if timeout 60 sudo git clone --depth 1 https://github.com/ahmetb/kubectx /opt/kubectx 2>/dev/null; then
       sudo ln -s /opt/kubectx/kubectx /usr/local/bin/kubectx
       sudo ln -s /opt/kubectx/kubens /usr/local/bin/kubens
       print_success "kubectx/kubens installed"

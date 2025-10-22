@@ -534,6 +534,7 @@ jobs:
           '"
 
       - name: Run vm-configure with extension
+        timeout-minutes: 35
         if: steps.should-test.outputs.should_test == 'true'
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
@@ -640,6 +641,7 @@ jobs:
           done
 
       - name: Verify commands available
+        timeout-minutes: 10
         if: steps.should-test.outputs.should_test == 'true'
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
@@ -725,12 +727,13 @@ jobs:
           done
 
       - name: Diagnose environment on failure
+        timeout-minutes: 3
         if: failure() && steps.should-test.outputs.should_test == 'true'
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
 
-          echo "🔍 Comprehensive environment diagnostics for debugging..."
-          flyctl ssh console --app $app_name --command "/bin/bash -lc '
+          echo "🔍 Environment diagnostics (max 3 minutes)..."
+          timeout 150 flyctl ssh console --app $app_name --command "/bin/bash -lc '
             echo \"===========================================\"
             echo \"   ENVIRONMENT DIAGNOSTICS\"
             echo \"===========================================\"
@@ -766,15 +769,8 @@ jobs:
 
             echo \"=== Profile.d Scripts ===\"
             if [ -d /etc/profile.d/ ]; then
-              ls -lh /etc/profile.d/
-              echo \"\"
-              for script in /etc/profile.d/*.sh; do
-                if [ -f \"\$script\" ]; then
-                  echo \"Content of \$(basename \$script) (first 15 lines):\"
-                  head -15 \"\$script\"
-                  echo \"---\"
-                fi
-              done
+              echo \"Profile.d files:\"
+              ls -lh /etc/profile.d/ | tail -20
             else
               echo \"❌ /etc/profile.d/ directory not found\"
             fi
@@ -825,22 +821,21 @@ jobs:
             ls -lh /usr/local/bin/ 2>/dev/null | grep -E \"(go|cargo|rustc|ruby|java|sdk|python|php|docker|terraform|aws|ollama)\" || echo \"No tool wrappers found\"
             echo \"\"
 
-            echo \"=== Tool Version Checks ===\"
-            for tool in go cargo rustc ruby java python3 php docker terraform aws ollama; do
-              echo -n \"Checking \$tool: \"
-              if command -v \$tool >/dev/null 2>&1; then
-                echo \"Found at \$(command -v \$tool)\"
-                \$tool --version 2>/dev/null || \$tool version 2>/dev/null || echo \"  (version check not supported)\"
-              else
-                echo \"Not found in PATH\"
-              fi
-            done
+            echo \"=== Extension-Specific Tool Check ===\"
+            tool=\"${{ matrix.extension.key_tool }}\"
+            echo -n \"Checking \$tool: \"
+            if command -v \$tool >/dev/null 2>&1; then
+              echo \"Found at \$(command -v \$tool)\"
+              timeout 5 \$tool --version 2>/dev/null || timeout 5 \$tool version 2>/dev/null || echo \"  (version check not supported)\"
+            else
+              echo \"Not found in PATH\"
+            fi
             echo \"\"
 
             echo \"=== Recent Configuration Logs ===\"
             if [ -f /tmp/configure.log ]; then
-              echo \"Last 100 lines of configuration log:\"
-              tail -100 /tmp/configure.log
+              echo \"Last 50 lines of configuration log:\"
+              tail -50 /tmp/configure.log
             else
               echo \"No configuration log found\"
             fi
@@ -857,13 +852,14 @@ jobs:
             echo \"===========================================\"
             echo \"   END DIAGNOSTICS\"
             echo \"===========================================\"
-          '" || echo "⚠️  Failed to retrieve full diagnostics"
+          '" || echo "⚠️  Diagnostics timed out after 150 seconds"
 
           echo ""
-          echo "Retrieving application logs..."
-          flyctl logs --app $app_name || echo "Failed to retrieve logs"
+          echo "Retrieving last 100 lines of application logs..."
+          timeout 30 flyctl logs --app $app_name || echo "Failed to retrieve logs or timed out"
 
       - name: Test key functionality
+        timeout-minutes: 5
         if: steps.should-test.outputs.should_test == 'true'
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
@@ -990,8 +986,8 @@ jobs:
                 ;;
               docker)
                 echo \"Testing Docker...\"
-                docker --version
-                docker-compose --version || docker compose version
+                timeout 10 docker --version
+                timeout 10 docker-compose --version 2>/dev/null || timeout 10 docker compose version 2>/dev/null
                 ;;
               terraform)
                 echo \"Testing Terraform...\"
@@ -1014,6 +1010,7 @@ jobs:
           '"
 
       - name: Test idempotency
+        timeout-minutes: 10
         if: steps.should-test.outputs.should_test == 'true' && inputs.skip_idempotency != true
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"

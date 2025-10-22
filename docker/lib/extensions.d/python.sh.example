@@ -148,6 +148,19 @@ install() {
     print_warning "Failed to install Jupyter Lab"
   fi
 
+  # Install uv (fast Python package manager)
+  print_status "Installing uv..."
+  if command_exists uv; then
+    print_warning "uv already installed: $(uv --version)"
+  else
+    if curl --max-time 60 -LsSf https://astral.sh/uv/install.sh | sh; then
+      export PATH="$HOME/.local/bin:$PATH"
+      print_success "uv installed: $(uv --version 2>&1 || echo 'installed')"
+    else
+      print_warning "Failed to install uv"
+    fi
+  fi
+
   return 0
 }
 
@@ -312,6 +325,13 @@ validate() {
     print_status "pipx tools: $tools_available/${#tools[@]}"
   fi
 
+  # Check uv
+  if command_exists uv; then
+    print_success "uv: $(uv --version 2>&1)"
+  else
+    print_warning "uv not installed"
+  fi
+
   if [[ "$all_valid" == "true" ]]; then
     print_success "Validation passed"
     return 0
@@ -336,6 +356,7 @@ status() {
   print_success "Python: $(python3 --version 2>&1)"
   command_exists pip3 && print_success "pip: $(pip3 --version 2>&1 | awk '{print $2}')"
   command_exists pipx && print_success "pipx: installed"
+  command_exists uv && print_success "uv: $(uv --version 2>&1)"
 
   print_status "System packages:"
   for pkg in requests numpy pandas pytest black; do
@@ -381,6 +402,13 @@ remove() {
     for pkg in virtualenv pipenv poetry flake8 autopep8 mypy jupyterlab; do
       pipx list 2>/dev/null | grep -q "$pkg" && pipx uninstall "$pkg" 2>/dev/null
     done
+  fi
+
+  # Remove uv
+  if command_exists uv; then
+    print_status "Removing uv..."
+    rm -f "$HOME/.local/bin/uv" "$HOME/.local/bin/uvx"
+    rm -rf "$HOME/.local/share/uv"
   fi
 
   # Remove system packages

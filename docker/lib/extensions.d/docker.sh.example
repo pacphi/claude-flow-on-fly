@@ -253,11 +253,13 @@ validate() {
     print_warning "Docker daemon: not running or no permissions"
   fi
 
-  # Check docker-compose
-  if command_exists docker-compose; then
-    print_success "Docker Compose: $(docker-compose --version)"
+  # Check docker-compose with timeout
+  if timeout 10 docker-compose --version 2>/dev/null; then
+    print_success "Docker Compose: $(timeout 10 docker-compose --version 2>/dev/null)"
+  elif timeout 10 docker compose version 2>/dev/null; then
+    print_success "Docker Compose: $(timeout 10 docker compose version 2>/dev/null)"
   else
-    print_warning "docker-compose not found"
+    print_warning "docker-compose not found or timed out"
   fi
 
   # Check utilities
@@ -297,7 +299,15 @@ status() {
   fi
 
   print_success "Docker: $(docker --version)"
-  command_exists docker-compose && print_success "Docker Compose: $(docker-compose --version)"
+
+  # Check Docker Compose with timeout
+  if timeout 10 docker-compose --version 2>/dev/null; then
+    print_success "Docker Compose: $(timeout 10 docker-compose --version 2>/dev/null)"
+  elif timeout 10 docker compose version 2>/dev/null; then
+    print_success "Docker Compose: $(timeout 10 docker compose version 2>/dev/null)"
+  else
+    print_warning "Docker Compose: not available or timed out"
+  fi
 
   # Show daemon status
   if docker info >/dev/null 2>&1; then
