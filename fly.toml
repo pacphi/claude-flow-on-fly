@@ -104,7 +104,7 @@ primary_region = "{{REGION}}"
 #   worker = "background-tasks"
 
 # Volume configuration reference
-# Create volume with: flyctl volumes create sindri_data --region iad --size 30
+# Create volume with: flyctl volumes create sindri_data --region sjc --size 30
 # Volume naming pattern: <app-name>_data
 # Pricing: ~$0.15/GB/month
 

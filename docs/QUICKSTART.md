@@ -18,7 +18,7 @@ cd sindri
 chmod +x scripts/*.sh
 
 # Deploy (takes ~3 minutes)
-./scripts/vm-setup.sh --app-name my-sindri-dev --region iad
+./scripts/vm-setup.sh --app-name my-sindri-dev --region sjc
 ```
 
 The script automatically creates VM, storage, and SSH access.

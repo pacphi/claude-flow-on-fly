@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Configuration variables (can be overridden with environment variables)
 APP_NAME="${APP_NAME:-sindri-dev-env}"
-REGION="${REGION:-iad}"
+REGION="${REGION:-sjc}"
 VM_MEMORY="${VM_MEMORY:-8192}"
 CPU_KIND="${CPU_KIND:-shared}"
 CPU_COUNT="${CPU_COUNT:-2}"
@@ -383,7 +383,7 @@ Usage: $0 [OPTIONS]
 
 Options:
   --app-name NAME     Name for the Fly.io app (default: sindri-dev-env)
-  --region REGION     Fly.io region (default: iad)
+  --region REGION     Fly.io region (default: sjc)
   --volume-size SIZE  Volume size in GB (default: 30)
   --memory SIZE       VM memory in MB (default: 8192)
   --cpu-kind KIND     CPU type: "shared" or "performance" (default: shared)

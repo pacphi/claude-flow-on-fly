@@ -181,7 +181,7 @@ Different test jobs use different VM sizes:
 All tests use:
 
 - **CI_MODE**: Enabled to prevent SSH port conflicts
-- **Fly.io Region**: `iad` (US East)
+- **Fly.io Region**: `sjc` (US West)
 - **Deployment Strategy**: `immediate` (skip health checks)
 - **Volume Encryption**: Disabled for faster setup
 

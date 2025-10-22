@@ -37,7 +37,7 @@ Describe the tests that you ran to verify your changes.
 ### Test Environment
 
 - OS: [e.g., macOS 14.0, Ubuntu 22.04]
-- Fly.io region: [e.g., iad, lax]
+- Fly.io region: [e.g., iad, lax, fra]
 - VM configuration: [e.g., shared-cpu-2x, 8GB]
 
 ## Cost Impact

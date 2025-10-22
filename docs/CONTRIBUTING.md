@@ -49,7 +49,7 @@ adding features, improving documentation, or sharing extensions, your contributi
 
    ```bash
    # Deploy development environment
-   ./scripts/vm-setup.sh --app-name contrib-dev --region iad
+   ./scripts/vm-setup.sh --app-name contrib-dev --region sjc
 
    # Connect and configure
    ssh developer@contrib-dev.fly.dev -p 10022
@@ -131,7 +131,7 @@ function install_development_tool() {
 
 ```bash
 # Test script locally before submitting
-./scripts/vm-setup.sh --app-name test-dev --region iad
+./scripts/vm-setup.sh --app-name test-dev --region sjc
 
 # Validate configuration
 ssh developer@test-dev.fly.dev -p 10022 "/workspace/scripts/validate-setup.sh"
@@ -191,7 +191,7 @@ ssh -o PasswordAuthentication=no -o PreferredAuthentications=publickey \
    ./scripts/validate-changes.sh
 
    # Deploy test environment
-   ./scripts/vm-setup.sh --app-name pr-test --region iad
+   ./scripts/vm-setup.sh --app-name pr-test --region sjc
 
    # Verify changes work
    ssh developer@pr-test.fly.dev -p 10022 "your-test-commands"

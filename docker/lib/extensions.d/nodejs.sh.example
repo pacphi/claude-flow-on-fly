@@ -124,7 +124,7 @@ configure() {
 
   if [[ ! -d "$npm_global_dir" ]]; then
     mkdir -p "$npm_global_dir"
-    npm config set prefix "$npm_global_dir"
+    npm config set prefix "$npm_global_dir" --location=global
     print_success "npm global directory configured: $npm_global_dir"
   fi
 

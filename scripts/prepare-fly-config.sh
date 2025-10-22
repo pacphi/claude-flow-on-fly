@@ -17,7 +17,7 @@ fi
 
 # Default values
 APP_NAME="${APP_NAME:-}"
-REGION="${REGION:-iad}"
+REGION="${REGION:-sjc}"
 VOLUME_NAME="${VOLUME_NAME:-sindri_data}"
 VOLUME_SIZE="${VOLUME_SIZE:-30}"
 VM_MEMORY="${VM_MEMORY:-8192}"
@@ -47,7 +47,7 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --ci-mode          Configure for CI testing (disables services and health checks)"
       echo "  --app-name NAME    Set app name"
-      echo "  --region REGION    Set region (default: iad)"
+      echo "  --region REGION    Set region (default: sjc)"
       echo "  --help             Show this help message"
       echo ""
       echo "Environment variables can be used to set other values:"

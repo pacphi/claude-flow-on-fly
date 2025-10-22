@@ -115,7 +115,7 @@ install() {
 
   # Install Composer
   if command_exists composer; then
-    print_warning "Composer already installed: $(composer --version 2>&1 | head -n1)"
+    print_warning "Composer already installed: $(timeout 5 composer --version 2>&1 | head -n1 || echo 'version unknown')"
   else
     print_status "Installing Composer..."
 

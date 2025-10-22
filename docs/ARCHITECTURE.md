@@ -105,7 +105,7 @@ File locations after deployment to the VM:
 - **Flyctl SSH**: Built-in `flyctl ssh console` via hallpass service (port 22)
 - **Domains**: `<app-name>.fly.dev` automatically assigned
 - **SSL**: Automatic HTTPS certificates
-- **Regions**: Deploy in any Fly.io region
+- **Regions**: Deploy in any [Fly.io region](https://fly.io/docs/reference/regions/)
 
 ### Internal Networking
 

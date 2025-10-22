@@ -11,7 +11,7 @@
 
 # Options:
 --app-name <name>         # Fly.io application name (required)
---region <region>         # Deployment region (default: iad)
+--region <region>         # Deployment region (default: sjc)
 --cpu-kind <shared|performance>  # CPU type (default: shared)
 --cpu-count <number>      # Number of CPUs (default: 1)
 --memory <mb>             # Memory in MB (default: 1024)

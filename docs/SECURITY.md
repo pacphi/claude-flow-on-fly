@@ -202,7 +202,7 @@ EOF
 ```bash
 # Create encrypted volume (if supported in region)
 flyctl volumes create encrypted_workspace \
-    --region iad \
+    --region sjc \
     --size 50 \
     --encrypted
 

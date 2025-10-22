@@ -53,7 +53,7 @@ jobs:
           # Use the existing prepare-fly-config.sh script to handle template substitution
           # Set test values for validation
           export APP_NAME="test-app"
-          export REGION="iad"
+          export REGION="sjc"
           export VOLUME_NAME="test_data"
           export VOLUME_SIZE="10"
           export CPU_KIND="shared"

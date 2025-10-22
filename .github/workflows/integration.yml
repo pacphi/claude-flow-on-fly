@@ -4,23 +4,45 @@ on:
   push:
     branches: [ main, develop ]
     paths:
+      # Deployment configuration
+      - 'fly.toml'
+      - 'Dockerfile'
+      # CI scripts
+      - 'scripts/prepare-fly-config.sh'
+      - 'scripts/lib/fly-common.sh'
+      # Extension system
       - 'docker/lib/extensions.d/**'
       - 'docker/lib/extension-manager.sh'
       - 'docker/lib/common.sh'
+      - 'docker/lib/extensions-common.sh'
+      # VM configuration
+      - 'scripts/vm-configure.sh'
+      # Workflow itself
       - '.github/workflows/integration.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
+      # Deployment configuration
+      - 'fly.toml'
+      - 'Dockerfile'
+      # CI scripts
+      - 'scripts/prepare-fly-config.sh'
+      - 'scripts/lib/fly-common.sh'
+      # Extension system
       - 'docker/lib/extensions.d/**'
       - 'docker/lib/extension-manager.sh'
       - 'docker/lib/common.sh'
+      - 'docker/lib/extensions-common.sh'
+      # VM configuration
+      - 'scripts/vm-configure.sh'
+      # Workflow itself
       - '.github/workflows/integration.yml'
   workflow_dispatch:
     inputs:
       test_region:
         description: 'Fly.io region for test deployment'
         required: false
-        default: 'iad'
+        default: 'sjc'
         type: string
       skip_cleanup:
         description: 'Skip cleanup (for debugging)'
@@ -30,7 +52,7 @@ on:
 
 env:
   TEST_APP_PREFIX: "sindri-ci-test"
-  REGION: ${{ inputs.test_region || 'iad' }}
+  REGION: ${{ inputs.test_region || 'sjc' }}
   FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
 
 jobs:

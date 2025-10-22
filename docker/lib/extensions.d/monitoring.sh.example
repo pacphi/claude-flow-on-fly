@@ -101,17 +101,17 @@ install() {
   # Install claude-monitor using UV or pip3
   print_status "Installing claude-monitor..."
   if command_exists uv; then
-    if uv tool install claude-monitor; then
+    if timeout 180 uv tool install claude-monitor; then
       print_success "claude-monitor installed via UV"
     else
-      print_warning "UV installation failed, trying pip3..."
+      print_warning "UV installation failed or timed out, trying pip3..."
       # Fallback to pip3
       if ! command_exists pip3; then
         print_status "Installing python3-pip..."
         sudo apt-get update -qq && sudo apt-get install -y python3-pip
       fi
 
-      if pip3 install claude-monitor; then
+      if timeout 120 pip3 install claude-monitor; then
         print_success "claude-monitor installed via pip3"
       else
         print_error "Failed to install claude-monitor"
@@ -125,7 +125,7 @@ install() {
       sudo apt-get update -qq && sudo apt-get install -y python3-pip
     fi
 
-    if pip3 install claude-monitor; then
+    if timeout 120 pip3 install claude-monitor; then
       print_success "claude-monitor installed via pip3"
     else
       print_error "Failed to install claude-monitor"

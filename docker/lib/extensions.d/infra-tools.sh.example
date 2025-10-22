@@ -41,7 +41,7 @@ prerequisites() {
 
   # Check for required tools
   local missing_tools=()
-  for tool in wget curl sudo unzip git; do
+  for tool in wget curl sudo git gpg lsb_release; do
     if ! command_exists "$tool"; then
       missing_tools+=("$tool")
     fi
@@ -49,7 +49,7 @@ prerequisites() {
 
   if [[ ${#missing_tools[@]} -gt 0 ]]; then
     print_error "Missing required tools: ${missing_tools[*]}"
-    print_status "Install with: sudo apt-get install ${missing_tools[*]}"
+    print_status "Install with: sudo apt-get install wget curl sudo git gnupg lsb-release"
     return 1
   fi
 
@@ -86,19 +86,26 @@ install() {
     fi
   fi
 
-  # Terraform
+  # Terraform (via HashiCorp's official apt repository)
   print_status "Installing Terraform..."
   if command_exists terraform; then
     print_warning "Terraform already installed: $(terraform version | head -1)"
   else
-    local TERRAFORM_VERSION="1.13.0"
-    if wget --timeout=180 --tries=2 -q "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"; then
-      unzip -q "terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
-      sudo mv terraform /usr/local/bin/
-      rm "terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
-      print_success "Terraform ${TERRAFORM_VERSION} installed"
+    # Add HashiCorp GPG key
+    if wget --timeout=60 --tries=2 -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg 2>/dev/null; then
+      # Add HashiCorp repository
+      echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
+        sudo tee /etc/apt/sources.list.d/hashicorp.list > /dev/null
+
+      # Update apt and install Terraform
+      sudo apt-get update -qq 2>/dev/null
+      if sudo apt-get install -y terraform 2>/dev/null; then
+        print_success "Terraform installed (latest stable version)"
+      else
+        print_warning "Failed to install Terraform via apt"
+      fi
     else
-      print_warning "Failed to install Terraform"
+      print_warning "Failed to add HashiCorp repository"
     fi
   fi
 
@@ -554,7 +561,16 @@ remove() {
   sudo add-apt-repository --remove --yes ppa:ansible/ansible 2>/dev/null
 
   # Remove Terraform
-  [[ -f /usr/local/bin/terraform ]] && sudo rm -f /usr/local/bin/terraform
+  print_status "Removing Terraform..."
+  if dpkg -l | grep -q terraform; then
+    # Installed via apt
+    sudo apt-get remove -y terraform 2>/dev/null
+    sudo rm -f /etc/apt/sources.list.d/hashicorp.list
+    sudo rm -f /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  else
+    # Legacy binary installation
+    [[ -f /usr/local/bin/terraform ]] && sudo rm -f /usr/local/bin/terraform
+  fi
 
   # Remove kubectl
   [[ -f /usr/local/bin/kubectl ]] && sudo rm -f /usr/local/bin/kubectl

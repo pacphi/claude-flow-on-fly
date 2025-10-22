@@ -24,7 +24,7 @@ Like its mythological namesake, Sindri forges powerful development environments 
 # Clone and deploy
 git clone https://github.com/pacphi/sindri.git
 cd sindri
-./scripts/vm-setup.sh --app-name my-sindri-dev --region iad
+./scripts/vm-setup.sh --app-name my-sindri-dev --region sjc
 
 # Connect and configure
 ssh developer@my-sindri-dev.fly.dev -p 10022

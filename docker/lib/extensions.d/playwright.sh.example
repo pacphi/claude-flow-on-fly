@@ -225,6 +225,17 @@ EOF
   npm pkg set scripts.typecheck="tsc --noEmit"
   npm pkg set scripts.playwright="playwright test"
 
+  # Create wrapper script for SSH access
+  if command_exists create_tool_wrapper 2>/dev/null; then
+    if [[ -f "$WORKSPACE_DIR/node_modules/.bin/playwright" ]]; then
+      print_status "Creating playwright wrapper for SSH access..."
+      create_tool_wrapper "playwright" "npx playwright" "dynamic"
+      print_success "Playwright wrapper created"
+    fi
+  else
+    print_debug "create_tool_wrapper not available, skipping wrapper creation"
+  fi
+
   print_success "Playwright configuration completed"
   return 0
 }

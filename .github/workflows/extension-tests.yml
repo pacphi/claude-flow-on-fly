@@ -4,16 +4,38 @@ on:
   push:
     branches: [ main, develop ]
     paths:
+      # Deployment configuration
+      - 'fly.toml'
+      - 'Dockerfile'
+      # CI scripts
+      - 'scripts/prepare-fly-config.sh'
+      - 'scripts/lib/fly-common.sh'
+      # Extension system
       - 'docker/lib/extensions.d/**'
       - 'docker/lib/extension-manager.sh'
       - 'docker/lib/common.sh'
+      - 'docker/lib/extensions-common.sh'
+      # VM configuration
+      - 'scripts/vm-configure.sh'
+      # Workflow itself
       - '.github/workflows/extension-tests.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
+      # Deployment configuration
+      - 'fly.toml'
+      - 'Dockerfile'
+      # CI scripts
+      - 'scripts/prepare-fly-config.sh'
+      - 'scripts/lib/fly-common.sh'
+      # Extension system
       - 'docker/lib/extensions.d/**'
       - 'docker/lib/extension-manager.sh'
       - 'docker/lib/common.sh'
+      - 'docker/lib/extensions-common.sh'
+      # VM configuration
+      - 'scripts/vm-configure.sh'
+      # Workflow itself
       - '.github/workflows/extension-tests.yml'
   workflow_dispatch:
     inputs:
@@ -34,7 +56,7 @@ on:
 
 env:
   TEST_APP_PREFIX: "ext-test"
-  REGION: "iad"
+  REGION: "sjc"
   FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
 
 jobs:
@@ -341,7 +363,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 8
       matrix:
         extension:
           # Core extensions (always needed)
@@ -363,7 +385,7 @@ jobs:
           - { name: 'docker', commands: 'docker', key_tool: 'docker', timeout: '30m' }
           - { name: 'infra-tools', commands: 'terraform,ansible', key_tool: 'terraform', timeout: '30m' }
           - { name: 'cloud-tools', commands: 'aws', key_tool: 'aws', timeout: '30m' }
-          - { name: 'ai-tools', commands: 'ollama,fabric', key_tool: 'ollama', timeout: '30m', depends_on: 'nodejs' }
+          - { name: 'ai-tools', commands: 'codex,gemini', key_tool: 'codex', timeout: '30m', depends_on: 'nodejs' }
           # Utilities
           - { name: 'playwright', commands: 'playwright', key_tool: 'playwright', timeout: '25m', depends_on: 'nodejs' }
           - { name: 'monitoring', commands: 'claude-monitor,uv', key_tool: 'claude-monitor', timeout: '20m', depends_on: 'python,nodejs' }
@@ -642,7 +664,7 @@ jobs:
           done
 
       - name: Verify commands available
-        timeout-minutes: 10
+        timeout-minutes: 1
         if: steps.should-test.outputs.should_test == 'true'
         run: |
           app_name="${{ steps.app-name.outputs.app_name }}"
@@ -682,13 +704,13 @@ jobs:
                 # Try multiple methods to find the command
                 if command -v \"\$cmd\" >/dev/null 2>&1; then
                   echo \"✅ \$cmd available at: \$(command -v \"\$cmd\")\"
-                  \"\$cmd\" --version 2>/dev/null || \"\$cmd\" version 2>/dev/null || echo \"  (version check not supported)\"
+                  timeout 5 \"\$cmd\" --version 2>/dev/null || timeout 5 \"\$cmd\" version 2>/dev/null || echo \"  (version check not supported)\"
                 elif which \"\$cmd\" >/dev/null 2>&1; then
                   echo \"✅ \$cmd available at: \$(which \"\$cmd\")\"
-                  \"\$cmd\" --version 2>/dev/null || \"\$cmd\" version 2>/dev/null || echo \"  (version check not supported)\"
+                  timeout 5 \"\$cmd\" --version 2>/dev/null || timeout 5 \"\$cmd\" version 2>/dev/null || echo \"  (version check not supported)\"
                 elif [ -x \"/usr/local/bin/\$cmd\" ]; then
                   echo \"✅ \$cmd available at: /usr/local/bin/\$cmd\"
-                  \"/usr/local/bin/\$cmd\" --version 2>/dev/null || echo \"  (version check not supported)\"
+                  timeout 5 \"/usr/local/bin/\$cmd\" --version 2>/dev/null || echo \"  (version check not supported)\"
                 else
                   echo \"❌ \$cmd not found in PATH\"
                   echo \"  Searching for \$cmd...\"

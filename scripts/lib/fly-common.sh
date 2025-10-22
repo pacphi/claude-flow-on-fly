@@ -22,7 +22,7 @@ export DEFAULT_APP_NAME="sindri-dev-env"
 export DEFAULT_REMOTE_USER="developer"
 export DEFAULT_REMOTE_PORT="10022"
 export DEFAULT_VOLUME_NAME="sindri_data"
-export DEFAULT_REGION="iad"
+export DEFAULT_REGION="sjc"
 
 # Function to print colored output
 print_status() {

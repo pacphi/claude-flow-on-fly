@@ -29,7 +29,7 @@ git clone https://github.com/pacphi/sindri.git
 cd sindri
 
 # Run automated setup
-./scripts/vm-setup.sh --app-name my-sindri-dev --region iad
+./scripts/vm-setup.sh --app-name my-sindri-dev --region sjc
 ```
 
 The script will handle all the Fly.io configuration and provide connection details.

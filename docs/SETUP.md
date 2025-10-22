@@ -21,6 +21,7 @@ strategies.
 
 ```bash
 # Deploy with custom resources
+# Consult https://fly.io/docs/reference/regions/ for available regions
 ./scripts/vm-setup.sh \
   --app-name my-dev \
   --cpu-kind performance \
