@@ -1,202 +1,573 @@
 # Customization
 
+## Table of Contents
+
+- [Extension System](#extension-system)
+  - [Extension API v1.0](#extension-api-v10)
+  - [Available Extensions](#available-extensions)
+- [Extension Management](#extension-management)
+  - [Managing Extensions](#managing-extensions)
+  - [Activation Manifest](#activation-manifest)
+- [Creating Custom Extensions](#creating-custom-extensions)
+  - [Extension Structure](#extension-structure)
+  - [Extension Functions](#extension-functions)
+- [Configuration Examples](#configuration-examples)
+  - [Custom Development Environment](#custom-development-environment)
+  - [Agent Configuration](#agent-configuration)
+- [Environment Variables](#environment-variables)
+  - [Setting Development Variables](#setting-development-variables)
+  - [API Keys and Authentication](#api-keys-authentication-and-llm-provider-configuration)
+- [IDE Customization](#ide-customization)
+  - [VSCode Settings](#vscode-settings)
+  - [Claude Code Hooks](#claude-code-hooks)
+- [Project Templates](#project-templates)
+  - [Creating Custom Templates](#creating-custom-templates)
+  - [CI/CD Integration](#cicd-integration)
+
 ## Extension System
 
-The environment supports extensive customization through a modular extension system that allows you to add tools,
-configure environments, and automate setup tasks.
+Sindri uses a **manifest-based extension system** to manage development tools and environments. Extensions follow a standardized API (v1.0) with explicit dependency management and activation control.
 
-## Adding Custom Tools
+### Extension API v1.0
 
-### Extension Script Structure
+The Extension API v1.0 provides:
 
-Extensions are shell scripts placed in `/workspace/scripts/extensions.d/` that run during environment configuration:
+- **Manifest-based activation**: Control which extensions install via `active-extensions.conf`
+- **Standardized API**: All extensions implement 6 required functions
+- **Dependency management**: Explicit prerequisites checking before installation
+- **CLI management**: `extension-manager` tool for activation and installation
+- **Idempotent operations**: Safe to re-run installations
+- **Clean removal**: Proper uninstall with dependency warnings
 
-```bash
-#!/bin/bash
-# /workspace/scripts/extensions.d/50-mycustomtool.sh
+**Key Concepts:**
 
-# Load common utilities
-source /workspace/scripts/lib/common.sh
+1. **Extension Files**: Located in `docker/lib/extensions.d/` as `.sh.example` files
+2. **Activation**: Extensions are activated by adding their name to `active-extensions.conf`
+3. **Installation**: Activated extensions are installed using `extension-manager install`
+4. **Execution Order**: Controlled by line order in the manifest, not file naming
 
-print_status "Installing my custom tool..."
+### Available Extensions
 
-# Your installation commands here
-curl -sSL https://example.com/install.sh | bash
-export PATH="$PATH:/usr/local/bin/mycustomtool"
+Extensions are organized by category:
 
-# Persist PATH changes
-echo 'export PATH="$PATH:/usr/local/bin/mycustomtool"' >> /workspace/developer/.bashrc
+#### Core Infrastructure
 
-print_success "Custom tool installed"
-```
+- **workspace-structure** - Creates /workspace directory structure (src, tests, docs, scripts, etc.)
+- **ssh-environment** - Configures SSH daemon for non-interactive sessions (required for CI/CD)
+- **nodejs** - Node.js LTS via NVM and npm (required by many tools)
+- **python** - Python 3.13 with pip, venv, uv (required by monitoring tools)
 
-### Extension Execution Order
+#### Claude AI
 
-Extensions run in alphabetical order with phase-based prefixes:
+- **claude-config** - Claude Code CLI with developer configuration (depends on nodejs)
+- **nodejs-devtools** - TypeScript, ESLint, Prettier, nodemon, goalie (depends on nodejs)
 
-- **pre-*** - Setup tasks that must run first
-- **00-init** - Core environment initialization (protected, required)
-- **05-70*** - Language-specific tools
-- **80-90*** - Infrastructure and development tools
-- **post-*** - Cleanup and finalization tasks
+#### Language Runtimes
 
-### Creating Extensions
+- **rust** - Rust toolchain with cargo, clippy, rustfmt
+- **golang** - Go 1.24 with gopls, delve, golangci-lint
+- **ruby** - Ruby 3.4/3.3 with rbenv, Rails, Bundler
+- **php** - PHP 8.3 with Composer, Symfony CLI
+- **jvm** - SDKMAN with Java, Kotlin, Scala, Maven, Gradle
+- **dotnet** - .NET SDK 9.0/8.0 with ASP.NET Core
 
-**Create a new extension:**
+#### Infrastructure Tools
 
-```bash
-# Create script file
-cat > /workspace/scripts/extensions.d/50-mycustomtool.sh << 'EOF'
-#!/bin/bash
-source /workspace/scripts/lib/common.sh
+- **docker** - Docker Engine with compose, dive, ctop
+- **infra-tools** - Terraform, Ansible, kubectl, Helm
+- **cloud-tools** - AWS, Azure, GCP, Oracle, DigitalOcean, Alibaba, IBM CLIs
+- **ai-tools** - AI coding assistants (Gemini, Grok, Goalie, Plandex, Hector, Ollama, Fabric)
 
-print_status "Installing custom tool..."
-# Installation commands
-print_success "Custom tool ready"
-EOF
+#### Development Utilities
 
-# Make executable
-chmod +x /workspace/scripts/extensions.d/50-mycustomtool.sh
+- **monitoring** - System monitoring tools (htop, iotop, glances)
+- **tmux-workspace** - Tmux session management with helper scripts
+- **playwright** - Browser automation testing (depends on nodejs)
+- **agent-manager** - Claude Code agent management (depends on curl, jq)
+- **context-loader** - Context management utilities for Claude Code
+- **post-cleanup** - Clean caches, set permissions, create tools summary (run LAST)
 
-# Run just your new extension (if it's activated)
-/workspace/scripts/vm-configure.sh --extension mycustomtool
+## Extension Management
 
-# Or run all extensions
-/workspace/scripts/vm-configure.sh --extensions-only
-```
+### Managing Extensions
 
-### Extension Manager Utility
-
-The `extension-manager.sh` utility in `/workspace/docker/lib/` provides comprehensive management for activating
-and deactivating extensions:
+The `extension-manager` utility provides comprehensive management for activating and installing extensions.
 
 **List all available extensions:**
 
 ```bash
 # Show all extensions and their activation status
-/workspace/docker/lib/extension-manager.sh list
+extension-manager list
 
 # Example output:
-# Available extensions in /workspace/scripts/extensions.d:
+# Available extensions in docker/lib/extensions.d:
 #
-#   ✓ python (05-python.sh) - activated
-#   ○ rust (10-rust.sh.example) - not activated
-#   ○ golang (20-golang.sh.example) - not activated
-#   ✓ docker (30-docker.sh) - activated
+#   ✓ nodejs (nodejs.sh.example) - activated
+#   ○ rust (rust.sh.example) - not activated
+#   ○ golang (golang.sh.example) - not activated
+#   ✓ docker (docker.sh.example) - activated
 ```
 
-**Activate a single extension:**
+**Activate an extension:**
 
 ```bash
-# Activate Rust toolchain
-/workspace/docker/lib/extension-manager.sh activate rust
+# Activate Rust toolchain (adds to manifest)
+extension-manager activate rust
 
 # Activate Python development tools
-/workspace/docker/lib/extension-manager.sh activate python
+extension-manager activate python
 
 # Activate Docker utilities
-/workspace/docker/lib/extension-manager.sh activate docker
+extension-manager activate docker
 ```
 
-**Deactivate a single extension:**
+**Install activated extensions:**
 
 ```bash
-# Deactivate with confirmation prompt
-/workspace/docker/lib/extension-manager.sh deactivate golang
+# Install a specific activated extension
+extension-manager install rust
 
-# Deactivate without confirmation
-/workspace/docker/lib/extension-manager.sh deactivate golang --yes
-
-# Deactivate and create backup (automatic for modified extensions)
-/workspace/docker/lib/extension-manager.sh deactivate python --backup --yes
+# Install all activated extensions
+extension-manager install-all
 ```
 
-**Activate all extensions:**
+**Check extension status:**
 
 ```bash
-# Activate all available extensions at once
-/workspace/docker/lib/extension-manager.sh activate-all
+# Check if extension is installed and configured
+extension-manager status nodejs
 
-# Summary output shows:
-#   Activated: 6
-#   Skipped (already active): 2
-#   Failed: 0
+# Validate installation (runs smoke tests)
+extension-manager validate nodejs
 ```
 
-**Deactivate all non-protected extensions:**
+**Uninstall extensions:**
 
 ```bash
-# Deactivate all with confirmation
-/workspace/docker/lib/extension-manager.sh deactivate-all
+# Uninstall extension (prompts for confirmation)
+extension-manager uninstall golang
 
-# Deactivate all without confirmation, creating backups
-/workspace/docker/lib/extension-manager.sh deactivate-all --backup --yes
+# Remove from manifest without uninstalling
+extension-manager deactivate golang
 ```
 
-**Running individual extensions after activation:**
+**Reorder extensions:**
 
 ```bash
-# Run a specific activated extension by name
-/workspace/scripts/vm-configure.sh --extension rust
-/workspace/scripts/vm-configure.sh --extension python
-
-# Run the extension file directly
-/workspace/scripts/extensions.d/10-rust.sh
-
-# Run all activated extensions without full VM configuration
-/workspace/scripts/vm-configure.sh --extensions-only
+# Change execution order in manifest
+extension-manager reorder python 5
 ```
 
 > [!TIP]
-> Use `--extension <name>` to run just one activated extension without re-running all others. If the extension
-> isn't activated, you'll receive instructions on how to activate it using the extension-manager.
+> After activating extensions, run `extension-manager install-all` to install them. Extensions execute in the order listed in `active-extensions.conf`.
 
 > [!NOTE]
-> Extension 00-init is the core system initialization script (marked as `[PROTECTED]`) and cannot be deactivated.
-> This consolidated script handles Turbo Flow, Agent Manager, Tmux Workspace, and Context Management setup.
-> Modified extensions automatically create backups when deactivated.
+> The `workspace-structure` extension is typically installed first as it creates the base directory structure. The `post-cleanup` extension should be installed last for optimal cleanup.
 
-## Using Common Libraries
+### Activation Manifest
 
-All extensions have access to shared utilities:
+Extensions are executed in the order listed in `/workspace/scripts/extensions.d/active-extensions.conf`.
 
-### Core Functions (`common.sh`)
+**Example manifest:**
 
-```bash
-source /workspace/scripts/lib/common.sh
+```conf
+# Core extensions (always first)
+workspace-structure
+nodejs
+ssh-environment
 
-# Output functions
-print_status "Installing tool..."
-print_success "Tool installed"
-print_error "Installation failed"
-print_warning "Optional step skipped"
+# Claude AI tools
+claude-config
+nodejs-devtools
 
-# Utility functions
-if command_exists docker; then
-    print_success "Docker is available"
-fi
+# Language runtimes
+python
+golang
+rust
 
-if is_root; then
-    print_error "Don't run as root"
-    exit 1
-fi
+# Infrastructure tools
+docker
+infra-tools
 
-# Package management
-install_apt_package curl wget git
-install_npm_global typescript eslint
-install_pip_package requests flask
+# Utilities (last)
+monitoring
+post-cleanup
 ```
 
-### Tool Installation (`tools.sh`)
+**Managing the manifest:**
 
 ```bash
-source /workspace/scripts/lib/tools.sh
+# View current manifest
+cat /workspace/scripts/extensions.d/active-extensions.conf
+
+# Activate extension (adds to manifest)
+extension-manager activate <name>
+
+# Deactivate extension (removes from manifest)
+extension-manager deactivate <name>
+
+# Manually edit manifest (for advanced users)
+nano /workspace/scripts/extensions.d/active-extensions.conf
 ```
 
-### Workspace Management (`workspace.sh`)
+## Creating Custom Extensions
+
+### Extension Structure
+
+Extensions follow the Extension API v1.0 specification. All extensions must implement 6 required functions.
+
+**Create a new extension:**
 
 ```bash
-source /workspace/scripts/lib/workspace.sh
+# Use the template as starting point
+cp docker/lib/extensions.d/template.sh.example docker/lib/extensions.d/mycustomtool.sh.example
+
+# Edit the extension
+nano docker/lib/extensions.d/mycustomtool.sh.example
+```
+
+**Basic extension structure:**
+
+```bash
+#!/bin/bash
+# mycustomtool.sh.example - Custom tool extension
+# Extension API v1.0
+
+# Source shared extension library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
+
+# ============================================================================
+# METADATA
+# ============================================================================
+
+EXT_NAME="mycustomtool"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="My custom development tool"
+EXT_CATEGORY="utility"
+
+# Initialize extension environment
+extension_init
+
+# ============================================================================
+# REQUIRED FUNCTIONS (implement all 6)
+# ============================================================================
+
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
+
+  # Check for required commands
+  if ! command_exists curl; then
+    print_error "curl is required but not installed"
+    return 1
+  fi
+
+  print_success "All prerequisites met"
+  return 0
+}
+
+install() {
+  print_status "Installing ${EXT_NAME}..."
+
+  # Check if already installed
+  if command_exists mycustomtool; then
+    print_warning "Tool already installed"
+    return 0
+  fi
+
+  # Install your tool
+  curl -sSL https://example.com/install.sh | bash
+
+  print_success "${EXT_NAME} installed successfully"
+  return 0
+}
+
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+
+  # Add to PATH
+  local tool_path="/usr/local/bin/mycustomtool"
+  if [[ -d "$tool_path" ]]; then
+    add_to_path "$tool_path"
+  fi
+
+  # Create configuration file
+  mkdir -p "$HOME/.mycustomtool"
+  cat > "$HOME/.mycustomtool/config" << 'EOF'
+# Custom tool configuration
+option1=value1
+option2=value2
+EOF
+
+  print_success "${EXT_NAME} configured successfully"
+  return 0
+}
+
+validate() {
+  print_status "Validating ${EXT_NAME} installation..."
+
+  # Test the installation
+  if ! command_exists mycustomtool; then
+    print_error "mycustomtool command not found"
+    return 1
+  fi
+
+  # Run version check
+  if ! mycustomtool --version >/dev/null 2>&1; then
+    print_error "mycustomtool version check failed"
+    return 1
+  fi
+
+  print_success "${EXT_NAME} validation passed"
+  return 0
+}
+
+status() {
+  print_status "Checking ${EXT_NAME} status..."
+
+  if command_exists mycustomtool; then
+    print_success "mycustomtool is installed: $(mycustomtool --version)"
+    return 0
+  else
+    print_warning "mycustomtool is not installed"
+    return 1
+  fi
+}
+
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+
+  # Uninstall the tool
+  if command_exists mycustomtool; then
+    mycustomtool uninstall
+  fi
+
+  # Remove configuration
+  rm -rf "$HOME/.mycustomtool"
+
+  print_success "${EXT_NAME} removed successfully"
+  return 0
+}
+```
+
+### Extension Functions
+
+All extensions must implement these 6 functions:
+
+#### 1. prerequisites()
+
+Check system requirements before installation.
+
+**Returns**: `0` if all prerequisites met, `1` otherwise
+
+**Common checks**:
+- System packages (build-essential, curl, etc.)
+- Commands available in PATH
+- Disk space and memory
+- Dependent extensions
+
+```bash
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
+
+  # Check for required packages
+  if ! command_exists gcc; then
+    print_error "GCC required - install build-essential"
+    return 1
+  fi
+
+  # Check disk space
+  local available_space
+  available_space=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
+  if [[ $available_space -lt 5 ]]; then
+    print_warning "Low disk space: ${available_space}GB available"
+  fi
+
+  print_success "All prerequisites met"
+  return 0
+}
+```
+
+#### 2. install()
+
+Install packages and tools.
+
+**Returns**: `0` on success, `1` on failure
+
+**Actions**:
+- Download and install packages
+- Compile from source if needed
+- Verify installation success
+- Handle already-installed gracefully
+
+```bash
+install() {
+  print_status "Installing ${EXT_NAME}..."
+
+  # Check if already installed
+  if command_exists mytool; then
+    print_warning "Already installed: $(mytool --version)"
+    return 0
+  fi
+
+  # Install system dependencies
+  sudo apt-get update -qq
+  sudo apt-get install -y required-package
+
+  # Download and install binary
+  curl -fsSL https://example.com/tool.tar.gz -o /tmp/tool.tar.gz
+  tar -xzf /tmp/tool.tar.gz -C /usr/local/bin/
+  rm -f /tmp/tool.tar.gz
+
+  print_success "${EXT_NAME} installed successfully"
+  return 0
+}
+```
+
+#### 3. configure()
+
+Post-installation configuration.
+
+**Returns**: `0` on success, `1` on failure
+
+**Tasks**:
+- Add to PATH
+- Create SSH wrappers (for non-interactive sessions)
+- Setup shell aliases
+- Create configuration files
+- Initialize user settings
+
+```bash
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+
+  # Add to PATH
+  local bin_path="/usr/local/mytool/bin"
+  if [[ -d "$bin_path" ]]; then
+    add_to_path "$bin_path"
+  fi
+
+  # Create configuration
+  mkdir -p "$HOME/.mytool"
+  cat > "$HOME/.mytool/config.yaml" << 'EOF'
+setting1: value1
+setting2: value2
+EOF
+
+  # Setup shell alias
+  add_alias "mt" "mytool"
+
+  print_success "${EXT_NAME} configured successfully"
+  return 0
+}
+```
+
+#### 4. validate()
+
+Run smoke tests to verify installation.
+
+**Returns**: `0` if validation passes, `1` otherwise
+
+**Tests**:
+- Command availability
+- Version checks
+- Basic functionality
+- Configuration validation
+
+```bash
+validate() {
+  print_status "Validating ${EXT_NAME} installation..."
+
+  # Check command exists
+  if ! command_exists mytool; then
+    print_error "mytool command not found"
+    return 1
+  fi
+
+  # Run version check
+  if ! mytool --version >/dev/null 2>&1; then
+    print_error "mytool version check failed"
+    return 1
+  fi
+
+  # Test basic functionality
+  if ! mytool test >/dev/null 2>&1; then
+    print_warning "mytool test command failed (non-critical)"
+  fi
+
+  print_success "${EXT_NAME} validation passed"
+  return 0
+}
+```
+
+#### 5. status()
+
+Check installation state and report status.
+
+**Returns**: `0` if installed, `1` otherwise
+
+**Reports**:
+- Installation status
+- Version information
+- Configuration state
+- Service status (if applicable)
+
+```bash
+status() {
+  print_status "Checking ${EXT_NAME} status..."
+
+  if command_exists mytool; then
+    local version=$(mytool --version 2>/dev/null || echo "unknown")
+    print_success "mytool is installed: $version"
+
+    # Additional status checks
+    if [[ -f "$HOME/.mytool/config.yaml" ]]; then
+      print_success "Configuration found"
+    else
+      print_warning "Configuration missing"
+    fi
+
+    return 0
+  else
+    print_warning "mytool is not installed"
+    return 1
+  fi
+}
+```
+
+#### 6. remove()
+
+Uninstall and cleanup.
+
+**Returns**: `0` on success, `1` on failure
+
+**Actions**:
+- Uninstall packages
+- Remove configuration files
+- Clean up caches
+- Restore system state
+
+```bash
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+
+  # Uninstall the tool
+  if command_exists mytool; then
+    sudo rm -f /usr/local/bin/mytool
+  fi
+
+  # Remove configuration
+  rm -rf "$HOME/.mytool"
+
+  # Remove from PATH (if added)
+  remove_from_path "/usr/local/mytool/bin"
+
+  # Remove aliases
+  remove_alias "mt"
+
+  print_success "${EXT_NAME} removed successfully"
+  return 0
+}
 ```
 
 ## Configuration Examples
@@ -207,17 +578,42 @@ source /workspace/scripts/lib/workspace.sh
 
 ```bash
 #!/bin/bash
-# /workspace/scripts/extensions.d/15-fullstack-js.sh
-source /workspace/scripts/lib/common.sh
-source /workspace/scripts/lib/tools.sh
+# fullstack-js.sh.example - Full-stack JavaScript development environment
+# Extension API v1.0
 
-print_status "Setting up full-stack JavaScript environment..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
 
-# Node.js with latest LTS
-install_nodejs_latest
+EXT_NAME="fullstack-js"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="Full-stack JavaScript development environment"
+EXT_CATEGORY="language"
 
-# Global packages
-install_npm_global \
+extension_init
+
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
+
+  # Requires nodejs extension
+  if ! command_exists node; then
+    print_error "Node.js is required - activate 'nodejs' extension first"
+    return 1
+  fi
+
+  print_success "All prerequisites met"
+  return 0
+}
+
+install() {
+  print_status "Installing ${EXT_NAME}..."
+
+  # Load NVM
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+  # Global packages
+  print_status "Installing global npm packages..."
+  npm install -g \
     typescript \
     '@typescript-eslint/parser' \
     '@typescript-eslint/eslint-plugin' \
@@ -228,29 +624,112 @@ install_npm_global \
     create-next-app \
     '@nestjs/cli'
 
-# Database tools
-install_apt_package postgresql-client redis-tools
+  # Database tools
+  print_status "Installing database clients..."
+  sudo apt-get update -qq
+  sudo apt-get install -y postgresql-client redis-tools
 
-print_success "Full-stack JavaScript environment ready"
+  print_success "${EXT_NAME} installed successfully"
+  return 0
+}
+
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+
+  # Setup prettier config
+  cat > "$HOME/.prettierrc" << 'EOF'
+{
+  "semi": true,
+  "trailingComma": "es5",
+  "singleQuote": true,
+  "printWidth": 100,
+  "tabWidth": 2
+}
+EOF
+
+  print_success "${EXT_NAME} configured successfully"
+  return 0
+}
+
+validate() {
+  print_status "Validating ${EXT_NAME} installation..."
+
+  local tools=("tsc" "prettier" "nodemon" "pm2")
+  for tool in "${tools[@]}"; do
+    if ! command_exists "$tool"; then
+      print_error "$tool not found"
+      return 1
+    fi
+  done
+
+  print_success "${EXT_NAME} validation passed"
+  return 0
+}
+
+status() {
+  print_status "Checking ${EXT_NAME} status..."
+
+  if command_exists tsc && command_exists prettier; then
+    print_success "Full-stack JavaScript environment installed"
+    print_success "TypeScript: $(tsc --version)"
+    print_success "Prettier: $(prettier --version)"
+    return 0
+  else
+    print_warning "Full-stack JavaScript environment not fully installed"
+    return 1
+  fi
+}
+
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+
+  # Uninstall global packages
+  npm uninstall -g typescript prettier nodemon pm2 create-react-app create-next-app @nestjs/cli
+
+  # Remove config
+  rm -f "$HOME/.prettierrc"
+
+  print_success "${EXT_NAME} removed successfully"
+  return 0
+}
 ```
 
 **Data Science Setup:**
 
 ```bash
 #!/bin/bash
-# /workspace/scripts/extensions.d/25-datascience.sh
-source /workspace/scripts/lib/common.sh
-source /workspace/scripts/lib/tools.sh
+# datascience.sh.example - Data science environment with Python
+# Extension API v1.0
 
-print_status "Setting up data science environment..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
 
-# Python with pyenv
-install_pyenv
-pyenv install 3.11.0
-pyenv global 3.11.0
+EXT_NAME="datascience"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="Data science environment with Python and Jupyter"
+EXT_CATEGORY="language"
 
-# Core packages
-install_pip_package \
+extension_init
+
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
+
+  # Requires python extension
+  if ! command_exists python3; then
+    print_error "Python 3 is required - activate 'python' extension first"
+    return 1
+  fi
+
+  print_success "All prerequisites met"
+  return 0
+}
+
+install() {
+  print_status "Installing ${EXT_NAME}..."
+
+  # Core data science packages
+  print_status "Installing Python data science packages..."
+  pip3 install --user \
     jupyter \
     pandas \
     numpy \
@@ -260,11 +739,72 @@ install_pip_package \
     tensorflow \
     torch
 
-# Jupyter setup
-jupyter notebook --generate-config
-echo "c.NotebookApp.ip = '0.0.0.0'" >> /workspace/developer/.jupyter/jupyter_notebook_config.py
+  print_success "${EXT_NAME} installed successfully"
+  return 0
+}
 
-print_success "Data science environment ready"
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+
+  # Jupyter setup
+  jupyter notebook --generate-config
+
+  # Configure Jupyter for remote access
+  cat >> "$HOME/.jupyter/jupyter_notebook_config.py" << 'EOF'
+c.NotebookApp.ip = '0.0.0.0'
+c.NotebookApp.open_browser = False
+c.NotebookApp.port = 8888
+EOF
+
+  print_success "${EXT_NAME} configured successfully"
+  return 0
+}
+
+validate() {
+  print_status "Validating ${EXT_NAME} installation..."
+
+  # Test imports
+  python3 -c "import pandas, numpy, matplotlib, seaborn, sklearn" 2>/dev/null
+  if [[ $? -ne 0 ]]; then
+    print_error "Failed to import data science packages"
+    return 1
+  fi
+
+  # Test Jupyter
+  if ! command_exists jupyter; then
+    print_error "jupyter command not found"
+    return 1
+  fi
+
+  print_success "${EXT_NAME} validation passed"
+  return 0
+}
+
+status() {
+  print_status "Checking ${EXT_NAME} status..."
+
+  if command_exists jupyter; then
+    print_success "Data science environment installed"
+    print_success "Jupyter: $(jupyter --version 2>&1 | head -1)"
+    return 0
+  else
+    print_warning "Data science environment not installed"
+    return 1
+  fi
+}
+
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+
+  # Uninstall packages
+  pip3 uninstall -y jupyter pandas numpy matplotlib seaborn scikit-learn tensorflow torch
+
+  # Remove Jupyter config
+  rm -rf "$HOME/.jupyter"
+
+  print_success "${EXT_NAME} removed successfully"
+  return 0
+}
 ```
 
 ### Agent Configuration
@@ -280,13 +820,43 @@ Customize development workspace layout:
 
 ```bash
 #!/bin/bash
-# /workspace/scripts/extensions.d/35-custom-tmux.sh
-source /workspace/scripts/lib/common.sh
+# custom-tmux.sh.example - Custom tmux workspace configuration
+# Extension API v1.0
 
-print_status "Setting up custom tmux workspace..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
 
-# Custom tmux configuration
-cat > /workspace/developer/.tmux.conf << 'EOF'
+EXT_NAME="custom-tmux"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="Custom tmux workspace configuration"
+EXT_CATEGORY="utility"
+
+extension_init
+
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
+
+  if ! command_exists tmux; then
+    print_error "tmux is required but not installed"
+    return 1
+  fi
+
+  print_success "All prerequisites met"
+  return 0
+}
+
+install() {
+  print_status "Installing ${EXT_NAME}..."
+  # No installation needed - just configuration
+  print_success "${EXT_NAME} ready for configuration"
+  return 0
+}
+
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+
+  # Custom tmux configuration
+  cat > "$HOME/.tmux.conf" << 'EOF'
 # Custom key bindings
 bind-key r source-file ~/.tmux.conf \; display-message "Config reloaded"
 bind-key | split-window -h
@@ -303,8 +873,9 @@ set -g base-index 1
 setw -g pane-base-index 1
 EOF
 
-# Custom workspace launcher
-cat > /workspace/scripts/lib/my-workspace.sh << 'EOF'
+  # Custom workspace launcher
+  mkdir -p /workspace/scripts/lib
+  cat > /workspace/scripts/lib/my-workspace.sh << 'EOF'
 #!/bin/bash
 # Custom workspace layout
 
@@ -335,9 +906,45 @@ fi
 tmux attach-session -t $SESSION_NAME
 EOF
 
-chmod +x /workspace/scripts/lib/my-workspace.sh
+  chmod +x /workspace/scripts/lib/my-workspace.sh
 
-print_success "Custom tmux workspace ready"
+  print_success "${EXT_NAME} configured successfully"
+  return 0
+}
+
+validate() {
+  print_status "Validating ${EXT_NAME} installation..."
+
+  if [[ ! -f "$HOME/.tmux.conf" ]]; then
+    print_error "tmux config not found"
+    return 1
+  fi
+
+  print_success "${EXT_NAME} validation passed"
+  return 0
+}
+
+status() {
+  print_status "Checking ${EXT_NAME} status..."
+
+  if [[ -f "$HOME/.tmux.conf" ]]; then
+    print_success "Custom tmux configuration installed"
+    return 0
+  else
+    print_warning "Custom tmux configuration not installed"
+    return 1
+  fi
+}
+
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+
+  rm -f "$HOME/.tmux.conf"
+  rm -f /workspace/scripts/lib/my-workspace.sh
+
+  print_success "${EXT_NAME} removed successfully"
+  return 0
+}
 ```
 
 ## Environment Variables
@@ -412,7 +1019,7 @@ echo $ANTHROPIC_API_KEY
 
 #### Cloud Provider CLI Authentication
 
-The **85-cloud-tools.sh.example** extension installs multiple cloud provider CLIs. Here's how to configure authentication for each:
+The **cloud-tools.sh.example** extension installs multiple cloud provider CLIs. Here's how to configure authentication for each:
 
 **AWS CLI:**
 
@@ -498,7 +1105,7 @@ ibmcloud login
 
 #### AI Tool API Keys
 
-The **87-ai-tools.sh.example** extension provides various AI coding assistants. Here's how to configure their API keys:
+The **ai-tools.sh.example** extension provides various AI coding assistants. Here's how to configure their API keys:
 
 **Google Gemini CLI:**
 
@@ -565,7 +1172,7 @@ plandex plan "add user authentication"
 
 ```bash
 # Pure A2A-Native declarative AI agent platform
-# Requires Go (install via 20-golang.sh extension)
+# Requires Go (install via golang extension)
 # Supports multiple LLM providers via API keys
 flyctl secrets set OPENAI_API_KEY=sk-... -a <app-name>
 # Or ANTHROPIC_API_KEY, GOOGLE_GEMINI_API_KEY, etc.
@@ -863,7 +1470,7 @@ flyctl secrets set SMALL_MODEL=gemini-2.0-flash -a <app-name>
 flyctl secrets set GOOGLE_GEMINI_API_KEY=... -a <app-name>
 flyctl secrets set ANTHROPIC_BASE_URL=http://localhost:8082 -a <app-name>
 
-# Add to /workspace/scripts/extensions.d/00-init.sh:
+# Add to extension startup script:
 # claude-code-proxy &
 ```
 
@@ -1126,25 +1733,57 @@ cp /workspace/templates/common/.gitignore .
 
 ```bash
 #!/bin/bash
-# /workspace/scripts/extensions.d/60-github-actions.sh
-source /workspace/scripts/lib/common.sh
+# github-actions.sh.example - GitHub Actions development tools
+# Extension API v1.0
 
-print_status "Setting up GitHub Actions development tools..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
 
-# Install Act for local testing
-curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+EXT_NAME="github-actions"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="GitHub Actions development tools"
+EXT_CATEGORY="ci-cd"
 
-# GitHub CLI for workflow management
-if ! command_exists gh; then
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-    apt update && apt install gh -y
-fi
+extension_init
 
-# Create GitHub Actions templates
-mkdir -p /workspace/templates/github-workflows
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
 
-cat > /workspace/templates/github-workflows/remote-dev-test.yml << 'EOF'
+  if ! command_exists curl; then
+    print_error "curl is required but not installed"
+    return 1
+  fi
+
+  print_success "All prerequisites met"
+  return 0
+}
+
+install() {
+  print_status "Installing ${EXT_NAME}..."
+
+  # Install Act for local testing
+  curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+
+  # GitHub CLI for workflow management
+  if ! command_exists gh; then
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+      sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+      sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+    sudo apt-get update && sudo apt-get install -y gh
+  fi
+
+  print_success "${EXT_NAME} installed successfully"
+  return 0
+}
+
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+
+  # Create GitHub Actions templates
+  mkdir -p /workspace/templates/github-workflows
+
+  cat > /workspace/templates/github-workflows/remote-dev-test.yml << 'EOF'
 name: Remote Development Tests
 
 on:
@@ -1179,7 +1818,7 @@ jobs:
           flyctl apps destroy test-claude-dev --yes
 EOF
 
-cat > /workspace/templates/github-workflows/deploy.yml << 'EOF'
+  cat > /workspace/templates/github-workflows/deploy.yml << 'EOF'
 name: Deploy to Development
 
 on:
@@ -1202,7 +1841,56 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 EOF
 
-print_success "GitHub Actions tools ready"
+  print_success "${EXT_NAME} configured successfully"
+  return 0
+}
+
+validate() {
+  print_status "Validating ${EXT_NAME} installation..."
+
+  if ! command_exists act; then
+    print_error "act command not found"
+    return 1
+  fi
+
+  if ! command_exists gh; then
+    print_error "gh command not found"
+    return 1
+  fi
+
+  print_success "${EXT_NAME} validation passed"
+  return 0
+}
+
+status() {
+  print_status "Checking ${EXT_NAME} status..."
+
+  if command_exists act && command_exists gh; then
+    print_success "GitHub Actions tools installed"
+    print_success "act: $(act --version)"
+    print_success "gh: $(gh --version | head -1)"
+    return 0
+  else
+    print_warning "GitHub Actions tools not installed"
+    return 1
+  fi
+}
+
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+
+  # Uninstall act
+  sudo rm -f /usr/local/bin/act
+
+  # Uninstall gh
+  sudo apt-get remove -y gh
+
+  # Remove templates
+  rm -rf /workspace/templates/github-workflows
+
+  print_success "${EXT_NAME} removed successfully"
+  return 0
+}
 ```
 
 ### Kubernetes Development
@@ -1211,27 +1899,114 @@ print_success "GitHub Actions tools ready"
 
 ```bash
 #!/bin/bash
-# /workspace/scripts/extensions.d/70-kubernetes.sh
-source /workspace/scripts/lib/common.sh
+# kubernetes.sh.example - Kubernetes development tools
+# Extension API v1.0
 
-print_status "Installing Kubernetes development tools..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
 
-# Install k3s lightweight Kubernetes
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--data-dir /workspace/k3s" sh -
+EXT_NAME="kubernetes"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="Kubernetes development tools"
+EXT_CATEGORY="infrastructure"
 
-# Install kubectl
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+extension_init
 
-# Install Helm
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
 
-# Configure kubeconfig
-mkdir -p /workspace/developer/.kube
-cp /etc/rancher/k3s/k3s.yaml /workspace/developer/.kube/config
-chown developer:developer /workspace/developer/.kube/config
+  if ! command_exists curl; then
+    print_error "curl is required but not installed"
+    return 1
+  fi
 
-print_success "Kubernetes environment ready"
+  print_success "All prerequisites met"
+  return 0
+}
+
+install() {
+  print_status "Installing ${EXT_NAME}..."
+
+  # Install k3s lightweight Kubernetes
+  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--data-dir /workspace/k3s" sh -
+
+  # Install kubectl
+  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+  rm kubectl
+
+  # Install Helm
+  curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+  print_success "${EXT_NAME} installed successfully"
+  return 0
+}
+
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+
+  # Configure kubeconfig
+  mkdir -p "$HOME/.kube"
+  sudo cp /etc/rancher/k3s/k3s.yaml "$HOME/.kube/config"
+  sudo chown $(id -u):$(id -g) "$HOME/.kube/config"
+
+  print_success "${EXT_NAME} configured successfully"
+  return 0
+}
+
+validate() {
+  print_status "Validating ${EXT_NAME} installation..."
+
+  if ! command_exists kubectl; then
+    print_error "kubectl command not found"
+    return 1
+  fi
+
+  if ! command_exists helm; then
+    print_error "helm command not found"
+    return 1
+  fi
+
+  print_success "${EXT_NAME} validation passed"
+  return 0
+}
+
+status() {
+  print_status "Checking ${EXT_NAME} status..."
+
+  if command_exists kubectl && command_exists helm; then
+    print_success "Kubernetes tools installed"
+    print_success "kubectl: $(kubectl version --client --short 2>/dev/null || echo 'unknown')"
+    print_success "helm: $(helm version --short)"
+    return 0
+  else
+    print_warning "Kubernetes tools not installed"
+    return 1
+  fi
+}
+
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+
+  # Stop k3s
+  sudo systemctl stop k3s
+  sudo systemctl disable k3s
+
+  # Uninstall k3s
+  sudo /usr/local/bin/k3s-uninstall.sh 2>/dev/null || true
+
+  # Remove kubectl
+  sudo rm -f /usr/local/bin/kubectl
+
+  # Uninstall helm
+  sudo rm -f /usr/local/bin/helm
+
+  # Remove config
+  rm -rf "$HOME/.kube"
+
+  print_success "${EXT_NAME} removed successfully"
+  return 0
+}
 ```
 
 ### Monitoring and Observability
@@ -1240,35 +2015,72 @@ print_success "Kubernetes environment ready"
 
 ```bash
 #!/bin/bash
-# /workspace/scripts/extensions.d/75-monitoring.sh
-source /workspace/scripts/lib/common.sh
+# monitoring-stack.sh.example - Comprehensive monitoring stack
+# Extension API v1.0
 
-print_status "Setting up monitoring stack..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/extensions-common.sh"
 
-# Prometheus
-wget https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
-tar xvfz prometheus-*.tar.gz
-mv prometheus-*/prometheus /usr/local/bin/
-mv prometheus-*/promtool /usr/local/bin/
+EXT_NAME="monitoring-stack"
+EXT_VERSION="1.0.0"
+EXT_DESCRIPTION="Prometheus, Grafana, and ELK stack"
+EXT_CATEGORY="monitoring"
 
-# Node Exporter
-wget https://github.com/prometheus/node_exporter/releases/download/v1.9.1/node_exporter-1.9.1.linux-amd64.tar.gz
-tar xvfz node_exporter-*.tar.gz
-mv node_exporter-*/node_exporter /usr/local/bin/
+extension_init
 
-# Grafana
-apt install -y software-properties-common
-add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
-wget -q -O - https://packages.grafana.com/gpg.key | apt-key add -
-apt update
-apt install grafana -y
+prerequisites() {
+  print_status "Checking prerequisites for ${EXT_NAME}..."
 
-systemctl enable grafana-server
-systemctl start grafana-server
+  if ! command_exists wget; then
+    print_error "wget is required but not installed"
+    return 1
+  fi
 
-# Create Docker Compose for ELK stack
-mkdir -p /workspace/docker/monitoring
-cat > /workspace/docker/monitoring/docker-compose.yml << 'EOF'
+  if ! command_exists docker; then
+    print_error "Docker is required - activate 'docker' extension first"
+    return 1
+  fi
+
+  print_success "All prerequisites met"
+  return 0
+}
+
+install() {
+  print_status "Installing ${EXT_NAME}..."
+
+  # Prometheus
+  wget https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
+  tar xvfz prometheus-*.tar.gz
+  sudo mv prometheus-*/prometheus /usr/local/bin/
+  sudo mv prometheus-*/promtool /usr/local/bin/
+  rm -rf prometheus-*
+
+  # Node Exporter
+  wget https://github.com/prometheus/node_exporter/releases/download/v1.9.1/node_exporter-1.9.1.linux-amd64.tar.gz
+  tar xvfz node_exporter-*.tar.gz
+  sudo mv node_exporter-*/node_exporter /usr/local/bin/
+  rm -rf node_exporter-*
+
+  # Grafana
+  sudo apt-get install -y software-properties-common apt-transport-https
+  sudo mkdir -p /etc/apt/keyrings/
+  wget -q -O - https://apt.grafana.com/gpg.key | \
+    gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+  echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | \
+    sudo tee /etc/apt/sources.list.d/grafana.list
+  sudo apt-get update
+  sudo apt-get install -y grafana
+
+  print_success "${EXT_NAME} installed successfully"
+  return 0
+}
+
+configure() {
+  print_status "Configuring ${EXT_NAME}..."
+
+  # Create Docker Compose for ELK stack
+  mkdir -p /workspace/docker/monitoring
+  cat > /workspace/docker/monitoring/docker-compose.yml << 'EOF'
 version: '3.8'
 services:
   elasticsearch:
@@ -1296,8 +2108,69 @@ services:
       - elasticsearch
 EOF
 
-print_success "Monitoring stack ready"
+  # Enable and start Grafana
+  sudo systemctl enable grafana-server
+  sudo systemctl start grafana-server
+
+  print_success "${EXT_NAME} configured successfully"
+  print_success "Grafana available at http://localhost:3000 (admin/admin)"
+  return 0
+}
+
+validate() {
+  print_status "Validating ${EXT_NAME} installation..."
+
+  if ! command_exists prometheus; then
+    print_error "prometheus command not found"
+    return 1
+  fi
+
+  if ! systemctl is-active --quiet grafana-server; then
+    print_error "Grafana service not running"
+    return 1
+  fi
+
+  print_success "${EXT_NAME} validation passed"
+  return 0
+}
+
+status() {
+  print_status "Checking ${EXT_NAME} status..."
+
+  if command_exists prometheus; then
+    print_success "Prometheus installed: $(prometheus --version 2>&1 | head -1)"
+  fi
+
+  if systemctl is-active --quiet grafana-server; then
+    print_success "Grafana is running"
+  else
+    print_warning "Grafana is not running"
+  fi
+
+  return 0
+}
+
+remove() {
+  print_status "Removing ${EXT_NAME}..."
+
+  # Stop and remove Grafana
+  sudo systemctl stop grafana-server
+  sudo systemctl disable grafana-server
+  sudo apt-get remove -y grafana
+
+  # Remove Prometheus
+  sudo rm -f /usr/local/bin/prometheus /usr/local/bin/promtool
+
+  # Remove Node Exporter
+  sudo rm -f /usr/local/bin/node_exporter
+
+  # Remove Docker Compose files
+  rm -rf /workspace/docker/monitoring
+
+  print_success "${EXT_NAME} removed successfully"
+  return 0
+}
 ```
 
 This comprehensive customization system allows you to tailor the development environment to your specific needs
-while maintaining consistency and automation.
+while maintaining consistency and automation through the Extension API v1.0.

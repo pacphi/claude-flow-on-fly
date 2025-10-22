@@ -1,0 +1,347 @@
+# Integration tests with enhanced resilience for registry failures
+# This workflow includes comprehensive retry logic for all registry-dependent operations
+
+name: Integration Tests (Resilient)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Setup retry utilities
+        id: retry-setup
+        shell: bash
+        run: |
+          # Create comprehensive retry function
+          cat > /tmp/retry_utils.sh << 'RETRY_EOF'
+          #!/bin/bash
+
+          # Generic retry with exponential backoff
+          retry_with_backoff() {
+            local max_attempts=${1:-3}
+            local initial_delay=${2:-5}
+            local max_delay=${3:-60}
+            local attempt=1
+            local exit_code=0
+
+            shift 3
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "▶️  Attempt $attempt of $max_attempts: $@"
+
+              if "$@"; then
+                echo "✅ Command succeeded"
+                return 0
+              else
+                exit_code=$?
+
+                if [ $attempt -lt $max_attempts ]; then
+                  local wait_time=$((initial_delay * attempt))
+                  [ $wait_time -gt $max_delay ] && wait_time=$max_delay
+
+                  echo "⚠️  Command failed (exit: $exit_code), retrying in ${wait_time}s..."
+                  sleep $wait_time
+                  attempt=$((attempt + 1))
+                else
+                  echo "❌ Command failed after $max_attempts attempts (exit: $exit_code)"
+                  return $exit_code
+                fi
+              fi
+            done
+          }
+
+          # Flyctl deployment with retry
+          flyctl_deploy_retry() {
+            local app_name=$1
+            local max_attempts=4
+            local attempt=1
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "▶️  Deployment attempt $attempt of $max_attempts for $app_name..."
+
+              # Add timeout to prevent indefinite hangs
+              if timeout 180s flyctl deploy \
+                --app "$app_name" \
+                --strategy immediate \
+                --wait-timeout 120s \
+                --yes; then
+                echo "✅ Deployment successful"
+                return 0
+              else
+                local exit_code=$?
+
+                if [ $attempt -lt $max_attempts ]; then
+                  local wait_time=$((15 * attempt))
+                  echo "⚠️  Deployment failed (exit: $exit_code), retrying in ${wait_time}s..."
+
+                  # Check if it's a registry issue
+                  if flyctl logs -a "$app_name" 2>&1 | grep -i "registry\|pull\|image"; then
+                    echo "🔍 Detected potential registry issue in logs"
+                  fi
+
+                  sleep $wait_time
+                  attempt=$((attempt + 1))
+                else
+                  echo "❌ Deployment failed after $max_attempts attempts"
+                  echo "📋 Final logs:"
+                  flyctl logs -a "$app_name" || true
+                  return $exit_code
+                fi
+              fi
+            done
+          }
+
+          # SSH command with retry
+          ssh_command_retry() {
+            local app_name=$1
+            shift
+            local command="$@"
+            local max_attempts=5
+            local attempt=1
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "▶️  SSH attempt $attempt of $max_attempts..."
+
+              if timeout 30s flyctl ssh console -a "$app_name" -C "$command"; then
+                echo "✅ SSH command succeeded"
+                return 0
+              else
+                local exit_code=$?
+
+                if [ $attempt -lt $max_attempts ]; then
+                  local wait_time=$((3 * attempt))
+                  echo "⚠️  SSH failed (exit: $exit_code), retrying in ${wait_time}s..."
+                  sleep $wait_time
+                  attempt=$((attempt + 1))
+                else
+                  echo "❌ SSH command failed after $max_attempts attempts"
+                  return $exit_code
+                fi
+              fi
+            done
+          }
+
+          # Machine readiness check with retry
+          wait_for_machine_ready() {
+            local app_name=$1
+            local max_attempts=30
+            local attempt=1
+
+            echo "⏳ Waiting for machine to be ready..."
+
+            while [ $attempt -le $max_attempts ]; do
+              if flyctl status -a "$app_name" 2>&1 | grep -q "running"; then
+                echo "✅ Machine is running"
+
+                # Additional check: can we execute a simple command?
+                if timeout 15s flyctl ssh console -a "$app_name" -C "echo ready" &>/dev/null; then
+                  echo "✅ Machine is responsive"
+                  return 0
+                else
+                  echo "⚠️  Machine running but not responsive yet..."
+                fi
+              fi
+
+              sleep 2
+              attempt=$((attempt + 1))
+            done
+
+            echo "❌ Machine failed to become ready"
+            return 1
+          }
+
+          export -f retry_with_backoff
+          export -f flyctl_deploy_retry
+          export -f ssh_command_retry
+          export -f wait_for_machine_ready
+          RETRY_EOF
+
+          chmod +x /tmp/retry_utils.sh
+          source /tmp/retry_utils.sh
+
+          echo "✅ Retry utilities configured"
+
+      - name: Generate unique app name
+        id: app-name
+        run: |
+          TIMESTAMP=$(date +%s)
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          APP_NAME="sindri-test-${SHORT_SHA}-${TIMESTAMP}"
+          echo "app_name=${APP_NAME}" >> $GITHUB_OUTPUT
+          echo "Generated app name: ${APP_NAME}"
+
+      - name: Deploy VM with retry logic
+        timeout-minutes: 10
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          source /tmp/retry_utils.sh
+
+          echo "🚀 Deploying test VM: ${{ steps.app-name.outputs.app_name }}"
+
+          # Use flyctl_deploy_retry for resilient deployment
+          if flyctl_deploy_retry "${{ steps.app-name.outputs.app_name }}"; then
+            echo "✅ Deployment completed"
+          else
+            echo "❌ Deployment failed after all retries"
+            exit 1
+          fi
+
+      - name: Wait for machine readiness
+        timeout-minutes: 5
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          source /tmp/retry_utils.sh
+
+          if wait_for_machine_ready "${{ steps.app-name.outputs.app_name }}"; then
+            echo "✅ Machine ready for testing"
+          else
+            echo "❌ Machine failed readiness check"
+            flyctl status -a "${{ steps.app-name.outputs.app_name }}" || true
+            exit 1
+          fi
+
+      - name: Test SSH connectivity with retry
+        timeout-minutes: 5
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          source /tmp/retry_utils.sh
+
+          echo "🔍 Testing SSH connectivity..."
+
+          if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" "echo 'SSH connection successful'"; then
+            echo "✅ SSH connectivity confirmed"
+          else
+            echo "❌ SSH connectivity test failed"
+            exit 1
+          fi
+
+      - name: Test volume persistence with retry
+        timeout-minutes: 5
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          source /tmp/retry_utils.sh
+
+          echo "🔍 Testing volume persistence..."
+
+          # Write test data
+          TEST_FILE="/workspace/test-persistence-$$"
+          TEST_DATA="persistence-test-$(date +%s)"
+
+          if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
+            "echo '$TEST_DATA' > $TEST_FILE && cat $TEST_FILE"; then
+            echo "✅ Volume write successful"
+          else
+            echo "❌ Volume write failed"
+            exit 1
+          fi
+
+          # Restart machine
+          echo "🔄 Restarting machine..."
+          MACHINE_ID=$(flyctl status -a "${{ steps.app-name.outputs.app_name }}" --json | jq -r '.Machines[0].id')
+
+          if retry_with_backoff 3 5 30 flyctl machine restart "$MACHINE_ID" -a "${{ steps.app-name.outputs.app_name }}"; then
+            echo "✅ Machine restarted"
+          else
+            echo "❌ Machine restart failed"
+            exit 1
+          fi
+
+          # Wait for machine to be ready again
+          sleep 10
+          wait_for_machine_ready "${{ steps.app-name.outputs.app_name }}"
+
+          # Verify persistence
+          echo "🔍 Verifying data persistence..."
+          if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
+            "test -f $TEST_FILE && cat $TEST_FILE | grep -q '$TEST_DATA'"; then
+            echo "✅ Volume persistence confirmed"
+          else
+            echo "❌ Volume persistence test failed"
+            exit 1
+          fi
+
+      - name: Test extension system with retry
+        timeout-minutes: 10
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          source /tmp/retry_utils.sh
+
+          echo "🔍 Testing extension system..."
+
+          # Test extension-manager availability
+          if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
+            "command -v extension-manager && extension-manager list"; then
+            echo "✅ Extension manager available"
+          else
+            echo "❌ Extension manager not found"
+            exit 1
+          fi
+
+          # Test extension installation with retry
+          echo "🔍 Testing extension installation (nodejs)..."
+          if retry_with_backoff 3 10 60 \
+            flyctl ssh console -a "${{ steps.app-name.outputs.app_name }}" \
+              -C "extension-manager install nodejs 2>&1"; then
+            echo "✅ Extension installation successful"
+          else
+            echo "❌ Extension installation failed"
+            exit 1
+          fi
+
+          # Verify installation
+          if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
+            "command -v node && node --version"; then
+            echo "✅ Extension validation successful"
+          else
+            echo "❌ Extension validation failed"
+            exit 1
+          fi
+
+      - name: Cleanup test VM
+        if: always()
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          source /tmp/retry_utils.sh
+
+          echo "🧹 Cleaning up test VM..."
+
+          if retry_with_backoff 3 5 30 \
+            flyctl apps destroy "${{ steps.app-name.outputs.app_name }}" --yes; then
+            echo "✅ Test VM destroyed"
+          else
+            echo "⚠️  Failed to destroy test VM (may require manual cleanup)"
+          fi
+
+      - name: Report test results
+        if: always()
+        run: |
+          echo "📊 Test Summary"
+          echo "=============="
+          echo "App Name: ${{ steps.app-name.outputs.app_name }}"
+          echo "Status: ${{ job.status }}"
+          echo ""
+          echo "All tests completed with comprehensive retry logic for:"
+          echo "  - Flyctl deployments (4 attempts)"
+          echo "  - SSH commands (5 attempts)"
+          echo "  - Extension installations (3 attempts)"
+          echo "  - Machine restarts (3 attempts)"

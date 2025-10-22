@@ -34,6 +34,12 @@ extension_init() {
         command_exists() { command -v "$1" >/dev/null 2>&1; }
     fi
 
+    # Source registry retry helpers if available
+    local registry_retry="$LIB_DIR/extension-framework/registry-retry.sh"
+    if [[ -f "$registry_retry" ]]; then
+        source "$registry_retry"
+    fi
+
     # Export for use by extension functions
     export SCRIPT_DIR LIB_DIR
 }
