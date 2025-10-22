@@ -128,15 +128,23 @@ install() {
   # Helm
   print_status "Installing Helm..."
   if command_exists helm; then
-    print_warning "Helm already installed: $(helm version --short)"
+    # Use timeout for version check to avoid hanging
+    local helm_version
+    helm_version=$(timeout 3 bash -c 'helm version --short 2>&1' 2>/dev/null | head -n1 || echo "version unknown")
+    print_warning "Helm already installed: ${helm_version}"
   else
     if curl --max-time 60 --retry 2 -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 2>/dev/null; then
       chmod 700 get_helm.sh
-      timeout 180 ./get_helm.sh 2>/dev/null
-      rm get_helm.sh
-      print_success "Helm installed"
+      # Run install script with timeout and check exit status
+      if timeout 180 bash get_helm.sh 2>/dev/null; then
+        rm -f get_helm.sh
+        print_success "Helm installed"
+      else
+        rm -f get_helm.sh
+        print_warning "Failed to install Helm (timeout or error)"
+      fi
     else
-      print_warning "Failed to install Helm"
+      print_warning "Failed to download Helm installer"
     fi
   fi
 

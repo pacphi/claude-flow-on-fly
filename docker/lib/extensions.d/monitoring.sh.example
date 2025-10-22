@@ -100,8 +100,15 @@ install() {
 
   # Install claude-monitor using UV or pip3
   print_status "Installing claude-monitor..."
-  if command_exists uv; then
-    if timeout 180 uv tool install claude-monitor; then
+
+  # Check if claude-monitor is already installed
+  if command_exists claude-monitor; then
+    print_warning "claude-monitor already installed"
+  elif command_exists uv; then
+    # Check if already installed as UV tool
+    if uv tool list 2>/dev/null | grep -q "claude-monitor"; then
+      print_warning "claude-monitor already installed via UV"
+    elif timeout 180 uv tool install claude-monitor 2>&1; then
       print_success "claude-monitor installed via UV"
     else
       print_warning "UV installation failed or timed out, trying pip3..."
@@ -111,7 +118,7 @@ install() {
         sudo apt-get update -qq && sudo apt-get install -y python3-pip
       fi
 
-      if timeout 120 pip3 install claude-monitor; then
+      if timeout 120 pip3 install claude-monitor 2>&1; then
         print_success "claude-monitor installed via pip3"
       else
         print_error "Failed to install claude-monitor"
@@ -125,7 +132,10 @@ install() {
       sudo apt-get update -qq && sudo apt-get install -y python3-pip
     fi
 
-    if timeout 120 pip3 install claude-monitor; then
+    # Check if already installed via pip
+    if pip3 show claude-monitor >/dev/null 2>&1; then
+      print_warning "claude-monitor already installed via pip3"
+    elif timeout 120 pip3 install claude-monitor 2>&1; then
       print_success "claude-monitor installed via pip3"
     else
       print_error "Failed to install claude-monitor"
@@ -135,7 +145,9 @@ install() {
 
   # Install claude-usage-cli via npm
   print_status "Installing claude-usage-cli..."
-  if npm install -g claude-usage-cli; then
+  if command_exists claude-usage; then
+    print_warning "claude-usage-cli already installed"
+  elif npm install -g claude-usage-cli 2>&1; then
     print_success "claude-usage-cli installed"
   else
     print_warning "Failed to install claude-usage-cli"

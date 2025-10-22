@@ -115,7 +115,10 @@ install() {
 
   # Install Composer
   if command_exists composer; then
-    print_warning "Composer already installed: $(timeout 5 composer --version 2>&1 | head -n1 || echo 'version unknown')"
+    # Use a more reliable version check with shorter timeout and proper error handling
+    local composer_version="version unknown"
+    composer_version=$(timeout 2 bash -c 'composer --version 2>&1' 2>/dev/null | head -n1 || echo "version unknown")
+    print_warning "Composer already installed: ${composer_version}"
   else
     print_status "Installing Composer..."
 
