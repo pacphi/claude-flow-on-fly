@@ -200,6 +200,44 @@ jobs:
           # Use the configuration script in CI mode to prevent port conflicts
           ./scripts/prepare-fly-config.sh --ci-mode
 
+      - name: Create Fly.io app and volume
+        run: |
+          source /tmp/retry_utils.sh
+
+          echo "🔨 Creating Fly.io app and resources..."
+
+          # Create app with retry
+          if retry_with_backoff 3 5 30 \
+            flyctl apps create "${{ steps.app-name.outputs.app_name }}" --org personal; then
+            echo "✅ App created successfully"
+          else
+            echo "⚠️  App creation failed, may already exist"
+          fi
+
+          # Create volume with retry
+          if retry_with_backoff 3 5 30 \
+            flyctl volumes create test_data \
+              --app "${{ steps.app-name.outputs.app_name }}" \
+              --region sjc \
+              --size 5 \
+              --no-encryption \
+              --yes; then
+            echo "✅ Volume created successfully"
+          else
+            echo "❌ Volume creation failed"
+            exit 1
+          fi
+
+          # Set secrets (no retry needed for secrets)
+          echo "Setting CI_MODE secret..."
+          if flyctl secrets set CI_MODE="true" \
+            --app "${{ steps.app-name.outputs.app_name }}"; then
+            echo "✅ Secrets configured"
+          else
+            echo "❌ Secret configuration failed"
+            exit 1
+          fi
+
       - name: Deploy VM with retry logic
         timeout-minutes: 10
         run: |
