@@ -365,7 +365,7 @@ jobs:
           - { name: 'cloud-tools', commands: 'aws', key_tool: 'aws', timeout: '30m' }
           - { name: 'ai-tools', commands: 'ollama,fabric', key_tool: 'ollama', timeout: '30m', depends_on: 'nodejs' }
           # Utilities
-          - { name: 'playwright', commands: 'npx playwright', key_tool: 'playwright', timeout: '25m', depends_on: 'nodejs' }
+          - { name: 'playwright', commands: 'playwright', key_tool: 'playwright', timeout: '25m', depends_on: 'nodejs' }
           - { name: 'monitoring', commands: 'claude-monitor,uv', key_tool: 'claude-monitor', timeout: '20m', depends_on: 'python,nodejs' }
           - { name: 'tmux-workspace', commands: 'tmux', key_tool: 'tmux', timeout: '15m' }
 
@@ -550,6 +550,7 @@ jobs:
             echo "Configuration attempt $config_attempt/$max_config_attempts..."
 
             if flyctl ssh console --app $app_name --command "/bin/bash -c '
+              export CI_MODE=true
               echo \"=== Starting extension installation ===\"
               echo \"Extension: ${{ matrix.extension.name }}\"
               echo \"Timeout: $timeout\"
@@ -710,6 +711,7 @@ jobs:
               fi
 
               echo \"✅ All commands available and verified\"
+              exit 0
             '"; then
               echo "✅ Command verification successful"
               break
