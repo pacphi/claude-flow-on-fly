@@ -413,42 +413,70 @@ jobs:
 
           # Check that machine can be suspended
           machine_id=$(flyctl machine list --app $app_name --json | jq -r '.[0].id')
-          flyctl machine stop $machine_id --app $app_name
+
+          if [ -z "$machine_id" ] || [ "$machine_id" = "null" ]; then
+            echo "❌ Failed to get machine ID"
+            exit 1
+          fi
+
+          echo "Stopping machine $machine_id..."
+          if ! flyctl machine stop $machine_id --app $app_name 2>&1; then
+            echo "⚠️  Machine stop command failed, may already be stopped"
+          fi
 
           # Wait for stop
           sleep 10
 
           # Check status
-          if flyctl status --app $app_name | grep -q "stopped"; then
-            echo "✅ Auto-suspend test passed"
+          if flyctl status --app $app_name 2>&1 | grep -q "stopped"; then
+            echo "✅ Auto-suspend test passed - machine stopped"
           else
-            echo "⚠️  Machine did not stop as expected"
+            echo "⚠️  Machine did not show stopped status, but continuing..."
           fi
 
           # Start it back up for cleanup
-          flyctl machine start $machine_id --app $app_name
+          echo "Starting machine $machine_id..."
+          if ! flyctl machine start $machine_id --app $app_name 2>&1; then
+            echo "❌ Failed to start machine"
+            flyctl status --app $app_name
+            exit 1
+          fi
 
           # Wait for machine to fully restart with verification
           echo "Waiting for machine to restart..."
-          sleep 45
+          sleep 30
 
           # Verify machine is running before proceeding to cleanup
-          max_attempts=5
+          max_attempts=8
           attempt=1
+          machine_started=false
+
           while [ $attempt -le $max_attempts ]; do
             echo "Checking machine status (attempt $attempt/$max_attempts)..."
-            if flyctl status --app $app_name | grep -q "started"; then
+
+            status_output=$(flyctl status --app $app_name 2>&1 || echo "status_failed")
+
+            if echo "$status_output" | grep -q "started"; then
               echo "✅ Machine fully restarted and ready for cleanup"
+              machine_started=true
               break
+            elif echo "$status_output" | grep -q "status_failed"; then
+              echo "⚠️  Status check failed, retrying..."
             else
-              echo "⚠️  Machine not ready, waiting..."
-              sleep 10
-              attempt=$((attempt + 1))
+              echo "⚠️  Machine not ready yet (status: $(echo "$status_output" | grep -oE 'stopped|starting|started|stopping' | head -1)), waiting..."
             fi
+
+            sleep 10
+            attempt=$((attempt + 1))
           done
 
-          if [ $attempt -gt $max_attempts ]; then
-            echo "⚠️  Machine may not be fully started, but proceeding with cleanup"
+          if [ "$machine_started" = "false" ]; then
+            echo "❌ Machine failed to start after $max_attempts attempts"
+            echo "Final status:"
+            flyctl status --app $app_name
+            echo "Machine logs:"
+            flyctl logs --app $app_name
+            exit 1
           fi
 
       - name: Test basic extension workflow
