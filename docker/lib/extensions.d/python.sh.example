@@ -120,44 +120,62 @@ install() {
 
   print_status "Installing Python CLI tools with pipx..."
   local installed_pipx=0
+  local max_install_time=300  # 5 minute timeout per package
 
   for package in "${pipx_packages[@]}"; do
-    print_debug "Installing $package with pipx..."
-    if pipx install "$package" 2>/dev/null; then
+    print_debug "Installing $package with pipx (max ${max_install_time}s timeout)..."
+
+    # Use timeout to prevent hanging, show stderr for debugging
+    if timeout "${max_install_time}" pipx install "$package" 2>&1 | grep -v "^\s*$"; then
       print_debug "✓ $package installed"
       ((installed_pipx++))
     else
-      print_warning "Failed to install $package"
+      local exit_code=$?
+      if [[ $exit_code -eq 124 ]]; then
+        print_warning "Timeout installing $package (exceeded ${max_install_time}s)"
+      else
+        print_warning "Failed to install $package (exit code: $exit_code)"
+      fi
     fi
   done
 
   print_status "Installed $installed_pipx/${#pipx_packages[@]} pipx tools"
 
   # Install Jupyter Lab
-  print_status "Installing Jupyter Lab..."
-  if pipx install jupyterlab --include-deps; then
+  print_status "Installing Jupyter Lab (max 10min timeout)..."
+  if timeout 600 pipx install jupyterlab --include-deps; then
     print_success "Jupyter Lab installed"
 
     # Inject data science packages
     local jupyter_packages=(pandas numpy matplotlib requests)
     for pkg in "${jupyter_packages[@]}"; do
-      print_debug "Injecting $pkg..."
-      pipx inject jupyterlab "$pkg" 2>/dev/null || true
+      print_debug "Injecting $pkg (max 3min timeout)..."
+      timeout 180 pipx inject jupyterlab "$pkg" 2>&1 | grep -v "^\s*$" || true
     done
   else
-    print_warning "Failed to install Jupyter Lab"
+    local exit_code=$?
+    if [[ $exit_code -eq 124 ]]; then
+      print_warning "Timeout installing Jupyter Lab (exceeded 600s)"
+    else
+      print_warning "Failed to install Jupyter Lab (exit code: $exit_code)"
+    fi
   fi
 
   # Install uv (fast Python package manager)
-  print_status "Installing uv..."
+  print_status "Installing uv (max 3min timeout)..."
   if command_exists uv; then
     print_warning "uv already installed: $(uv --version)"
   else
-    if curl --max-time 60 -LsSf https://astral.sh/uv/install.sh | sh; then
+    if timeout 180 bash -c "curl --max-time 60 -LsSf https://astral.sh/uv/install.sh | sh"; then
       export PATH="$HOME/.local/bin:$PATH"
       print_success "uv installed: $(uv --version 2>&1 || echo 'installed')"
     else
-      print_warning "Failed to install uv"
+      local exit_code=$?
+      if [[ $exit_code -eq 124 ]]; then
+        print_warning "Timeout installing uv (exceeded 180s)"
+      else
+        print_warning "Failed to install uv (exit code: $exit_code)"
+      fi
     fi
   fi
 
