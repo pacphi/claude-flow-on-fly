@@ -116,9 +116,12 @@ install() {
   # Install Composer
   if command_exists composer; then
     # Use a more reliable version check with shorter timeout and proper error handling
-    local composer_version="version unknown"
-    composer_version=$(timeout 2 bash -c 'composer --version 2>&1' 2>/dev/null | head -n1 || echo "version unknown")
-    print_warning "Composer already installed: ${composer_version}"
+    local composer_version
+    if composer_version=$(timeout 5 composer --version 2>&1 | head -n1); then
+      print_warning "Composer already installed: ${composer_version}"
+    else
+      print_warning "Composer already installed (version check failed or timed out)"
+    fi
   else
     print_status "Installing Composer..."
 
@@ -157,14 +160,25 @@ install() {
 
   # Install Symfony CLI
   if command_exists symfony; then
-    print_warning "Symfony CLI already installed: $(symfony version 2>&1 | head -n1)"
+    local symfony_ver
+    if symfony_ver=$(timeout 3 symfony version 2>&1 | head -n1); then
+      print_warning "Symfony CLI already installed: ${symfony_ver}"
+    else
+      print_warning "Symfony CLI already installed (version check failed or timed out)"
+    fi
   else
     print_status "Installing Symfony CLI..."
-    if wget https://get.symfony.com/cli/installer -O - | bash 2>/dev/null; then
+    # Download and install with timeout (120s should be enough for download + install)
+    if timeout 120 bash -c 'wget https://get.symfony.com/cli/installer -O - | bash' 2>/dev/null; then
       sudo mv $HOME/.symfony*/bin/symfony /usr/local/bin/symfony 2>/dev/null
-      print_success "Symfony CLI installed: $(symfony version 2>&1 | head -n1)"
+      local symfony_install_ver
+      if symfony_install_ver=$(timeout 3 symfony version 2>&1 | head -n1); then
+        print_success "Symfony CLI installed: ${symfony_install_ver}"
+      else
+        print_success "Symfony CLI installed"
+      fi
     else
-      print_warning "Failed to install Symfony CLI"
+      print_warning "Failed to install Symfony CLI (download timeout or installation failed)"
     fi
   fi
 
@@ -190,19 +204,33 @@ install() {
     local tool_binary
     tool_binary=$(echo "$tool" | sed 's/.*\///')
 
-    # Check if tool is already installed in Composer global directories
-    if command_exists "$tool_binary" || \
+    # Check if package is already in composer global manifest
+    local already_required=false
+    for composer_dir in "$HOME/.composer" "$HOME/.config/composer"; do
+      if [[ -f "$composer_dir/composer.json" ]]; then
+        # Check if package is in the composer.json require section (with timeout)
+        if timeout 2 grep -q "\"$tool\"" "$composer_dir/composer.json" 2>/dev/null; then
+          already_required=true
+          break
+        fi
+      fi
+    done
+
+    # Check if tool is already installed (binary exists or in manifest)
+    if $already_required || \
+       command_exists "$tool_binary" || \
        [[ -f "$HOME/.composer/vendor/bin/$tool_binary" ]] || \
        [[ -f "$HOME/.config/composer/vendor/bin/$tool_binary" ]]; then
       print_debug "✓ $tool already installed, skipping"
       ((skipped_tools++))
     else
       print_debug "Installing $tool..."
-      if composer global require "$tool" 2>/dev/null; then
+      # Add timeout to composer global require to prevent hanging
+      if timeout 300 composer global require "$tool" 2>/dev/null; then
         print_debug "✓ $tool installed"
         ((installed_tools++))
       else
-        print_debug "⚠ $tool installation failed"
+        print_debug "⚠ $tool installation failed or timed out"
       fi
     fi
   done
