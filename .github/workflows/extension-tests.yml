@@ -341,6 +341,7 @@ jobs:
 
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
         extension:
           # Core extensions (always needed)
@@ -387,39 +388,6 @@ jobs:
         if: steps.should-test.outputs.should_test == 'true'
         uses: actions/checkout@v5
 
-      - name: Cache Ruby build artifacts
-        if: steps.should-test.outputs.should_test == 'true' && matrix.extension.name == 'ruby'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.rbenv/cache
-            ~/.rbenv/versions
-          key: ${{ runner.os }}-rbenv-${{ hashFiles('docker/lib/extensions.d/ruby.sh.example') }}
-          restore-keys: |
-            ${{ runner.os }}-rbenv-
-
-      - name: Cache Go modules
-        if: steps.should-test.outputs.should_test == 'true' && matrix.extension.name == 'golang'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('docker/lib/extensions.d/golang.sh.example') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Cache Rust toolchain
-        if: steps.should-test.outputs.should_test == 'true' && matrix.extension.name == 'rust'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo
-            ~/.rustup
-          key: ${{ runner.os }}-rust-${{ hashFiles('docker/lib/extensions.d/rust.sh.example') }}
-          restore-keys: |
-            ${{ runner.os }}-rust-
-
       - name: Install Fly CLI
         if: steps.should-test.outputs.should_test == 'true'
         uses: superfly/flyctl-actions/setup-flyctl@master
@@ -445,10 +413,10 @@ jobs:
         env:
           APP_NAME: ${{ steps.app-name.outputs.app_name }}
           VOLUME_NAME: "test_data"
-          VOLUME_SIZE: "10"
-          VM_MEMORY: "4096"
-          CPU_KIND: "shared"
-          CPU_COUNT: "2"
+          VOLUME_SIZE: "20"
+          VM_MEMORY: "8192"
+          CPU_KIND: "performance"
+          CPU_COUNT: "4"
           CI_MODE: "true"
         run: |
           ./scripts/prepare-fly-config.sh --ci-mode
@@ -463,7 +431,7 @@ jobs:
           flyctl volumes create test_data \
             --app ${{ steps.app-name.outputs.app_name }} \
             --region ${REGION} \
-            --size 10 \
+            --size 20 \
             --no-encryption \
             --yes
 
@@ -680,7 +648,7 @@ jobs:
           echo "Verifying commands are available: $commands"
 
           # Enhanced verification with retry logic and better error handling
-          max_retries=3
+          max_retries=5
           retry_count=0
 
           while [ $retry_count -lt $max_retries ]; do
@@ -746,7 +714,7 @@ jobs:
             else
               retry_count=$((retry_count + 1))
               if [ $retry_count -lt $max_retries ]; then
-                wait_time=$((10 * retry_count))
+                wait_time=$((15 * retry_count))
                 echo "⚠️  Verification failed, retrying in ${wait_time}s..."
                 sleep $wait_time
               else
@@ -1137,9 +1105,9 @@ jobs:
         env:
           APP_NAME: ${{ steps.app-name.outputs.app_name }}
           VOLUME_NAME: "test_data"
-          VOLUME_SIZE: "15"
+          VOLUME_SIZE: "20"
           VM_MEMORY: "8192"
-          CPU_KIND: "shared"
+          CPU_KIND: "performance"
           CPU_COUNT: "4"
           CI_MODE: "true"
         run: |
@@ -1152,7 +1120,7 @@ jobs:
           flyctl volumes create test_data \
             --app ${{ steps.app-name.outputs.app_name }} \
             --region ${REGION} \
-            --size 15 \
+            --size 20 \
             --no-encryption \
             --yes
 
