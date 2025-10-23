@@ -79,6 +79,7 @@ claude
 ### Developer-focused
 
 - **[Extension Testing](docs/EXTENSION_TESTING.md)** - Testing system for VM extensions
+- **[Release Process](docs/RELEASE.md)** - Creating and publishing releases
 - **[Contributing](docs/CONTRIBUTING.md)** - Contribution guidelines and roadmap
 
 ## 🌟 Key Features
