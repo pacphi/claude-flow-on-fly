@@ -452,13 +452,35 @@ Use provided print functions:
 - `print_debug` - Debug output (only when DEBUG=true)
 
 ### 5. User-Space Installation
-Avoid sudo when possible:
+Avoid sudo when possible. Use version managers and user-space installation methods:
+
 ```bash
-# Good: User-space installation
-npm config set prefix "$HOME/.npm-global"
+# Good: Use version managers (recommended pattern)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash  # Node.js
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh                 # Rust
+curl -s "https://get.sdkman.io" | bash                                          # JVM languages
+
+# Good: Language package managers with user flags
+# Note: Replace "package" with actual package name (e.g., requests, ripgrep, rails)
+pip install --user package            # Python
+cargo install package                 # Rust (installs to ~/.cargo/bin)
+gem install --user-install package    # Ruby
 
 # Avoid: System-wide installation requiring sudo
 sudo npm install -g package
+sudo pip install package
+sudo gem install package
+```
+
+**Important for Node.js/NVM**: Do NOT set npm prefix when using NVM:
+```bash
+# WRONG: Conflicts with NVM
+npm config set prefix "$HOME/.npm-global"
+
+# CORRECT: Let NVM manage global packages
+# NVM already provides user-space global installs without sudo
+# Global packages install to: $NVM_DIR/versions/node/vX.X.X/bin
+npm install -g package  # No sudo needed, installs to NVM directory
 ```
 
 ### 6. SSH Session Support
