@@ -303,9 +303,12 @@ jobs:
 
           echo "🔍 Testing volume persistence..."
 
-          # Write test data
-          TEST_FILE="/workspace/test-persistence-$$"
+          # Write test data (use timestamp instead of $$ for consistency)
+          TEST_FILE="/workspace/test-persistence-$(date +%s).txt"
           TEST_DATA="persistence-test-$(date +%s)"
+
+          echo "Test file: $TEST_FILE"
+          echo "Test data: $TEST_DATA"
 
           if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
             "/bin/bash -c 'echo \"$TEST_DATA\" > $TEST_FILE && cat $TEST_FILE'"; then
@@ -332,6 +335,9 @@ jobs:
 
           # Verify persistence
           echo "🔍 Verifying data persistence..."
+          echo "Looking for file: $TEST_FILE"
+          echo "Expected content: $TEST_DATA"
+
           if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
             "/bin/bash -c 'test -f $TEST_FILE && grep -Fxq \"$TEST_DATA\" $TEST_FILE'"; then
             echo "✅ Volume persistence confirmed"
