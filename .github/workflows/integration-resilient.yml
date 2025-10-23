@@ -310,13 +310,45 @@ jobs:
           echo "Test file: $TEST_FILE"
           echo "Test data: $TEST_DATA"
 
-          if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
-            "/bin/bash -c 'echo \"$TEST_DATA\" > $TEST_FILE && cat $TEST_FILE'"; then
+          # Create test file with explicit sync operations (matching integration.yml)
+          echo "Creating test file with content: $TEST_DATA"
+          if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" "/bin/bash -c '
+            echo \"Creating and syncing test file...\"
+            echo \"$TEST_DATA\" > $TEST_FILE
+            sync
+            sleep 2
+            echo \"Verifying file was written correctly...\"
+            if [ -f \"$TEST_FILE\" ]; then
+              file_size=\$(wc -c < \"$TEST_FILE\")
+              echo \"File created with size: \$file_size bytes\"
+              cat \"$TEST_FILE\"
+            else
+              echo \"ERROR: File was not created\"
+              exit 1
+            fi
+          '"; then
             echo "✅ Volume write successful"
           else
             echo "❌ Volume write failed"
             exit 1
           fi
+
+          # Force filesystem sync before restart (matching integration.yml)
+          echo "Forcing filesystem sync before restart..."
+          ssh_command_retry "${{ steps.app-name.outputs.app_name }}" "/bin/bash -c '
+            echo \"Syncing filesystem before restart...\"
+            sync
+            echo \"Sync completed\"
+            sleep 3
+            echo \"Final file verification before restart:\"
+            ls -la \"$TEST_FILE\" 2>/dev/null || echo \"File not found\"
+            wc -c \"$TEST_FILE\" 2>/dev/null || echo \"Cannot get file size\"
+            cat \"$TEST_FILE\" 2>/dev/null || echo \"Cannot read file\"
+          '"
+
+          # Wait additional time for any remaining buffer flushes (matching integration.yml)
+          echo "Waiting for buffer flush before restart..."
+          sleep 10
 
           # Restart machine
           echo "🔄 Restarting machine..."
@@ -329,8 +361,9 @@ jobs:
             exit 1
           fi
 
-          # Wait for machine to be ready again
-          sleep 10
+          # Wait for machine to restart and become ready (increased from 10s)
+          echo "Waiting for machine to restart and become ready..."
+          sleep 45
           wait_for_machine_ready "${{ steps.app-name.outputs.app_name }}"
 
           # Verify persistence with comprehensive check
