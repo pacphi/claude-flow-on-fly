@@ -184,7 +184,7 @@ jobs:
             echo "SSH attempt $attempt/$max_attempts..."
 
             # Test SSH connection with timeout using flyctl
-            if timeout 30 flyctl ssh console --app $app_name --command "echo 'SSH connection successful' && whoami && pwd" 2>/dev/null; then
+            if timeout 30 flyctl ssh console --app $app_name --command "/bin/bash -c 'echo \"SSH connection successful\" && whoami && pwd'" 2>/dev/null; then
               echo "✅ SSH connection successful"
               break
             else

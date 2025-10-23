@@ -13,6 +13,9 @@ on:
 env:
   FLY_API_TOKEN: ${{ secrets.FLYIO_AUTH_TOKEN }}
 
+permissions:
+  contents: read
+
 jobs:
   integration-test:
     runs-on: ubuntu-latest
@@ -305,7 +308,7 @@ jobs:
           TEST_DATA="persistence-test-$(date +%s)"
 
           if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
-            "echo '$TEST_DATA' > $TEST_FILE && cat $TEST_FILE"; then
+            "/bin/bash -c 'echo \"$TEST_DATA\" > $TEST_FILE && cat $TEST_FILE'"; then
             echo "✅ Volume write successful"
           else
             echo "❌ Volume write failed"
@@ -330,7 +333,7 @@ jobs:
           # Verify persistence
           echo "🔍 Verifying data persistence..."
           if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
-            "test -f $TEST_FILE && cat $TEST_FILE | grep -q '$TEST_DATA'"; then
+            "/bin/bash -c 'test -f $TEST_FILE && cat $TEST_FILE | grep -q \"$TEST_DATA\"'"; then
             echo "✅ Volume persistence confirmed"
           else
             echo "❌ Volume persistence test failed"
@@ -346,7 +349,7 @@ jobs:
 
           # Test extension-manager availability
           if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
-            "command -v extension-manager && extension-manager list"; then
+            "/bin/bash -c 'command -v extension-manager && extension-manager list'"; then
             echo "✅ Extension manager available"
           else
             echo "❌ Extension manager not found"
@@ -366,7 +369,7 @@ jobs:
 
           # Verify installation
           if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
-            "command -v node && node --version"; then
+            "/bin/bash -c 'command -v node && node --version'"; then
             echo "✅ Extension validation successful"
           else
             echo "❌ Extension validation failed"
