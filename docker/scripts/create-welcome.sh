@@ -5,7 +5,11 @@ set -e
 # Create welcome script in /etc/skel so it gets copied to the persistent home
 cat > /etc/skel/welcome.sh << 'EOF'
 #!/bin/bash
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🚀 Welcome to Sindri - Your AI-Powered Development Forge!"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 echo "📍 You are connected to: $(hostname)"
 echo "💾 Workspace: /workspace"
 echo "🔧 Available tools:"
@@ -27,6 +31,9 @@ echo "     • Install optional development tools"
 echo "  2. Authenticate Claude: claude"
 echo ""
 echo "💡 Tip: All your work should be in /workspace (persistent volume)"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 EOF
 
 chmod +x /etc/skel/welcome.sh

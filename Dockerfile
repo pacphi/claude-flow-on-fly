@@ -25,7 +25,10 @@ RUN mkdir -p /var/run/sshd && \
 # Setup bash environment for developer user
 RUN /docker/scripts/setup-bashrc.sh
 
-# Create welcome script for developer user
+# Setup MOTD banner (shown on every SSH login)
+RUN /docker/scripts/setup-motd.sh
+
+# Create welcome script for developer user (shown once on first login)
 RUN /docker/scripts/create-welcome.sh
 
 # Expose SSH port
