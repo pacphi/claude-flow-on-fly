@@ -333,16 +333,62 @@ jobs:
           sleep 10
           wait_for_machine_ready "${{ steps.app-name.outputs.app_name }}"
 
-          # Verify persistence
+          # Verify persistence with comprehensive check
           echo "🔍 Verifying data persistence..."
           echo "Looking for file: $TEST_FILE"
           echo "Expected content: $TEST_DATA"
 
-          if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
-            "/bin/bash -c 'test -f $TEST_FILE && grep -Fxq \"$TEST_DATA\" $TEST_FILE'"; then
-            echo "✅ Volume persistence confirmed"
+          # Use comprehensive verification (same as integration.yml)
+          verification_result=$(flyctl ssh console -a "${{ steps.app-name.outputs.app_name }}" -C "/bin/bash -c '
+            echo \"=== Post-Restart File Verification ===\"
+            if [ -f \"$TEST_FILE\" ]; then
+              echo \"✅ File exists\"
+              echo \"File metadata:\"
+              ls -la \"$TEST_FILE\"
+              echo \"File size: \$(wc -c < \"$TEST_FILE\") bytes\"
+              echo \"File content:\"
+              content=\$(cat \"$TEST_FILE\" 2>/dev/null)
+              if [ -n \"\$content\" ]; then
+                echo \"\$content\"
+                echo \"VERIFICATION_STATUS=SUCCESS\"
+              else
+                echo \"[EMPTY FILE]\"
+                echo \"VERIFICATION_STATUS=EMPTY\"
+              fi
+            else
+              echo \"❌ File missing\"
+              echo \"VERIFICATION_STATUS=MISSING\"
+            fi
+            echo \"=== End Verification ===\"
+          '")
+
+          echo "$verification_result"
+
+          if echo "$verification_result" | grep -q "VERIFICATION_STATUS=SUCCESS"; then
+            echo "✅ Test file exists with content after restart"
+
+            # Extract and verify content
+            actual_content=$(echo "$verification_result" | grep -A 1 "File content:" | tail -1)
+
+            if [ "$actual_content" = "$TEST_DATA" ]; then
+              echo "✅ Volume persistence confirmed - content matches perfectly"
+            else
+              echo "❌ File content mismatch:"
+              echo "  Expected: '$TEST_DATA'"
+              echo "  Actual:   '$actual_content'"
+              echo "  Expected length: ${#TEST_DATA}"
+              echo "  Actual length:   ${#actual_content}"
+              exit 1
+            fi
+          elif echo "$verification_result" | grep -q "VERIFICATION_STATUS=EMPTY"; then
+            echo "❌ File exists but is empty - filesystem sync failure"
+            echo "Debugging information:"
+            echo "$verification_result"
+            exit 1
           else
-            echo "❌ Volume persistence test failed"
+            echo "❌ Test file not found after restart"
+            echo "Debugging information:"
+            echo "$verification_result"
             exit 1
           fi
 
