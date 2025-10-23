@@ -1199,13 +1199,15 @@ jobs:
 
           echo "Activating extensions: $extensions"
 
-          IFS=',' read -ra EXT_ARRAY <<< "$extensions"
-
           flyctl ssh console --app $app_name --command "/bin/bash -c '
             cd /workspace/scripts/lib
             failed_extensions=()
 
-            for ext in ${EXT_ARRAY[@]}; do
+            # Split extensions inside SSH session where the array will be used
+            IFS=\",\" read -ra EXT_ARRAY <<< \"$extensions\"
+
+            for ext in \"\${EXT_ARRAY[@]}\"; do
+              ext=\$(echo \"\$ext\" | xargs)  # Trim whitespace
               echo \"Activating: \$ext\"
               if bash extension-manager.sh activate \$ext; then
                 echo \"✅ \$ext activated\"
