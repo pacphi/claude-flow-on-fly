@@ -141,29 +141,42 @@ jobs:
           # Machine readiness check with retry
           wait_for_machine_ready() {
             local app_name=$1
-            local max_attempts=30
+            local max_attempts=60  # 120 seconds total (increased from 30)
             local attempt=1
 
             echo "⏳ Waiting for machine to be ready..."
 
             while [ $attempt -le $max_attempts ]; do
-              if flyctl status -a "$app_name" 2>&1 | grep -q "running"; then
-                echo "✅ Machine is running"
+              # Capture status for logging
+              status_output=$(flyctl status -a "$app_name" 2>&1)
+
+              # Check for "started" (immediate deployment bypasses health checks)
+              if echo "$status_output" | grep -q "started"; then
+                echo "✅ Machine is started"
+                echo "$status_output"
+
+                # Give SSH daemon a moment to initialize
+                sleep 3
 
                 # Additional check: can we execute a simple command?
                 if timeout 15s flyctl ssh console -a "$app_name" -C "echo ready" &>/dev/null; then
                   echo "✅ Machine is responsive"
                   return 0
                 else
-                  echo "⚠️  Machine running but not responsive yet..."
+                  echo "⚠️  Machine started but not responsive yet (attempt $attempt/$max_attempts)..."
                 fi
+              else
+                # Log progress every 10 attempts to avoid spam
+                [ $((attempt % 10)) -eq 0 ] && echo "⏳ Still waiting... (attempt $attempt/$max_attempts)"
               fi
 
               sleep 2
               attempt=$((attempt + 1))
             done
 
-            echo "❌ Machine failed to become ready"
+            echo "❌ Machine failed to become ready after $max_attempts attempts"
+            echo "Final status:"
+            flyctl status -a "$app_name" 2>&1 || true
             return 1
           }
 
