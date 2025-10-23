@@ -62,6 +62,18 @@ if [ ! -f "/workspace/scripts/vm-configure.sh" ]; then
     chmod +x /workspace/scripts/vm-configure.sh
 fi
 
+# Create /workspace/bin directory and symlink extension-manager
+if [ ! -d "/workspace/bin" ]; then
+    mkdir -p /workspace/bin
+    chown developer:developer /workspace/bin
+fi
+
+# Create symlink for extension-manager if script exists and symlink doesn't
+if [ -f "/workspace/scripts/lib/extension-manager.sh" ] && [ ! -L "/workspace/bin/extension-manager" ]; then
+    ln -sf /workspace/scripts/lib/extension-manager.sh /workspace/bin/extension-manager
+    chown -h developer:developer /workspace/bin/extension-manager
+fi
+
 # Set up environment variables for developer user
 if [ -n "$ANTHROPIC_API_KEY" ]; then
     echo "export ANTHROPIC_API_KEY='$ANTHROPIC_API_KEY'" >> /workspace/developer/.bashrc

@@ -434,10 +434,21 @@ jobs:
 
           # Test extension-manager availability
           if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
-            "/bin/bash -c 'command -v extension-manager && extension-manager list'"; then
+            "/bin/bash -c 'cd /workspace/scripts/lib && bash extension-manager.sh list'"; then
             echo "✅ Extension manager available"
           else
             echo "❌ Extension manager not found"
+            exit 1
+          fi
+
+          # Test extension activation with retry
+          echo "🔍 Testing extension activation (nodejs)..."
+          if retry_with_backoff 3 10 60 \
+            flyctl ssh console -a "${{ steps.app-name.outputs.app_name }}" \
+              -C "/bin/bash -c 'cd /workspace/scripts/lib && bash extension-manager.sh activate nodejs 2>&1'"; then
+            echo "✅ Extension activation successful"
+          else
+            echo "❌ Extension activation failed"
             exit 1
           fi
 
@@ -445,16 +456,16 @@ jobs:
           echo "🔍 Testing extension installation (nodejs)..."
           if retry_with_backoff 3 10 60 \
             flyctl ssh console -a "${{ steps.app-name.outputs.app_name }}" \
-              -C "extension-manager install nodejs 2>&1"; then
+              -C "/bin/bash -c 'cd /workspace/scripts/lib && bash extension-manager.sh install nodejs 2>&1'"; then
             echo "✅ Extension installation successful"
           else
             echo "❌ Extension installation failed"
             exit 1
           fi
 
-          # Verify installation
+          # Verify installation - source NVM environment first
           if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
-            "/bin/bash -c 'command -v node && node --version'"; then
+            "/bin/bash -lc 'source ~/.nvm/nvm.sh 2>/dev/null && command -v node && node --version'"; then
             echo "✅ Extension validation successful"
           else
             echo "❌ Extension validation failed"
