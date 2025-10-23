@@ -8,8 +8,91 @@ All notable changes to this project will be documented in this file.
 
 All notable changes to this project will be documented in this file.
 
+All notable changes to this project will be documented in this file.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0-rc.1] - 2025-10-23
+
+### ✨ Features
+
+* feat: activate MOTD banner for SSH sessions (15cb617)
+* feat(extensions): add registry resilience and comprehensive documentation (5bf94da)
+* feat(ci,extensions): add timeouts and optimize CI diagnostics (96206f2)
+* feat(jvm): add Java 24 LTS support and set as default (cf0c1f2)
+* feat(extensions): migrate to manifest-based Extension API v1.0 system (0351cc1)
+* feat(extensions): standardize SSH environment configuration for non-interactive sessions (fa1014e)
+* feat!: rebrand to Sindri - AI-powered cloud development forge (79eef5c)
+* feat: add Agentic Flow integration for multi-model AI cost optimization (2bc5870)
+* feat: add cloud tools extension (cdccf49)
+
+### 🐛 Bug Fixes
+
+* fix(ci): make health check CI-mode aware to prevent deployment timeouts (fc19426)
+* fix(nodejs): remove npm prefix configuration incompatible with NVM (1f768e4)
+* fix(ci): resolve extension-manager path issues in integration-resilient workflow (5f5d399)
+* fix(ci): add explicit filesystem sync to prevent 0-byte file issue in integration-resilient (ef0ccde)
+* fix(ci): replace brittle grep check with comprehensive verification in integration-resilient (daf56ba)
+* fix(ci): replace $$ with timestamp for consistent test file naming in integration-resilient (0f43359)
+* fix(ci): use grep directly with literal string matching for persistence verification (5f8d9ff)
+* fix(ci): use explicit bash invocation for SSH commands to prevent shell parsing errors (8053630)
+* fix(ci): check for 'started' status instead of 'running' in readiness check (e3f08d3)
+* fix(ci): activate extensions inside SSH session for combination tests (d08ef28)
+* fix(ci): add missing app creation step in integration-resilient workflow (59c9172)
+* fix(ci): consolidate FLY_API_TOKEN and improve validation (0a62d93)
+* fix(php): resolve idempotency timeout issues in extension installation (b273473)
+* fix(extensions): improve installation reliability and idempotency (009f536)
+* fix(python): add timeouts and improved error handling for package installations (6bd9521)
+* fix(ci): improve extension test command validation and CI mode handling (b64247d)
+* fix(ci): improve machine lifecycle verification and error handling (18b8a5d)
+* fix: add disable swtiches for false-positive shellcheck violations (d5914a8)
+* fix(ci,extensions): optimize workflows and fix shell script robustness issues (51b53bd)
+* fix(ci): optimize extension tests and fix workflow reliability issues (de721b7)
+* fix(extension-manager): quote variable expansion in for loop glob (7619f4c)
+* fix(extensions): complete call_extension_function implementation (eb90da7)
+* fix(ci): extensions test workflow stability (36af60b)
+* fix(extensions): ensure commands available in non-interactive SSH sessions for CI tests (394f95e)
+* fix(ci): resolve extension test failures and improve workflow reliability (80c2894)
+
+### 📚 Documentation
+
+* docs: add release process and versioning guide (628d13b)
+* docs: Add MOTD logo to README (db59dc4)
+* docs: improve setup workflow and extension management documentation (f26f895)
+* docs: remove premature release details (17fff57)
+* docs: add extension tests workflow badge to README (cfb04de)
+* docs: improve documentation structure and enhance extension system (72697ed)
+* docs: Add Agentic Flow to README project description (d42be20)
+* docs: update CHANGELOG.md for v1.0.0-beta.2 (dffe6e9)
+
+### 📦 Dependencies
+
+* ci(deps): bump github/codeql-action from 3 to 4 (fb2ec2c)
+
+### 🔧 Other Changes
+
+* refactor: update registry-retry.sh path references after relocation (41bd22f)
+* ci: add fly.toml preparation step before deployment (cd2bb12)
+* chore(infra): migrate to sjc region and improve CI reliability (b4a18c9)
+* perf(ci): optimize extension tests with resource upgrades and reliability improvements (ce81a42)
+* ci: optimize integration workflow with path filtering and remove debug logs (18d0418)
+* perf(ci): optimize extension tests with CI_MODE support - 67% faster (06d193f)
+* refactor: consolidate extension system and add AI tools integration (ea3dd47)
+
+
+### 📦 Installation
+
+To use this version:
+
+```bash
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.0.0-rc.1
+./scripts/vm-setup.sh --app-name my-sindri-dev
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.0.0-beta.2...v1.0.0-rc.1
 
 ## [1.0.0-beta.2] - 2025-09-30
 
