@@ -333,7 +333,7 @@ jobs:
           # Verify persistence
           echo "🔍 Verifying data persistence..."
           if ssh_command_retry "${{ steps.app-name.outputs.app_name }}" \
-            "/bin/bash -c 'test -f $TEST_FILE && cat $TEST_FILE | grep -q \"$TEST_DATA\"'"; then
+            "/bin/bash -c 'test -f $TEST_FILE && grep -Fxq \"$TEST_DATA\" $TEST_FILE'"; then
             echo "✅ Volume persistence confirmed"
           else
             echo "❌ Volume persistence test failed"
